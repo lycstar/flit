@@ -12,6 +12,7 @@ class AppearancePreferences extends ChangeNotifier {
   String editorTheme = 'dark'; // dark | light
   bool editorWrap = true; // 软换行(false = 长行横向滚动)
   bool editorCodeKeys = true; // 代码虚拟键盘(压制系统软键盘)
+  bool backgroundNoticeShown = false;
   bool adbPaired = false; // 曾完成无线配对，不代表系统仍保留授权
   String adbHost = '127.0.0.1'; // 最近一次 adb 连接的主机(本机/局域网)
   String adbConnectPort = ''; // 上次成功连接的端口(无线调试不重开就不变, 自动重连先试它)
@@ -39,6 +40,7 @@ class AppearancePreferences extends ChangeNotifier {
         editorTheme = data['editorTheme'] as String? ?? 'dark';
         editorWrap = data['editorWrap'] as bool? ?? true;
         editorCodeKeys = data['editorCodeKeys'] as bool? ?? true;
+        backgroundNoticeShown = data['backgroundNoticeShown'] as bool? ?? false;
         adbPaired = data['adbPaired'] as bool? ?? false;
         adbHost = data['adbHost'] as String? ?? '127.0.0.1';
         adbConnectPort = data['adbConnectPort'] as String? ?? '';
@@ -57,6 +59,7 @@ class AppearancePreferences extends ChangeNotifier {
     String? theme,
     bool? wrap,
     bool? codeKeys,
+    bool? backgroundNoticeShown,
     bool? adbPaired,
     String? adbHost,
     String? adbConnectPort,
@@ -65,6 +68,8 @@ class AppearancePreferences extends ChangeNotifier {
     await load();
     editorSize = editor ?? editorSize;
     terminalSize = terminal ?? terminalSize;
+    this.backgroundNoticeShown =
+        backgroundNoticeShown ?? this.backgroundNoticeShown;
     this.adbPaired = adbPaired ?? this.adbPaired;
     this.adbHost = adbHost ?? this.adbHost;
     this.adbConnectPort = adbConnectPort ?? this.adbConnectPort;
@@ -82,6 +87,7 @@ class AppearancePreferences extends ChangeNotifier {
       'editorTheme': editorTheme,
       'editorWrap': editorWrap,
       'editorCodeKeys': editorCodeKeys,
+      'backgroundNoticeShown': this.backgroundNoticeShown,
       'adbPaired': this.adbPaired,
       'adbHost': this.adbHost,
       'adbConnectPort': this.adbConnectPort,

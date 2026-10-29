@@ -174,6 +174,16 @@ void main() {
     expect(find.byType(EditorPage), findsNothing, reason: '关闭项目后页面应退出');
   }
 
+  testWidgets('opens main without waiting for project file listing', (
+    tester,
+  ) async {
+    listing = '';
+    await open(tester);
+    expect(find.byType(CodeField), findsOneWidget);
+    expect(tester.widget<TextField>(field()).controller!.text, source);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets(
     'opening project drawer refreshes files without a filter or manual refresh',
     (tester) async {

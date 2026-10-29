@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
+import '../../services/background_access.dart';
 import '../editor/editor_page.dart';
 import '../environment/environment_page.dart';
 import '../environment/environment_status.dart';
@@ -33,7 +34,7 @@ class _WorkbenchPageState extends State<WorkbenchPage> {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted && !_autoOpened) {
                 _autoOpened = true;
-                _openEnvironment();
+                _initialize();
               }
             });
           }
@@ -42,6 +43,11 @@ class _WorkbenchPageState extends State<WorkbenchPage> {
           if (!mounted) return;
           setState(() => _bootstrapped = false);
         });
+  }
+
+  Future<void> _initialize() async {
+    await BackgroundAccess.explain(context);
+    if (mounted) await _openEnvironment();
   }
 
   Future<void> _openEnvironment() async {

@@ -70,7 +70,6 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
   final _editorFocus = FocusNode();
   bool _loadingFile = false;
   int _fileSeq = 0;
-  bool _openedDefault = false;
   int _gitRevision = 0;
   StreamSubscription<String>? _artifacts;
 
@@ -86,6 +85,7 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
     _artifacts = _project.actions.builtArtifacts.listen(_openFileByPath);
     WidgetsBinding.instance.addObserver(this);
     _refreshFiles();
+    if (_tabs.isEmpty) unawaited(_openFileByPath('lib/main.dart'));
     _editorFocus.addListener(_onFocusChanged);
     unawaited(_project.activate());
   }
@@ -172,19 +172,6 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
       return;
     }
     if (!mounted) return;
-    final files = _project.files.files;
-    // 首次进页且没有打开项时自动开入口文件: lib/main.dart > lib 下首个 dart > README.md
-    // (只做一次: 用户关掉所有 tab 后, 后续 git 等触发的刷新不许再把它开回来)
-    if (!_openedDefault && _tabs.isEmpty && files.isNotEmpty) {
-      _openedDefault = true;
-      final def = files.contains('lib/main.dart')
-          ? 'lib/main.dart'
-          : files.firstWhere(
-              (f) => f.startsWith('lib/') && f.endsWith('.dart'),
-              orElse: () => files.contains('README.md') ? 'README.md' : '',
-            );
-      if (def.isNotEmpty) _openFileByPath(def);
-    }
   }
 
   /// 打开一个文件到 tab: 代码进编辑器缓冲, 图片/二进制开文件卡;
