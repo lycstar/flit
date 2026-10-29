@@ -17,11 +17,18 @@ class EditorDockToolbar extends StatelessWidget {
     required this.onCode,
     required this.onPreview,
     required this.onTerminal,
+    this.markdownAvailable = false,
+    this.markdownPreview = false,
+    this.onMarkdown,
   });
 
   final CodeController controller;
   final bool previewAvailable, showPreview, terminalExpanded, canEdit;
   final VoidCallback onCode, onPreview, onTerminal;
+
+  /// 当前缓冲是 markdown 时出现, 切编辑缓冲 ↔ 渲染预览
+  final bool markdownAvailable, markdownPreview;
+  final VoidCallback? onMarkdown;
 
   Widget _tab(String label, bool selected, VoidCallback action) => TextButton(
     onPressed: action,
@@ -49,7 +56,9 @@ class EditorDockToolbar extends StatelessWidget {
             height: 44,
             child: Row(
               children: [
-                _tab('代码', !showPreview, onCode),
+                _tab('代码', !showPreview && !markdownPreview, onCode),
+                if (markdownAvailable)
+                  _tab('MD', markdownPreview, onMarkdown ?? () {}),
                 if (previewAvailable) _tab('预览', showPreview, onPreview),
                 const SizedBox(width: 4),
                 WorkbenchButton(

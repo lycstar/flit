@@ -36,6 +36,7 @@ void main() {
   const result =
       '{"result":[{"label":"State","kind":7,"detail":"State<T extends StatefulWidget>"},{"label":"StatefulWidget","kind":7,"detail":"abstract class StatefulWidget extends Widget"},{"label":"StatelessWidget","kind":7,"detail":"abstract class StatelessWidget extends Widget"}]}';
   var diskSource = source;
+  var mdSource = '# Flit README\n\n- item one\n';
   var listing = 'lib/main.dart\nlib/other.dart';
 
   setUpAll(() async {
@@ -57,6 +58,7 @@ void main() {
     notifications.clear();
     failSave = false;
     diskSource = source;
+    mdSource = '# Flit README\n\n- item one\n';
     listing = 'lib/main.dart\nlib/other.dart';
     messenger.setMockMethodCallHandler(
       const MethodChannel('flit/lspEvents'),
@@ -113,7 +115,11 @@ void main() {
               'exitCode': 0,
               'output': base64.encode(
                 utf8.encode(
-                  cmd.contains('other.dart') ? 'otherFile' : diskSource,
+                  cmd.contains('other.dart')
+                      ? 'otherFile'
+                      : cmd.contains('readme.md')
+                      ? mdSource
+                      : diskSource,
                 ),
               ),
             };
@@ -541,6 +547,25 @@ void main() {
     },
   );
 
+  testWidgets('markdown files toggle a rendered preview', (tester) async {
+    listing = 'lib/main.dart\nreadme.md';
+    final project = ProjectSession('/project', launcher: services.launcher);
+    await open(tester, session: project);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    openFromDrawer(tester, 'readme.md');
+    await tester.pumpAndSettle();
+    expect(find.text('MD'), findsOneWidget);
+    await tester.tap(find.text('MD'));
+    await tester.pumpAndSettle();
+    expect(find.text('Flit README'), findsOneWidget);
+    expect(find.text('item one'), findsOneWidget);
+    await tester.tap(find.text('代码'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CodeField), findsOneWidget);
+    await closeSession(tester, project);
+  });
   testWidgets('binary files open as a file card instead of the editor', (
     tester,
   ) async {

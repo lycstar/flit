@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import 'controller/code_controller.dart';
 import 'file_kind.dart';
 import 'widgets/editor_dock_toolbar.dart';
+import 'widgets/markdown_preview.dart';
 import 'widgets/editor_file_tabs.dart';
 import 'widgets/editor_surface.dart';
 import 'widgets/editor_run_controls.dart';
@@ -67,8 +68,19 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
 
   /// 当前 tab 的相对路径(代码或文件卡)
   String? get _openFile => _current?.path;
+
+  /// 当前代码缓冲是 markdown(.md/.markdown)时, 工具栏出现 MD 预览切换
+  bool get _markdownOpen => switch (_current) {
+    CodeTab(:final path) =>
+      path.toLowerCase().endsWith('.md') ||
+      path.toLowerCase().endsWith('.markdown'),
+    _ => false,
+  };
   final _editorFocus = FocusNode();
   bool _loadingFile = false;
+
+  /// markdown 缓冲的渲染预览开关; 换 tab/换文件即复位
+  bool _mdPreview = false;
   int _fileSeq = 0;
   int _gitRevision = 0;
   StreamSubscription<String>? _artifacts;
@@ -227,6 +239,7 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
   Future<void> _selectTab(OpenItem item) async {
     if (identical(_current, item)) return;
     if (item is CodeTab) {
+      setState(() => _mdPreview = false);
       // 重选代码 tab 走同一条打开路径: 干净缓冲顺便和磁盘重新同步
       await _openFileByPath(item.path, asText: true);
     } else {
@@ -420,12 +433,19 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
                       Positioned.fill(
                         child: switch (_current) {
                           null => _emptyHint(),
-                          CodeTab(:final document) => EditorSurface(
-                            key: ValueKey(_currentPath()),
-                            controller: document.controller,
-                            path: _currentPath()!,
-                            focusNode: _editorFocus,
-                          ),
+                          CodeTab(:final document) =>
+                            _markdownOpen && _mdPreview
+                                ? MarkdownPreview(
+                                    key: ValueKey('md:${_currentPath()}'),
+                                    controller: document.controller,
+                                    projectRoot: widget.projectPath,
+                                  )
+                                : EditorSurface(
+                                    key: ValueKey(_currentPath()),
+                                    controller: document.controller,
+                                    path: _currentPath()!,
+                                    focusNode: _editorFocus,
+                                  ),
                           FileTab(:final path, :final kind) => FileCard(
                             key: ValueKey('file:$path'),
                             projectRoot: widget.projectPath,
@@ -451,7 +471,8 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
                     hasPreview: web.state != WebRunState.idle,
                   );
                   return TerminalHost(
-                    expanded: layout.terminalExpanded && !editing,
+                    // MD 预览与编辑同样不自动弹终端
+                    expanded: layout.terminalExpanded && !editing && !_mdPreview,
                     onToggle: _toggleTerminal,
                     footer: EditorDockToolbar(
                       controller: _codeCtrl,
@@ -459,8 +480,15 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
                           runTarget == 'web' || web.state != WebRunState.idle,
                       showPreview: layout.showPreview,
                       terminalExpanded: layout.terminalExpanded && !editing,
-                      canEdit: !layout.showPreview && _current is CodeTab,
-                      onCode: () => _layout.selectView(preview: false),
+                      markdownAvailable: _markdownOpen,
+                      markdownPreview: _mdPreview,
+                      onMarkdown: () => setState(() => _mdPreview = !_mdPreview),
+                      canEdit:
+                          !layout.showPreview && !_mdPreview && _current is CodeTab,
+                      onCode: () {
+                        setState(() => _mdPreview = false);
+                        _layout.selectView(preview: false);
+                      },
                       onPreview: () => _layout.selectView(preview: true),
                       onTerminal: _toggleTerminal,
                     ),
