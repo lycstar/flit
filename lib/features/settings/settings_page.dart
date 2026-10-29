@@ -201,7 +201,7 @@ class _SettingsPageState extends State<SettingsPage>
             _link(
               Icons.code,
               '编辑器设置',
-              '字体 · 配色方案 · 软换行 · 代码键盘',
+              '字体 · 配色方案 · 软换行',
               const EditorSettingsPage(),
             ),
             SettingsSlider(

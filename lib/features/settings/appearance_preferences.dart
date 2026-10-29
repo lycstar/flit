@@ -11,7 +11,6 @@ class AppearancePreferences extends ChangeNotifier {
   double terminalSize = 13;
   String editorTheme = 'dark'; // dark | light
   bool editorWrap = true; // 软换行(false = 长行横向滚动)
-  bool editorCodeKeys = true; // 代码虚拟键盘(压制系统软键盘)
   bool backgroundNoticeShown = false;
   bool adbPaired = false; // 曾完成无线配对，不代表系统仍保留授权
   String adbHost = '127.0.0.1'; // 最近一次 adb 连接的主机(本机/局域网)
@@ -39,7 +38,6 @@ class AppearancePreferences extends ChangeNotifier {
         );
         editorTheme = data['editorTheme'] as String? ?? 'dark';
         editorWrap = data['editorWrap'] as bool? ?? true;
-        editorCodeKeys = data['editorCodeKeys'] as bool? ?? true;
         backgroundNoticeShown = data['backgroundNoticeShown'] as bool? ?? false;
         adbPaired = data['adbPaired'] as bool? ?? false;
         adbHost = data['adbHost'] as String? ?? '127.0.0.1';
@@ -58,7 +56,6 @@ class AppearancePreferences extends ChangeNotifier {
     double? terminal,
     String? theme,
     bool? wrap,
-    bool? codeKeys,
     bool? backgroundNoticeShown,
     bool? adbPaired,
     String? adbHost,
@@ -79,14 +76,12 @@ class AppearancePreferences extends ChangeNotifier {
       _applyTheme();
     }
     editorWrap = wrap ?? editorWrap;
-    editorCodeKeys = codeKeys ?? editorCodeKeys;
     notifyListeners();
     final data = jsonEncode({
       'editorSize': editorSize,
       'terminalSize': terminalSize,
       'editorTheme': editorTheme,
       'editorWrap': editorWrap,
-      'editorCodeKeys': editorCodeKeys,
       'backgroundNoticeShown': this.backgroundNoticeShown,
       'adbPaired': this.adbPaired,
       'adbHost': this.adbHost,

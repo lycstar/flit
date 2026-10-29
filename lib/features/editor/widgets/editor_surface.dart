@@ -346,7 +346,6 @@ class _EditorSurfaceState extends State<EditorSurface> {
                         },
                         fontSize: preferences.editorSize,
                         wrap: preferences.editorWrap,
-                        suppressSystemKeyboard: preferences.editorCodeKeys,
                       ),
                     ),
                     if (_buildCompletionPopup(context, constraints)

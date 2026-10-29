@@ -99,19 +99,6 @@ class _EditorSettingsPageState extends State<EditorSettingsPage> {
               value: preferences.editorWrap,
               onChanged: (v) => _apply((p) => p.update(wrap: v)),
             ),
-            const Divider(height: 1),
-            SwitchListTile(
-              title: const Text('代码键盘'),
-              subtitle: Text(
-                preferences.editorCodeKeys ? '使用内置代码键盘，不显示系统键盘' : '使用系统键盘',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              value: preferences.editorCodeKeys,
-              onChanged: (v) => _apply((p) => p.update(codeKeys: v)),
-            ),
           ]),
         ],
       ),

@@ -51,7 +51,6 @@ void main() {
   });
 
   setUp(() {
-    services.preferences.editorCodeKeys = false;
     pendingCompletion = null;
     methods.clear();
     commands.clear();

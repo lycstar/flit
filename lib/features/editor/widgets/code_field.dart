@@ -21,7 +21,6 @@ class CodeField extends StatefulWidget {
     this.filePath,
     this.language,
     this.wrap = true,
-    this.suppressSystemKeyboard = false,
   });
 
   /// 换行策略: true = 软换行(默认); false = 长行横向滚动(每逻辑行单行)
@@ -29,7 +28,6 @@ class CodeField extends StatefulWidget {
 
   /// true = keyboardType.none: 输入连接保持(外接键盘可用)但软键盘不弹,
   /// 配合应用内代码虚拟键盘
-  final bool suppressSystemKeyboard;
   final CodeController controller;
   final ScrollController? scrollController;
   final FocusNode? focusNode;
@@ -387,11 +385,8 @@ class _CodeFieldState extends State<CodeField> {
                         expands: true,
                         textAlignVertical: TextAlignVertical.top,
                         // Keep editing, selection and hardware keys enabled.
-                        // Flutter's Android input plugin hides IME for NONE.
                         readOnly: widget.controller.editingLocked,
-                        keyboardType: widget.suppressSystemKeyboard
-                            ? TextInputType.none
-                            : TextInputType.multiline,
+                        keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.newline,
                         // 不关 autocorrect/enableSuggestions: 这个组合会被 MIUI 判成
                         // 安全输入场景, 强制弹系统「安全键盘」(第三方输入法失效)
