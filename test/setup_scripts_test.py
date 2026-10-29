@@ -43,6 +43,12 @@ class SetupScriptsTests(unittest.TestCase):
         self.write_exec(self.tools / 'dpkg', '#!/bin/sh\nexit 0\n')
         self.write_exec(self.tools / 'dpkg-query', '#!/bin/sh\nexit 1\n')
         self.curl_calls = []
+        for command in ('mv',):
+            gnu = shutil.which('g' + command)
+            if gnu:
+                (self.tools / command).symlink_to(gnu)
+        (self.prefix / 'opt/flutter/3.47.7').mkdir(parents=True)
+        (self.prefix / 'opt/flutter/current').symlink_to('3.47.7')
 
     def write_exec(self, path, body):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -124,7 +130,7 @@ exit %d
         for text in ('https://test/missing', 'curl: HTTP 404',
                      '__STAGE__flutter_sdk:RUNNING', '__STAGE__flutter_sdk:DONE'):
             self.assertIn(text, result.stdout)
-        self.assertEqual(self.marker(self.prefix / 'opt/flutter').read_text().strip(),
+        self.assertEqual(self.marker(self.prefix / 'opt/flutter/current').read_text().strip(),
                          hashlib.sha256(Path(self.env['TEST_ARCHIVE']).read_bytes()).hexdigest())
         # 安装包在标记落盘后删除
         self.assertFalse((self.tmp / 'flutter-sdk.tar.xz').exists())
@@ -133,7 +139,7 @@ exit %d
         self.flutter_archive()
         sha = hashlib.sha256(Path(self.env['TEST_ARCHIVE']).read_bytes()).hexdigest()
         # 半截解压现场: 目录在(bin/ 早于 packages/ 出现在归档序), 无标记; 缓存包在
-        flutter = self.prefix / 'opt/flutter'
+        flutter = self.prefix / 'opt/flutter/current'
         (flutter / 'bin').mkdir(parents=True)
         self.write_exec(flutter / 'bin/flutter', '#!/bin/sh\nexit 0\n')
         shutil.copyfile(self.env['TEST_ARCHIVE'], self.tmp / 'flutter-sdk.tar.xz')
@@ -145,7 +151,7 @@ exit %d
 
     def test_flutter_sdk_skips_when_marker_matches(self):
         self.flutter_archive()
-        flutter = self.prefix / 'opt/flutter'
+        flutter = self.prefix / 'opt/flutter/current'
         (flutter / 'bin').mkdir(parents=True)
         self.write_exec(flutter / 'bin/flutter', '#!/bin/sh\nexit 0\n')
         self.marker(flutter).write_text(
@@ -155,19 +161,51 @@ exit %d
         self.assertIn('跳过下载与解压', result.stdout)
         self.assertNotIn('curl ', (self.root / 'curl-calls').read_text())
 
-    def test_flutter_sdk_reinstalls_when_manifest_sha_changes(self):
+    def test_flutter_sdk_default_keeps_selected_version_when_manifest_changes(self):
         self.flutter_archive()
-        flutter = self.prefix / 'opt/flutter'
-        (flutter / 'bin').mkdir(parents=True)
+        flutter = self.prefix / 'opt/flutter/current'
         self.write_exec(flutter / 'bin/flutter', '#!/bin/sh\nexit 0\n')
-        (flutter / 'packages/flutter_tools').mkdir(parents=True)
-        self.marker(flutter).write_text('0' * 64 + '\n')  # 旧清单的标记
+        self.marker(flutter).write_text('0' * 64 + '\n')
         result = self.run_script('flutter_sdk.sh')
         self.assertEqual(result.returncode, 0, result.stdout)
-        # 结构完整也不能认领: 标记 sha 不一致 = 清单升级, 必须重装并写入新标记
-        self.assertIn('curl ', (self.root / 'curl-calls').read_text())
-        self.assertEqual(self.marker(flutter).read_text().strip(),
-                         hashlib.sha256(Path(self.env['TEST_ARCHIVE']).read_bytes()).hexdigest())
+        self.assertNotIn('curl ', (self.root / 'curl-calls').read_text())
+        self.assertEqual(self.marker(flutter).read_text().strip(), '0' * 64)
+
+    def test_flutter_versions_coexist_and_switch_without_redownload(self):
+        self.flutter_archive()
+        sha = hashlib.sha256(Path(self.env['TEST_ARCHIVE']).read_bytes()).hexdigest()
+        for version in ('3.47.7', '3.48.0'):
+            result = self.run_script('flutter_sdk.sh', '--release', 'https://test/sdk', sha, version)
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertTrue(self.marker(self.prefix / f'opt/flutter/{version}').exists())
+        calls = (self.root / 'curl-calls').read_text()
+        result = self.run_script('flutter_sdk.sh', '--release', 'https://test/sdk', sha, '3.47.7')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual((self.prefix / 'opt/flutter/current').readlink(), Path('3.47.7'))
+        self.assertEqual((self.root / 'curl-calls').read_text(), calls)
+
+    def test_legacy_flutter_install_is_moved_without_downloading(self):
+        self.flutter_archive()
+        base = self.prefix / 'opt/flutter'
+        shutil.rmtree(base)
+        self.write_exec(base / 'bin/flutter', '#!/bin/sh\nexit 0\n')
+        (base / 'version').write_text('3.47.6\n')
+        self.marker(base).write_text('a' * 64 + '\n')
+        result = self.run_script('flutter_sdk.sh')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual((base / 'current').readlink(), Path('3.47.6'))
+        self.assertTrue((base / '3.47.6/bin/flutter').exists())
+        self.assertEqual((self.root / 'curl-calls').read_text(), '')
+
+    def test_failed_flutter_install_preserves_current_sdk(self):
+        self.flutter_archive()
+        result = self.run_script('flutter_sdk.sh')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        marker = self.marker(self.prefix / 'opt/flutter/current').read_text()
+        result = self.run_script('flutter_sdk.sh', '--release', 'https://test/sdk', '0' * 64, '3.48.0')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((self.prefix / 'opt/flutter/current').readlink(), Path('3.47.7'))
+        self.assertEqual(self.marker(self.prefix / 'opt/flutter/current').read_text(), marker)
 
     def test_download_resumes_from_partial_part(self):
         """断点续传: .part 前半截 + stub 从既有偏移补齐 → 完整文件过校验, 不重下整包"""
@@ -199,7 +237,7 @@ exit %d
         result = self.run_script('flutter_sdk.sh')
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('FAILED', result.stdout)
-        self.assertFalse((self.prefix / 'opt/flutter').exists())
+        self.assertFalse(self.marker(self.prefix / 'opt/flutter/current').exists())
         self.assertFalse((self.tmp / 'flutter-sdk.tar.xz.part').exists())
 
     def test_real_curl_follows_release_redirect_before_checksum(self):
@@ -264,7 +302,7 @@ assert not pathlib.Path(out).exists(), 'corrupt partial must be removed'
 
     def installed_flutter_stub(self, exit_code=0):
         """3-1 的产物: 已落位的 SDK(与 flutter_archive 同一份桩)。"""
-        self.write_exec(self.prefix / 'opt/flutter/bin/flutter', '''#!/bin/sh
+        self.write_exec(self.prefix / 'opt/flutter/current/bin/flutter', '''#!/bin/sh
 echo call >> "$HOME/flutter-calls"
 echo 'Downloading Dart SDK...' >&2
 echo 'Flutter 3.47.7 • channel stable'
@@ -337,9 +375,9 @@ exit %d
         sha = hashlib.sha256(Path(self.env['TEST_ARCHIVE']).read_bytes()).hexdigest()
         original = "FLUTTER_URLS=('https://test/default')\nFLUTTER_SHA256='default-hash'\n"
         self.config.write_text(original)
-        result = self.run_script('flutter_sdk.sh', '--release', 'https://test/selected', sha)
+        result = self.run_script('flutter_sdk.sh', '--release', 'https://test/selected', sha, '3.47.7')
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertEqual(self.marker(self.prefix / 'opt/flutter').read_text().strip(), sha)
+        self.assertEqual(self.marker(self.prefix / 'opt/flutter/current').read_text().strip(), sha)
         self.assertEqual(self.config.read_text(), original)
         result = self.run_script('flutter_sdk.sh', '--check')
         self.assertIn('__STAGE__flutter_sdk:DONE', result.stdout)

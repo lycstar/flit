@@ -31,6 +31,8 @@ bootstrap 和 APT 软件包必须为 `/data/data/cc.lycstar.flit/files/usr` 构�
 
 版本目录安装直接使用 GitHub Release 资产的 `digest`（SHA-256），不写回内置清单，也不另存一份远程校验清单。缺少有效 SHA-256 的资产拒绝安装。SDK 和 Flutter 复用默认安装脚本；NDK 按 `Pkg.Revision` 并存。
 
+Flutter SDK 存放于 `$PREFIX/opt/flutter/<版本>/`，`current` 相对软链接指向当前版本。终端、分析器和初始化脚本统一使用 `current`；`FLUTTER_ROOT` 与 PATH 指向该入口。版本目录同时显示本地已安装版本，可离线切换。切换前须关闭项目，工作台终端会停止，新打开的终端使用当前版本。安装先在临时目录解压并完成配置，成功后才替换 `current`，失败保留原版；默认初始化不会切回内置版本。旧单版本安装首次执行安装步骤时整体迁入版本目录，保留缓存。旧版本不会自动删除。
+
 显式设为空字符串的目录不发出请求；页面会区分未配置、请求失败和无匹配版本。只配置经过兼容性验证的仓库；匿名下载不支持私有资产，不能把个人令牌写进应用。安装目录和资产名模式见 `ToolchainCatalog.components`。
 
 ## 发布验证

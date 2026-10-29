@@ -83,7 +83,8 @@ export GRADLE_USER_HOME="\$HOME/.gradle"
 # PATH 必须在 JAVA_HOME 之后(flutter 需要它); platform-tools 提供 SDK 内 adb
 _flit_prepend PATH "\$ANDROID_HOME/platform-tools"
 _flit_prepend PATH "\$JAVA_HOME/bin"
-_flit_prepend PATH "\$PREFIX/opt/flutter/bin"
+export FLUTTER_ROOT="\$PREFIX/opt/flutter/current"
+_flit_prepend PATH "\$FLUTTER_ROOT/bin"
 unset -f _flit_prepend
 export TMPDIR="\$PREFIX/tmp"
 # flutter/dart 首次需要联网拉取工件与依赖, 走国内镜像(官方源直连不可达)
@@ -101,6 +102,7 @@ NDK_URLS=(${urls(ndk)})
 NDK_SHA256="${sha(ndk, 'sha256')}"
 FLUTTER_URLS=(${urls(flt)})
 FLUTTER_SHA256="${sha(flt, 'sha256')}"
+FLUTTER_VERSION="${flt['sdkVersion']}"
 # APT 源由需要安装软件包的阶段脚本在安装动作开始时配置。
 # source env.sh 只注入环境变量，避免打开终端、查看状态或运行 ADB 时改写系统配置。
 export FLIT_APT_SOURCE='${(root['aptSource'] as String? ?? '').replaceAll("'", "'\\''")}'

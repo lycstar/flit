@@ -35,11 +35,12 @@
       ]
     },
     "flutter-sdk": {
+      "sdkVersion": "3.47.7",
       "version": "flutter-3.47.7-aarch64-linux-android.tar.xz",
       "url": "https://github.com/lycstar/flutter-sdk-custom/releases/download/3.47.7/flutter-3.47.7-aarch64-linux-android.tar.xz",
       "sha256": "bb831aeed683e2b725e2c107864df81b69a22bc9c42efc3d4a4868a70e2af05a",
       "size": 647245244,
-      "install": "$PREFIX/opt/flutter",
+      "install": "$PREFIX/opt/flutter/<version>",
       "note": "自建 Flutter SDK (fork CI: engine 交叉编译 + deb→tarball)",
       "urls": [
         "https://github.com/lycstar/flutter-sdk-custom/releases/download/3.47.7/flutter-3.47.7-aarch64-linux-android.tar.xz"

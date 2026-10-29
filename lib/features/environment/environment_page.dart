@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
+import '../terminal/pty_session.dart';
+import '../workspace/project_session.dart';
 import '../../core/page_layout.dart';
 import '../environment/environment_controller.dart';
 import '../environment/widgets/stage_timeline.dart';
@@ -77,7 +79,20 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
                   const SizedBox(height: 12),
                   ToolchainVersionsSection(
                     catalog: context.read<ToolchainCatalog>(),
-                    onInstall: env.installFromCatalog,
+                    onInstall: (entry) async {
+                      if (entry.component == 'flutter-sdk') {
+                        if (context.read<ProjectWorkspace>().active != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('请先关闭项目，再切换 Flutter SDK'),
+                            ),
+                          );
+                          return;
+                        }
+                        await context.read<PtySession>().stop();
+                      }
+                      await env.installFromCatalog(entry);
+                    },
                     installing: env.installing,
                   ),
                 ],

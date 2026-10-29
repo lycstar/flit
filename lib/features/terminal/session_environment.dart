@@ -32,8 +32,9 @@ Map<String, String> sessionEnvironment(
     }
   }
   // 工具链就绪的组件才注入(与安装阶段检测一致)
-  if (File('$prefix/opt/flutter/bin/flutter').existsSync()) {
-    env['PATH'] = '$prefix/opt/flutter/bin:${env['PATH']}';
+  if (File('$prefix/opt/flutter/current/bin/flutter').existsSync()) {
+    env['FLUTTER_ROOT'] = '$prefix/opt/flutter/current';
+    env['PATH'] = '$prefix/opt/flutter/current/bin:${env['PATH']}';
   }
   final jdk = '$prefix/lib/jvm/java-17-openjdk';
   if (File('$jdk/bin/java').existsSync()) {

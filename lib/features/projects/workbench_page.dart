@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../../services/background_access.dart';
 import '../editor/editor_page.dart';
 import '../environment/environment_page.dart';
+import '../environment/environment_controller.dart';
 import '../environment/environment_status.dart';
 import '../settings/settings_page.dart';
 import '../workspace/project_session.dart';
@@ -86,6 +87,12 @@ class _WorkbenchPageState extends State<WorkbenchPage> {
       environmentReady: _bootstrapped!,
       onOpenProject: (path) async {
         try {
+          if (context.read<EnvironmentController>().installing) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('工具链正在安装，请完成后再打开项目')));
+            return;
+          }
           final project = await context.read<ProjectWorkspace>().open(path);
           if (!mounted) return;
           await Navigator.of(this.context).push(

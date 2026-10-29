@@ -20,6 +20,7 @@ fi
 # 阶段变量兜底(旧版 env.sh 缺字段时防 set -u 中断; 正常由 app 生成完整 env.sh)
 : "${SDK_SHA256:=}"; : "${NDK_SHA256:=}"
 : "${FLUTTER_SHA256:=}"
+: "${FLUTTER_VERSION:=3.47.7}"
 
 # curl 的证书查找路径编译期烧死外部前缀, 重定向到本环境证书(HTTPS 必需)
 if [ -f "$PREFIX/etc/tls/cert.pem" ]; then
@@ -73,10 +74,10 @@ stage_main() {
   case "${1:-}" in
     --check) probe ;;
     --release)
-      [ "$#" = 3 ] || die '安装版本需要下载地址和 SHA-256'
+      [ "$#" -ge 3 ] || die '安装版本需要下载地址和 SHA-256'
       case "$STAGE" in
         android_sdk) SDK_URLS=("$2"); SDK_SHA256=$3 ;;
-        flutter_sdk) FLUTTER_URLS=("$2"); FLUTTER_SHA256=$3 ;;
+        flutter_sdk) FLUTTER_URLS=("$2"); FLUTTER_SHA256=$3; FLUTTER_VERSION=${4:?缺少版本号} ;;
         *) die '该组件不支持版本切换' ;;
       esac
       st "$STAGE" RUNNING

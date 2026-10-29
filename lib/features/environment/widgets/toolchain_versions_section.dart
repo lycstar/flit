@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
+import '../../../services/shell.dart';
 import '../toolchain_catalog.dart';
 
 /// 环境页的"版本目录"区块: 列出各构建仓 Releases 里的可下载版本,
@@ -35,6 +37,9 @@ class ToolchainVersionsSection extends StatefulWidget {
 class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
   Map<String, List<CatalogEntry>>? _versions;
   bool _loading = false;
+  List<CatalogEntry> _installedFlutter = [];
+  String? _currentFlutter;
+
   Timer? _debounce;
 
   @override
@@ -49,12 +54,53 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
   Future<void> _refresh() async {
     if (_loading) return;
     setState(() => _loading = true);
+    await _loadInstalledFlutter();
     final versions = await widget.catalog.collect();
     if (!mounted) return;
     setState(() {
       _versions = versions;
       _loading = false;
     });
+  }
+
+  Future<void> _loadInstalledFlutter() async {
+    try {
+      final status = await Shell.instance.bootstrapStatus();
+      final prefix = status['prefix'] as String?;
+      if (prefix == null || prefix.isEmpty) return;
+      final base = Directory('$prefix/opt/flutter');
+      if (!base.existsSync()) return;
+      final current = Link('${base.path}/current');
+      final selected = current.existsSync() ? current.targetSync() : null;
+      final entries = <CatalogEntry>[];
+      for (final entity in base.listSync(followLinks: false)) {
+        if (entity is! Directory) continue;
+        final version = entity.path.split('/').last;
+        final marker = File('${entity.path}/.flit-complete');
+        if (!marker.existsSync()) continue;
+        final sha = marker.readAsStringSync().trim();
+        if (ToolchainCatalog.parseSha256('sha256:$sha') == null) continue;
+        entries.add(
+          CatalogEntry(
+            component: 'flutter-sdk',
+            repo: '',
+            tag: version,
+            name: 'Flutter $version',
+            url: '',
+            size: 0,
+            sha256: sha,
+          ),
+        );
+      }
+      entries.sort((a, b) => a.tag.compareTo(b.tag));
+      if (!mounted) return;
+      setState(() {
+        _installedFlutter = entries;
+        _currentFlutter = selected;
+      });
+    } catch (_) {
+      // 在线目录仍可用；本地列表不是初始化的前置条件。
+    }
   }
 
   void _refreshSoon() {
@@ -69,6 +115,7 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.installing && !widget.installing) {
       // 一次安装结束: 稍候刷新列表(发布时间排序可能变化)
+      unawaited(_loadInstalledFlutter());
       _refreshSoon();
     }
   }
@@ -105,6 +152,29 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
               ],
             ),
           ),
+          if (_installedFlutter.isNotEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Text('已安装的 Flutter SDK'),
+            ),
+            for (final entry in _installedFlutter)
+              ListTile(
+                dense: true,
+                title: Text(entry.name),
+                trailing: entry.tag == _currentFlutter
+                    ? const Text('当前')
+                    : TextButton(
+                        onPressed: widget.installing || !widget.enabled
+                            ? null
+                            : () async {
+                                await widget.onInstall(entry);
+                                await _loadInstalledFlutter();
+                              },
+                        child: const Text('切换'),
+                      ),
+              ),
+            const Divider(),
+          ],
           if (versions == null || _loading)
             const Padding(
               padding: EdgeInsets.all(16),

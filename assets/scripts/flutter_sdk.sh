@@ -1,74 +1,69 @@
 #!/data/data/cc.lycstar.flit/files/usr/bin/bash
-# 子任务 3-1: Flutter SDK 本体(自建 aarch64, 明文 tar.xz 分发)。
-# 中断与重试:
-#   下载中断 → .part 断点续传;
-#   解压/解释器重写中断 → 无标记 → 整个 $FLUTTER_DIR 清掉重解压(自己的目录, 可整删),
-#   安装包留到标记落盘才删, 所以这种重试不重下;
-#   目录存在不算装好: bin/ 在归档顺序里很早出来, 单看 bin/flutter 会被半截解压骗过。
+# Flutter 按版本并存，current 是所有工具统一使用的入口。
 . "$(dirname "$0")/lib.sh"
 init_stage flutter_sdk
 
-FLUTTER_DIR="$PREFIX/opt/flutter"
+FLUTTER_BASE="$PREFIX/opt/flutter"
 
 probe() {
-  if installed_ok "$FLUTTER_DIR"; then
+  if installed_ok "$FLUTTER_BASE/current" && [ -x "$FLUTTER_BASE/current/bin/flutter" ]; then
     st "$STAGE" DONE
-    if [ -f "$FLUTTER_DIR/version" ]; then echo "__VER__$STAGE:$(cat "$FLUTTER_DIR/version")"; fi
+    echo "__VER__$STAGE:$(basename "$(readlink "$FLUTTER_BASE/current")")"
   else
     st "$STAGE" PENDING
   fi
 }
 
 install() {
-  if installed_ok "$FLUTTER_DIR" "$FLUTTER_SHA256"; then
-    ok "[flutter] SDK 已安装，跳过下载与解压"
-    return 0
+  # 旧的单版本目录整体搬入版本目录，保留 SDK 和缓存，不重新下载。
+  if [ -d "$FLUTTER_BASE/bin" ]; then
+    _old_version=$(cat "$FLUTTER_BASE/version" 2>/dev/null || true)
+    case "$_old_version" in ''|*[!a-zA-Z0-9.+_-]*) _old_version="$FLUTTER_VERSION" ;; esac
+    mv "$FLUTTER_BASE" "$PREFIX/opt/flutter.previous"
+    mkdir -p "$FLUTTER_BASE"
+    mv "$PREFIX/opt/flutter.previous" "$FLUTTER_BASE/$_old_version"
+    ln -s "$_old_version" "$FLUTTER_BASE/current"
   fi
-  if [ "${1:-}" != --release ] && [ ! -f "$FLUTTER_DIR/.flit-complete" ] &&
-     [ -x "$FLUTTER_DIR/bin/flutter" ] && [ -d "$FLUTTER_DIR/packages/flutter_tools" ]; then
-    # 旧版脚本装的没有标记: 结构性认领一次并补标记, 避免给已装好的设备重下 1.2GB。
-    # 只限"没有标记"; 标记在但 sha 不一致 = 清单升级, 必须走下面的重装
-    ok "[flutter] 旧安装补记完整性标记"
-    mark_installed "$FLUTTER_DIR" "$FLUTTER_SHA256"
-    return 0
+  # 默认初始化保留用户选择的完整版本，不随应用清单变化切回默认。
+  if [ "${1:-}" != --release ] && installed_ok "$FLUTTER_BASE/current"; then
+    ok '[flutter] 当前版本已安装，跳过下载与解压'
+    return
   fi
-
-  mkdir -p "$TMPDIR" "$PREFIX/opt"
-  T="$TMPDIR/flutter-sdk.tar.xz"
-  if [ -f "$T" ]; then
-    info "[flutter] 检查缓存安装包：$T"
-    if echo "$FLUTTER_SHA256  $T" | sha256sum -c -; then
-      ok "[flutter] 已找到通过校验的安装包，跳过下载"
+  case "$FLUTTER_VERSION" in ''|current|*[!a-zA-Z0-9.+_-]*|.*) die '[flutter] 无效的版本号' ;; esac
+  FLUTTER_DIR="$FLUTTER_BASE/$FLUTTER_VERSION"
+  if ! installed_ok "$FLUTTER_DIR" "$FLUTTER_SHA256"; then
+    mkdir -p "$TMPDIR" "$PREFIX/opt"
+    T="$TMPDIR/flutter-sdk.tar.xz"
+    if [ -f "$T" ] && echo "$FLUTTER_SHA256  $T" | sha256sum -c -; then
+      ok '[flutter] 已找到通过校验的安装包，跳过下载'
     else
-      warn "[flutter] 缓存校验失败，将重新下载"
       rm -f "$T"
       dl "$FLUTTER_SHA256" "$T" ${FLUTTER_URLS[@]+"${FLUTTER_URLS[@]}"}
     fi
-  else
-    dl "$FLUTTER_SHA256" "$T" ${FLUTTER_URLS[@]+"${FLUTTER_URLS[@]}"}
-  fi
-
-  info "[flutter] 解压（$(du -m "$T" | cut -f1) MB，需数分钟）…"
-  rm -rf "$FLUTTER_DIR"
-  tar -xJvf "$T" -C "$PREFIX/opt" || {
+    _stage="$TMPDIR/flutter-sdk.extract"
+    rm -rf "$_stage"
+    mkdir -p "$_stage"
+    info "[flutter] 解压 Flutter ${FLUTTER_VERSION}…"
+    tar -xJvf "$T" -C "$_stage" || { rm -rf "$_stage"; die '[flutter] 解压失败'; }
+    [ -x "$_stage/flutter/bin/flutter" ] || die '[flutter] 安装包缺少 Flutter 命令'
+    { grep -rlI '^#!/usr/bin/env \(ba\)\{0,1\}sh' "$_stage/flutter/bin" || [ "$?" -eq 1 ]; } |
+    while IFS= read -r f; do
+      info "[flutter] 配置脚本解释器：$f"
+      sed -i '1s|^#!/usr/bin/env \(ba\)\{0,1\}sh.*|#!'"$PREFIX"'/bin/bash|' "$f"
+    done
+    mark_installed "$_stage/flutter" "$FLUTTER_SHA256"
+    mkdir -p "$FLUTTER_BASE"
     rm -rf "$FLUTTER_DIR"
-    die "[flutter] ✗ 解压失败，请查看上方 tar 错误"
-  }
-  [ -x "$FLUTTER_DIR/bin/flutter" ] || die "[flutter] ✗ 解压后组件不完整"
-
-  # Android 无 /usr/bin/env 与 /bin/sh：重写整个 bin/树的脚本解释器。
-  # 只改 bin/flutter 不够——internal/update_engine_version.sh 等会以自身 shebang 被直接执行。
-  { grep -rlI '^#!/usr/bin/env \(ba\)\{0,1\}sh' "$FLUTTER_DIR/bin" || [ "$?" -eq 1 ]; } |
-  while IFS= read -r f; do
-    info "[flutter] 配置脚本解释器：$f"
-    sed -i '1s|^#!/usr/bin/env \(ba\)\{0,1\}sh.*|#!'"$PREFIX"'/bin/bash|' "$f"
-  done
-  [ -x "$FLUTTER_DIR/bin/flutter" ] || die "[flutter] ✗ 脚本解释器配置失败"
-
-  mark_installed "$FLUTTER_DIR" "$FLUTTER_SHA256"
-  rm -f "$T"
-  if [ -f "$FLUTTER_DIR/version" ]; then echo "__VER__$STAGE:$(cat "$FLUTTER_DIR/version")"; fi
-  ok "[flutter] ✓ $FLUTTER_DIR"
+    mv "$_stage/flutter" "$FLUTTER_DIR"
+    rm -rf "$_stage"
+    rm -f "$T"
+  else
+    ok "[flutter] $FLUTTER_VERSION 已安装，跳过下载与解压"
+  fi
+  ln -sfn "$FLUTTER_VERSION" "$FLUTTER_BASE/.current-next"
+  mv -Tf "$FLUTTER_BASE/.current-next" "$FLUTTER_BASE/current"
+  echo "__VER__$STAGE:$FLUTTER_VERSION"
+  ok "[flutter] 已切换到 $FLUTTER_VERSION"
 }
 
 stage_main "$@"

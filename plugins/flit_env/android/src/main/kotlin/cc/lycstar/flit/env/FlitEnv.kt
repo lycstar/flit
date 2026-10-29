@@ -120,8 +120,9 @@ object FlitEnv {
 
         // 工具链(JDK/Android SDK)就绪后注入构建环境, JAVA_HOME 提到 PATH 前。
         // 与 assets/scripts 的 env.sh 布局一致, 差异只在"此刻是否已装"。
-        val flutterBin = File(prefix, "opt/flutter/bin")
+        val flutterBin = File(prefix, "opt/flutter/current/bin")
         if (File(flutterBin, "flutter").exists()) {
+            env["FLUTTER_ROOT"] = File(prefix, "opt/flutter/current").absolutePath
             env["PATH"] = "${flutterBin.absolutePath}:${env["PATH"]}"
         }
         val jdk = File(prefix, "lib/jvm/java-17-openjdk")

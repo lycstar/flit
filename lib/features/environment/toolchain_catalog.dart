@@ -48,7 +48,7 @@ class ToolchainCatalog {
         defaultValue: 'lycstar/flutter-sdk-custom',
       ),
       asset: 'flutter-*-aarch64-linux-android.tar.xz',
-      install: r'$PREFIX/opt/flutter',
+      install: r'$PREFIX/opt/flutter/<version>',
     ),
   };
 

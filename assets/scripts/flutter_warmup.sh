@@ -7,7 +7,7 @@
 . "$(dirname "$0")/lib.sh"
 init_stage flutter_warmup
 
-FLUTTER_DIR="$PREFIX/opt/flutter"
+FLUTTER_DIR="$PREFIX/opt/flutter/current"
 
 probe() {
   if [ -x "$FLUTTER_DIR/bin/cache/dart-sdk/bin/dart" ] &&

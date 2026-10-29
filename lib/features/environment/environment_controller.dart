@@ -174,7 +174,7 @@ class EnvironmentController extends ChangeNotifier {
 
   /// 版本目录: 下载并安装指定产物(临时会话流式输出)。
   /// ndk 安装到 ndk/`<Pkg.Revision>`(AGP 按 ndkVersion 检索); sdk 合并进
-  /// 单棵树; flutter 替换 $PREFIX/opt/flutter(工程指向不变, 版本被切换)。
+  /// 单棵树; flutter 按版本并存，通过 current 切换。
   Future<void> installFromCatalog(CatalogEntry entry) async {
     if (busy || installing || _runner == null) {
       _term('当前有任务进行中，请等待完成后再安装版本', color: _cWarn);
@@ -219,7 +219,8 @@ class EnvironmentController extends ChangeNotifier {
     };
     if (script != null) {
       return 'bash "\$HOME/.flit/scripts/$script" --release '
-          '${shQuote(entry.url)} ${shQuote(sha)}';
+          '${shQuote(entry.url)} ${shQuote(sha)}'
+          '${entry.component == 'flutter-sdk' ? ' ${shQuote(entry.tag)}' : ''}';
     }
     final url = shQuote(entry.url);
     final shaCheck =
