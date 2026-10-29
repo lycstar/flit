@@ -29,6 +29,8 @@ probe() {
 }
 
 install() {
+  [[ "$CMAKE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die '[cmake] ✗ 无效的版本号'
+  CMAKE_DIR="$ANDROID_HOME/cmake/$CMAKE_VERSION"
   if installed_ok "$CMAKE_DIR" "$CMAKE_SHA256" && tools_work; then
     printf 'Pkg.Revision=%s\n' "$CMAKE_VERSION" > "$CMAKE_DIR/source.properties"
     ok "[cmake] 已安装，跳过"

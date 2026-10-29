@@ -30,7 +30,7 @@ void main() {
         for (final entry in ToolchainCatalog.components.entries)
           entry.key: CatalogSource(
             repo:
-                'example/${const {'android-sdk': 'android-sdk-custom', 'ndk': 'android-ndk-custom', 'flutter-sdk': 'flutter-sdk-custom'}[entry.key]}',
+                'example/${const {'android-sdk': 'android-sdk-custom', 'ndk': 'android-ndk-custom', 'cmake': 'cmake-custom', 'flutter-sdk': 'flutter-sdk-custom'}[entry.key]}',
             asset: entry.value.asset,
             install: entry.value.install,
           ),
@@ -131,6 +131,21 @@ void main() {
             ),
           ];
         }
+        if (url.contains('cmake-custom')) {
+          return [
+            release(
+              '3.31.6',
+              '2026-10-02T00:00:00Z',
+              assets: [
+                {
+                  'name': 'cmake-aarch64-linux-android.tar.xz',
+                  'size': 14,
+                  'digest': 'ee',
+                },
+              ],
+            ),
+          ];
+        }
         if (url.contains('flutter-sdk-custom')) {
           return [
             release(
@@ -167,6 +182,7 @@ void main() {
     expect(ndk.single.sha256, 'aa'.padRight(64, '0'));
     expect(ndk.single.url, contains('releases/download/r27/'));
     expect(result['flutter-sdk']!.single.size, 590);
+    expect(result['cmake']!.single.tag, '3.31.6');
   });
 
   test(
@@ -209,7 +225,10 @@ void main() {
         ];
       };
       final second = await catalog.collect();
-      expect(second['android-sdk']!.single.sha256, 'bb'.padRight(64, '0')); // lastGood 回退
+      expect(
+        second['android-sdk']!.single.sha256,
+        'bb'.padRight(64, '0'),
+      ); // lastGood 回退
       expect(second['ndk']!.single.tag, 'r28');
       expect(catalog.errors['android-sdk'], contains('503'));
     },

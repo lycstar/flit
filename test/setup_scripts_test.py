@@ -482,6 +482,20 @@ exit %d
         self.assertEqual((self.root / 'curl-calls').read_text(), downloads,
                          '第二次不应再下载')
 
+    def test_cmake_catalog_versions_coexist_with_real_revision_metadata(self):
+        self.install_fake_curl()
+        for version in ('3.22.1', '3.31.6'):
+            sha = self.archive([
+                (f'{version}/bin/cmake', f'#!/bin/sh\necho "cmake version {version}"\n', 0o755),
+                (f'{version}/bin/ninja', '#!/bin/sh\necho "1.12.1"\n', 0o755),
+            ])
+            result = self.run_script('android_cmake.sh', '--release', 'https://test/cmake', sha, version)
+            self.assertEqual(result.returncode, 0, result.stdout)
+            directory = self.root / f'android-sdk/cmake/{version}'
+            self.assertEqual((directory / 'source.properties').read_text(), f'Pkg.Revision={version}\n')
+        self.assertTrue((self.root / 'android-sdk/cmake/3.22.1/bin/cmake').exists())
+        self.assertTrue((self.root / 'android-sdk/cmake/3.31.6/bin/cmake').exists())
+
     def test_ndk_tar_failure_stops_installation(self):
         sha = self.ndk_fixture()
         self.config.write_text(f"NDK_URLS=('https://test/ndk')\nNDK_SHA256='{sha}'\n")

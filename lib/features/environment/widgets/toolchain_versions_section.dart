@@ -185,6 +185,7 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
   static String _label(String id) => switch (id) {
     'android-sdk' => 'Android SDK',
     'ndk' => 'Android NDK',
+    'cmake' => 'CMake',
     'flutter-sdk' => 'Flutter SDK',
     _ => id,
   };

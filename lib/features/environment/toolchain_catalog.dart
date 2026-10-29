@@ -36,6 +36,14 @@ class ToolchainCatalog {
       asset: 'android-ndk-*-aarch64-linux-android.tar.xz',
       install: r'$HOME/android-sdk/ndk/<Pkg.Revision>',
     ),
+    'cmake': CatalogSource(
+      repo: String.fromEnvironment(
+        'FLIT_CMAKE_REPO',
+        defaultValue: 'lycstar/cmake-custom',
+      ),
+      asset: 'cmake-aarch64-linux-android.tar.xz',
+      install: r'$HOME/android-sdk/cmake/<version>',
+    ),
     'flutter-sdk': CatalogSource(
       repo: String.fromEnvironment(
         'FLIT_FLUTTER_SDK_REPO',

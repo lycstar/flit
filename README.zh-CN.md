@@ -106,9 +106,12 @@ flutter build apk --debug --target-platform android-arm64
 | [llvm-custom](https://github.com/lycstar/llvm-custom) | Android bionic LLVM 宿主工具 |
 | [android-sdk-custom](https://github.com/lycstar/android-sdk-custom) | Android SDK 宿主工具 |
 | [android-ndk-custom](https://github.com/lycstar/android-ndk-custom) | 面向 Android 宿主的 Android NDK |
+| [cmake-custom](https://github.com/lycstar/cmake-custom) | 面向 Android ARM64 宿主的 CMake 与 Ninja |
 | [flutter-sdk-custom](https://github.com/lycstar/flutter-sdk-custom) | Flutter 与 Dart SDK 分发 |
 
 工具链构建脚本由这些仓库维护。本仓库仅保留应用的安装脚本和发行清单。版本目录与验证要求见[运行环境配置](docs/runtime-environment.md)。
+
+SDK 构建矩阵覆盖 Build Tools **30.0.3、33.0.1、34.0.0、35.0.0、36.0.0**，其中 36.0.0 安装包还包含 **API 30–36** 的 Android Platforms。NDK 补充构建 **r25b（25.1.8937393）、r26b（26.1.10909125）、r27（27.0.12077973）**，与已有 r28c 及更新版本并存。构建发布成功后，相应版本才会出现在版本目录中。CMake **3.22.1** 与 **3.31.6** 也可在同一目录中选择。
 
 ## 目录结构
 

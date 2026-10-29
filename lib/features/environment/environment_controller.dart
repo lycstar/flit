@@ -220,12 +220,13 @@ class EnvironmentController extends ChangeNotifier {
     final script = switch (entry.component) {
       'android-sdk' => 'android_sdk.sh',
       'flutter-sdk' => 'flutter_sdk.sh',
+      'cmake' => 'android_cmake.sh',
       _ => null,
     };
     if (script != null) {
       return 'bash "\$HOME/.flit/scripts/$script" --release '
           '${shQuote(entry.url)} ${shQuote(sha)}'
-          '${entry.component == 'flutter-sdk' ? ' ${shQuote(entry.tag)}' : ''}'
+          '${{'flutter-sdk', 'cmake'}.contains(entry.component) ? ' ${shQuote(entry.tag)}' : ''}'
           '${entry.component == 'android-sdk' ? ' && bash "\$HOME/.flit/scripts/android_gradle.sh"' : ''}';
     }
     final url = shQuote(entry.url);

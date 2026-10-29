@@ -79,6 +79,7 @@ stage_main() {
       [ "$#" -ge 3 ] || die '安装版本需要下载地址和 SHA-256'
       case "$STAGE" in
         android_sdk) SDK_URLS=("$2"); SDK_SHA256=$3 ;;
+        android_cmake) CMAKE_URLS=("$2"); CMAKE_SHA256=$3; CMAKE_VERSION=${4:?缺少版本号} ;;
         flutter_sdk) FLUTTER_URLS=("$2"); FLUTTER_SHA256=$3; FLUTTER_VERSION=${4:?缺少版本号} ;;
         *) die '该组件不支持版本切换' ;;
       esac

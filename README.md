@@ -106,9 +106,12 @@ The application’s default downloads and SHA-256 digests are defined in [`asset
 | [llvm-custom](https://github.com/lycstar/llvm-custom) | Android bionic LLVM host tools |
 | [android-sdk-custom](https://github.com/lycstar/android-sdk-custom) | Android SDK host tools |
 | [android-ndk-custom](https://github.com/lycstar/android-ndk-custom) | Android NDK for Android hosts |
+| [cmake-custom](https://github.com/lycstar/cmake-custom) | CMake and Ninja for Android ARM64 hosts |
 | [flutter-sdk-custom](https://github.com/lycstar/flutter-sdk-custom) | Flutter and Dart SDK distribution |
 
 Toolchain build recipes belong in those repositories. This repository contains only the application’s installation scripts and distribution manifest. See [runtime configuration](docs/runtime-environment.md) for version catalogs and validation requirements.
+
+The SDK build matrix targets Build Tools **30.0.3, 33.0.1, 34.0.0, 35.0.0 and 36.0.0**. The 36.0.0 bundle also includes Android Platforms **API 30–36**. Additional NDK builds target **r25b (25.1.8937393), r26b (26.1.10909125) and r27 (27.0.12077973)** alongside the existing r28c and newer distributions. Versions become available in the catalog after their builds publish successfully. CMake **3.22.1** and **3.31.6** are selectable in the same catalog.
 
 ## Structure
 
