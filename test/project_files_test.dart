@@ -52,11 +52,41 @@ void main() {
   tearDown(() async {
     await documents.close();
     ops.clearClip();
+    messenger.setMockMethodCallHandler(const MethodChannel('flit/env'), null);
+    await sandbox.delete(recursive: true);
+  });
+
+  test('failed listing preserves files and reports the read error', () async {
     messenger.setMockMethodCallHandler(
       const MethodChannel('flit/env'),
-      null,
+      (_) async => {'exitCode': 0, 'output': 'lib/main.dart\n'},
     );
-    await sandbox.delete(recursive: true);
+    await files.refresh();
+    messenger.setMockMethodCallHandler(
+      const MethodChannel('flit/env'),
+      (_) async => {'exitCode': 1, 'output': 'Permission denied'},
+    );
+    await expectLater(files.refresh(), throwsStateError);
+    expect(files.files, ['lib/main.dart']);
+  });
+
+  test('an older directory scan cannot overwrite a newer listing', () async {
+    final first = Completer<Map<String, Object>>();
+    var calls = 0;
+    messenger.setMockMethodCallHandler(const MethodChannel('flit/env'), (
+      _,
+    ) async {
+      if (++calls == 1) return first.future;
+      return {'exitCode': 0, 'output': 'new.dart\n'};
+    });
+    final oldScan = files.refresh();
+    while (calls == 0) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    await files.refresh();
+    first.complete({'exitCode': 0, 'output': ''});
+    await oldScan;
+    expect(files.files, ['new.dart']);
   });
 
   test(

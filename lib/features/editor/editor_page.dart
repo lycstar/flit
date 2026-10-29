@@ -73,7 +73,6 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
   bool _openedDefault = false;
   int _gitRevision = 0;
   StreamSubscription<String>? _artifacts;
-  final _searchCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -166,7 +165,12 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
   // ---------- 文件 ----------
 
   Future<void> _refreshFiles() async {
-    await _project.files.refresh();
+    try {
+      await _project.files.refresh();
+    } catch (error) {
+      if (mounted) _showMessage('$error');
+      return;
+    }
     if (!mounted) return;
     final files = _project.files.files;
     // 首次进页且没有打开项时自动开入口文件: lib/main.dart > lib 下首个 dart > README.md
@@ -351,7 +355,6 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
     _layout.dispose();
     _emptyController.dispose();
     _editorFocus.dispose();
-    _searchCtrl.dispose();
     super.dispose();
   }
 
@@ -417,6 +420,9 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
                 ),
         ),
         drawer: _drawer(),
+        onDrawerChanged: (open) {
+          if (open) unawaited(_refreshFiles());
+        },
         body: Column(
           children: [
             Expanded(
@@ -560,11 +566,7 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
             Expanded(
               child: TabBarView(
                 children: [
-                  FileTreeDrawer(
-                    asContent: true,
-                    searchCtrl: _searchCtrl,
-                    onOpenFile: _openFileByPath,
-                  ),
+                  FileTreeDrawer(asContent: true, onOpenFile: _openFileByPath),
                   const GitPanel(),
                 ],
               ),

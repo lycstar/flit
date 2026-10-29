@@ -18,12 +18,19 @@ class ProjectFiles extends ChangeNotifier {
   List<String> get files => _files;
   List<String> _files = const [];
 
+  int _refreshRequest = 0;
+
   Future<void> refresh() async {
+    final request = ++_refreshRequest;
     final res = await Shell.instance.exec(
-      "cd ${shQuote(root)} && find . -mindepth 1 "
+      "set -o pipefail; cd ${shQuote(root)} && find . -mindepth 1 "
       r"\( -name .dart_tool -o -name build -o -name .git \) -prune -o "
       r"\( -type d -printf '%P/\n' -o -type f -printf '%P\n' \) | sort",
     );
+    if (request != _refreshRequest) return;
+    if (res['exitCode'] != 0) {
+      throw StateError('无法读取项目目录：${res['output'] ?? ''}');
+    }
     final out = (res['output'] as String? ?? '').trim();
     _files = List.unmodifiable(out.split('\n').where((l) => l.isNotEmpty));
     notifyListeners();

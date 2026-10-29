@@ -36,6 +36,7 @@ void main() {
   const result =
       '{"result":[{"label":"State","kind":7,"detail":"State<T extends StatefulWidget>"},{"label":"StatefulWidget","kind":7,"detail":"abstract class StatefulWidget extends Widget"},{"label":"StatelessWidget","kind":7,"detail":"abstract class StatelessWidget extends Widget"}]}';
   var diskSource = source;
+  var listing = 'lib/main.dart\nlib/other.dart';
 
   setUpAll(() async {
     // 偏好在任何测试的假时钟之外加载一次; 应用级对象集跨测试共享(如同生产)
@@ -56,6 +57,7 @@ void main() {
     notifications.clear();
     failSave = false;
     diskSource = source;
+    listing = 'lib/main.dart\nlib/other.dart';
     messenger.setMockMethodCallHandler(
       const MethodChannel('flit/lspEvents'),
       (_) async => null,
@@ -100,7 +102,7 @@ void main() {
             diskSource = utf8.decode(base64.decode(encoded));
           }
           if (cmd.contains('find .')) {
-            return {'exitCode': 0, 'output': 'lib/main.dart\nlib/other.dart'};
+            return {'exitCode': 0, 'output': listing};
           }
           // 测试工程视为依赖已解析, 否则打开即自动起「获取依赖」会话
           if (cmd.contains('package_config.json')) {
@@ -171,6 +173,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(EditorPage), findsNothing, reason: '关闭项目后页面应退出');
   }
+
+  testWidgets(
+    'opening project drawer refreshes files without a filter or manual refresh',
+    (tester) async {
+      await open(tester);
+      listing = 'lib/main.dart\nlib/other.dart\ngenerated.txt';
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+      expect(find.text('generated.txt'), findsOneWidget);
+      expect(find.widgetWithText(TextField, '筛选文件…'), findsNothing);
+      tester.state<ScaffoldState>(find.byType(Scaffold).first).closeDrawer();
+      await tester.pumpAndSettle();
+      listing += '\nnew-file.txt';
+      await tester.tap(find.byIcon(Icons.menu));
+      await tester.pumpAndSettle();
+      expect(find.text('new-file.txt'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('project retains buffers and target until explicitly closed', (
     tester,

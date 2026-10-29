@@ -28,13 +28,10 @@ class _Node {
 class FileTreeDrawer extends StatefulWidget {
   const FileTreeDrawer({
     super.key,
-    required this.searchCtrl,
     required this.onOpenFile,
     this.asContent = false,
   });
 
-  /// 搜索框文本由页面持有, 抽屉反复开合时不丢
-  final TextEditingController searchCtrl;
   final ValueChanged<String> onOpenFile;
   final bool asContent; // true = 只出内容(嵌 drawer 的 tab), 不包 Drawer 壳
 
@@ -217,9 +214,9 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
     try {
       await operation();
       if (!mounted) return;
+      await _projectFiles.refresh();
       _snack('完成');
-      _projectFiles.refresh();
-      setState(() {});
+      if (mounted) setState(() {});
     } catch (error) {
       _snack('$error');
     }
@@ -328,57 +325,23 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
       _openFile = open;
       _expandAncestorsOf(open);
     }
-    final query = widget.searchCtrl.text.toLowerCase();
-    final searching = query.isNotEmpty;
     final tree = _buildTree();
     final rows = _visible(tree);
-    final inBrowser = _loc != _Loc.project;
 
     final content = SafeArea(
       child: Column(
         children: [
           _header(),
-          if (!inBrowser) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: TextField(
-                controller: widget.searchCtrl,
-                onChanged: (_) => setState(() {}),
-                style: const TextStyle(fontSize: 12),
-                decoration: const InputDecoration(
-                  hintText: '筛选文件…',
-                  isDense: true,
-                  prefixIcon: Icon(Icons.search, size: 18),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-          ],
           if (_ops.hasClip) _clipBar(),
           Expanded(
             child: _loc == _Loc.project
-                ? (searching
-                      ? ListView.builder(
-                          itemCount: _files.length,
-                          itemBuilder: (_, i) {
-                            final f = _files[i];
-                            if (f.endsWith('/') ||
-                                !f.toLowerCase().contains(query)) {
-                              return const SizedBox.shrink();
-                            }
-                            return _fileTile(f);
-                          },
-                        )
-                      : ListView.builder(
-                          itemCount: rows.length,
-                          itemBuilder: (_, i) {
-                            final (n, depth) = rows[i];
-                            return n.isDir
-                                ? _dirRow(n, depth)
-                                : _fileRow(n, depth);
-                          },
-                        ))
+                ? ListView.builder(
+                    itemCount: rows.length,
+                    itemBuilder: (_, i) {
+                      final (n, depth) = rows[i];
+                      return n.isDir ? _dirRow(n, depth) : _fileRow(n, depth);
+                    },
+                  )
                 : _browserList(),
           ),
         ],
@@ -428,7 +391,13 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
           IconButton(
             icon: const Icon(Icons.refresh, size: 18),
             onPressed: _loc == _Loc.project
-                ? _projectFiles.refresh
+                ? () async {
+                    try {
+                      await _projectFiles.refresh();
+                    } catch (error) {
+                      _snack('$error');
+                    }
+                  }
                 : _reloadEntries,
           ),
           PopupMenuButton<_Loc>(
@@ -640,56 +609,6 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _fileTile(String f) {
-    final selected = f == _openFile;
-    final abs = '${_project.path}/$f';
-    final name = f.split('/').last;
-    return ListTile(
-      dense: true,
-      visualDensity: VisualDensity.compact,
-      leading: Icon(_iconFor(f), size: 16, color: _colorFor(f)),
-      title: Text(
-        f,
-        style: TextStyle(
-          fontFamily: 'monospace',
-          fontSize: 12,
-          color: selected ? AppColors.accent : AppColors.textPrimary,
-        ),
-      ),
-      selected: selected,
-      onTap: () => widget.onOpenFile(f),
-      onLongPress: () => showActionMenu(context, [
-        (
-          'copy',
-          Icons.copy_all_outlined,
-          '复制',
-          () {
-            _ops.clipPath = abs;
-            _ops.clipCut = false;
-            _snack('已复制 $name');
-          },
-        ),
-        (
-          'cut',
-          Icons.content_cut,
-          '剪切',
-          () {
-            _ops.clipPath = abs;
-            _ops.clipCut = true;
-            _snack('已剪切 $name');
-          },
-        ),
-        (
-          'rename',
-          Icons.drive_file_rename_outline,
-          '重命名',
-          () => _renameDialog(abs, name),
-        ),
-        ('delete', Icons.delete_outline, '删除', () => _confirmDelete(abs, name)),
-      ]),
     );
   }
 
