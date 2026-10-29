@@ -12,6 +12,7 @@ import '../device/device_connect_page.dart';
 import '../editor/editor_settings_page.dart';
 import '../environment/environment_page.dart';
 import 'appearance_preferences.dart';
+import 'app_versions_page.dart';
 import 'env_vars_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -217,9 +218,19 @@ class _SettingsPageState extends State<SettingsPage>
           const SectionLabel('账户'),
           _card(const [GithubAccountTile()]),
           const SectionLabel('关于 Flit'),
-          _card(const [
+          _card([
             ListTile(
-              title: Text('构建提交'),
+              leading: const Icon(
+                Icons.system_update_alt,
+                color: AppColors.accent,
+              ),
+              title: const Text('App 更新'),
+              subtitle: const Text('检查更新 · 下载安装历史版本'),
+              trailing: const Icon(Icons.chevron_right, color: AppColors.textFaint),
+              onTap: () => _open(AppVersionsPage()),
+            ),
+            ListTile(
+              title: const Text('构建提交'),
               subtitle: SelectableText(
                 String.fromEnvironment(
                   'BUILD_SHA',
@@ -228,7 +239,7 @@ class _SettingsPageState extends State<SettingsPage>
                 style: AppColors.mono,
               ),
             ),
-            ListTile(
+            const ListTile(
               title: Text('运行平台'),
               subtitle: Text('Android · arm64-v8a'),
             ),
