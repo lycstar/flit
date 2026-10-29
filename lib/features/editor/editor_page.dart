@@ -175,7 +175,7 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
   }
 
   /// 打开一个文件到 tab: 代码进编辑器缓冲, 图片/二进制开文件卡;
-  /// [asText] 强制按文本打开(文件卡上的"以文本打开", 以及重选已有代码 tab)
+  /// [asText] 强制按文本打开(重选已有代码 tab)
   Future<void> _openFileByPath(String rel, {bool asText = false}) async {
     // 只在抽屉打开时才 pop(关抽屉); initState 自动打开默认文件时没有抽屉,
     // 无条件 pop 会把编辑器页自己弹掉(进页即退)
@@ -431,8 +431,6 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
                             projectRoot: widget.projectPath,
                             path: path,
                             kind: kind,
-                            onOpenAsText: () =>
-                                _openFileByPath(path, asText: true),
                           ),
                         },
                       ),

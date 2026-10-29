@@ -1,4 +1,5 @@
 import '../../services/shell.dart';
+import 'setup_runner.dart';
 import 'environment_controller.dart'
     show parseStageMarker, readyStageIds, stripAnsi;
 
@@ -41,7 +42,13 @@ class EnvironmentStatus {
     );
   }
 
-  static Future<EnvironmentStatus> inspect() async {
+  static Future<EnvironmentStatus> inspect() => _inspect().timeout(
+    const Duration(seconds: 12),
+    onTimeout: () =>
+        const EnvironmentStatus(bootstrapped: false, checkFailed: true),
+  );
+
+  static Future<EnvironmentStatus> _inspect() async {
     try {
       final status = await Shell.instance.bootstrapStatus();
       if (status['bootstrapped'] != true) {
@@ -51,9 +58,14 @@ class EnvironmentStatus {
       if (home.isEmpty) {
         return const EnvironmentStatus(bootstrapped: true, checkFailed: true);
       }
+      final prefix = status['prefix'] as String? ?? '';
+      if (prefix.isEmpty) {
+        return const EnvironmentStatus(bootstrapped: true, checkFailed: true);
+      }
+      await SetupRunner(home: home, prefix: prefix).installScripts();
       final result = await Shell.instance.exec(
         'bash ${shQuote('$home/.flit/scripts/check.sh')}',
-        timeoutMs: 30000,
+        timeoutMs: 10000,
       );
       return EnvironmentStatus.fromCheck(
         exitCode: result['exitCode'] as int? ?? -1,

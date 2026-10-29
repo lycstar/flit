@@ -7,7 +7,7 @@ import '../../../core/theme.dart';
 import '../file_kind.dart';
 
 /// 非文本文件的 tab 内容: 图片给预览, 其余给一张文件卡——图标、名字、路径、
-/// 大小/时间, 以及"用这个文件"的动作(安装 apk / 用其他应用打开 / 分享 / 以文本打开)。
+/// 大小/时间, 以及"用这个文件"的动作(安装 apk / 用其他应用打开 / 分享)。
 /// 文件系统操作(改名/删除)不在这里, 在文件树的长按菜单。
 class FileCard extends StatefulWidget {
   const FileCard({
@@ -15,7 +15,6 @@ class FileCard extends StatefulWidget {
     required this.projectRoot,
     required this.path,
     required this.kind,
-    required this.onOpenAsText,
   });
 
   final String projectRoot;
@@ -23,7 +22,6 @@ class FileCard extends StatefulWidget {
   /// 相对工程根
   final String path;
   final FileKind kind;
-  final VoidCallback onOpenAsText;
 
   @override
   State<FileCard> createState() => _FileCardState();
@@ -54,7 +52,9 @@ class _FileCardState extends State<FileCard> {
 
   void _snack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _run(Future<bool> Function() action, String failure) async {
@@ -163,32 +163,24 @@ class _FileCardState extends State<FileCard> {
                     icon: const Icon(Icons.install_mobile_outlined, size: 18),
                     label: const Text('安装到本机'),
                   ),
+                if (!_isApk)
+                  OutlinedButton.icon(
+                    onPressed: !exists
+                        ? null
+                        : () => _run(
+                            () => FlitFiles.open(_absolute),
+                            '没有能打开此文件的应用',
+                          ),
+                    icon: const Icon(Icons.open_in_new, size: 18),
+                    label: const Text('用其他应用打开'),
+                  ),
                 OutlinedButton.icon(
                   onPressed: !exists
                       ? null
-                      : () => _run(
-                          () => FlitFiles.open(_absolute),
-                          '没有能打开此文件的应用',
-                        ),
-                  icon: const Icon(Icons.open_in_new, size: 18),
-                  label: const Text('用其他应用打开'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: !exists
-                      ? null
-                      : () => _run(
-                          () => FlitFiles.share(_absolute),
-                          '无法分享该文件',
-                        ),
+                      : () => _run(() => FlitFiles.share(_absolute), '无法分享该文件'),
                   icon: const Icon(Icons.share_outlined, size: 18),
                   label: const Text('分享'),
                 ),
-                if (!isImage)
-                  TextButton.icon(
-                    onPressed: exists ? widget.onOpenAsText : null,
-                    icon: const Icon(Icons.text_snippet_outlined, size: 18),
-                    label: const Text('以文本打开'),
-                  ),
               ],
             ),
           ],

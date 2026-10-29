@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/theme.dart';
 import '../../services/background_access.dart';
 import '../editor/editor_page.dart';
 import '../environment/environment_page.dart';
@@ -77,14 +76,9 @@ class _WorkbenchPageState extends State<WorkbenchPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_bootstrapped == null) {
-      return Scaffold(
-        backgroundColor: AppColors.bg,
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
     return ProjectsPage(
-      environmentReady: _bootstrapped!,
+      environmentReady: _bootstrapped == true,
+      environmentChecking: _bootstrapped == null,
       onOpenProject: (path) async {
         try {
           if (context.read<EnvironmentController>().installing) {

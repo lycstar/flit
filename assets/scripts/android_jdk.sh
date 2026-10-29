@@ -12,7 +12,7 @@ probe() {
   fi
   _f="$TMPDIR/jdk-probe.$$"
   mkdir -p "$TMPDIR"
-  if "$JAVA_HOME/bin/java" -version 2>&1 | tee "$_f" >/dev/null; then
+  if timeout 5 "$JAVA_HOME/bin/java" -version 2>&1 | tee "$_f" >/dev/null; then
     st "$STAGE" DONE
     echo "__VER__$STAGE:$(awk -F'"' '/version/ { print $2; exit }' "$_f")"
   else

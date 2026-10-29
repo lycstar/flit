@@ -21,12 +21,14 @@ class ProjectsPage extends StatefulWidget {
   const ProjectsPage({
     super.key,
     required this.environmentReady,
+    this.environmentChecking = false,
     required this.onOpenProject,
     required this.onOpenEnvironment,
     required this.onOpenSettings,
   });
 
   final bool environmentReady;
+  final bool environmentChecking;
   final void Function(String path) onOpenProject;
   final VoidCallback onOpenEnvironment;
   final VoidCallback onOpenSettings;
@@ -54,9 +56,10 @@ class _ProjectsPageState extends State<ProjectsPage> {
   }
 
   Future<void> _init() async {
-    final status = await Shell.instance.bootstrapStatus().catchError(
-      (_) => <dynamic, dynamic>{},
-    );
+    final status = await Shell.instance
+        .bootstrapStatus()
+        .timeout(const Duration(seconds: 5))
+        .catchError((_) => <dynamic, dynamic>{});
     final home = (status['home'] as String? ?? '').trim();
     final root = home.isNotEmpty
         ? '$home/projects'
@@ -386,6 +389,19 @@ class _ProjectsPageState extends State<ProjectsPage> {
     final projects = _projects;
     if (projects == null) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (widget.environmentChecking) {
+      return _message(
+        icon: Icons.manage_search,
+        title: '正在检查开发环境',
+        detail: '可进入开发环境查看检测详情。',
+        actions: [
+          TextButton(
+            onPressed: widget.onOpenEnvironment,
+            child: const Text('查看开发环境'),
+          ),
+        ],
+      );
     }
     if (!widget.environmentReady) {
       return _message(
