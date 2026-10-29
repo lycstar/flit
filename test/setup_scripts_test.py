@@ -429,7 +429,7 @@ exit %d
         self.assertTrue((ndk / 'shader-tools/linux-x86_64/glslc').is_file())
         self.assertTrue((ndk / 'toolchains/llvm/prebuilt/linux-x86_64/bin/clang').is_file())
         self.assertTrue(self.marker(ndk).exists())
-        self.assertIn('__VER__android_ndk:r28.2', result.stdout)
+        self.assertIn('__VER__android_ndk:28.2.13676358', result.stdout)
         downloads = (self.root / 'curl-calls').read_text()
         result = self.run_script('android_ndk.sh')
         self.assertEqual(result.returncode, 0, result.stdout)

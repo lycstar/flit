@@ -10,8 +10,9 @@ init_stage android_ndk
 NDK_DIR="$ANDROID_HOME/ndk/$NDK_VERSION"
 
 version() {
-  __rev=$(sed -n 's/^Pkg.Revision[[:space:]]*=[[:space:]]*//p' "$NDK_DIR/source.properties" 2>/dev/null | cut -d. -f1,2)
-  echo "${__rev:+r$__rev}"
+  # 展示 AGP 语义的完整 Pkg.Revision(28.2.13676358), 不是发行代号 r28c:
+  # gradle 的 ndkVersion 按 source.properties 的这个值与目录名匹配
+  sed -n 's/^Pkg.Revision[[:space:]]*=[[:space:]]*//p' "$NDK_DIR/source.properties" 2>/dev/null | head -1
 }
 
 probe() {
