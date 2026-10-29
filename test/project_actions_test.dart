@@ -93,7 +93,7 @@ void main() {
       throwsStateError,
     );
     await expectLater(actions.run('phone'), throwsStateError);
-    expect(commands, ['flutter build apk --debug 2>&1']);
+    expect(commands, ['flutter build apk --debug --target-platform android-arm64 2>&1']);
     await processes.single.finish();
     await build.done;
   });
@@ -106,7 +106,7 @@ void main() {
     await build.done;
     await Future<void>.delayed(Duration.zero);
     // 没有自动安装: 只有构建本身这一条命令; 产物位置通过流报给编辑器开文件卡
-    expect(commands, ['flutter build apk --debug 2>&1']);
+    expect(commands, ['flutter build apk --debug --target-platform android-arm64 2>&1']);
     expect(artifacts, ['build/app/outputs/flutter-apk/app-debug.apk']);
     await watch.cancel();
   });

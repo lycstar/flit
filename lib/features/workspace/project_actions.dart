@@ -13,7 +13,7 @@ enum ProjectBuild {
     RunConfiguration(
       id: 'build-apk',
       title: '构建 APK（调试版）',
-      command: 'flutter build apk --debug 2>&1',
+      command: 'flutter build apk --debug --target-platform android-arm64 2>&1',
       artifactPath: 'build/app/outputs/flutter-apk/app-debug.apk',
       exclusive: true,
     ),
@@ -22,7 +22,7 @@ enum ProjectBuild {
     RunConfiguration(
       id: 'build-apk-release',
       title: '构建 APK（发布版）',
-      command: 'flutter build apk --release 2>&1',
+      command: 'flutter build apk --release --target-platform android-arm64 2>&1',
       artifactPath: 'build/app/outputs/flutter-apk/app-release.apk',
       exclusive: true,
     ),
