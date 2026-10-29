@@ -44,6 +44,9 @@ install() {
   # 静态二进制: 真跑一把 --version, 架构不对在这里就暴露
   "$CMAKE_DIR/bin/cmake" --version >/dev/null 2>&1 ||
     die "[cmake] ✗ cmake 无法执行（架构不匹配？）"
+  # 自家构建包没有 source.properties, 补一份供 AGP 按 Pkg.Revision 识别
+  [ -f "$CMAKE_DIR/source.properties" ] ||
+    printf 'Pkg.Revision=%s\n' "$CMAKE_VERSION" > "$CMAKE_DIR/source.properties"
 
   mark_installed "$CMAKE_DIR" "$CMAKE_SHA256"
   rm -f "$T"
