@@ -556,9 +556,10 @@ void main() {
     );
     expect(field(), findsNothing);
     expect(find.text('安装到本机'), findsOneWidget);
-    expect(find.text('用其他应用打开'), findsOneWidget);
+    // APK 只保留安装语义: 不提供外部打开, 也不再支持以文本打开
+    expect(find.text('用其他应用打开'), findsNothing);
     expect(find.text('分享'), findsOneWidget);
-    expect(find.text('以文本打开'), findsOneWidget);
+    expect(find.text('以文本打开'), findsNothing);
     // 卡片用 dart:io 读 stat(真实异步): 放行一次; 测试机上文件不存在 → 如实说明, 动作禁用
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 20)),
