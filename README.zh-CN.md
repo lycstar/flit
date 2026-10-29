@@ -1,10 +1,31 @@
-# Flit
+<p align="center">
+  <img src="assets/branding/logo.png" alt="Flit" width="112" height="112" />
+</p>
+
+<h1 align="center">Flit</h1>
+
+<p align="center">在 Android 上编辑、构建和运行 Flutter 项目的开发工作区。</p>
+
+<p align="center">
+  <a href="https://github.com/lycstar/flit/releases"><img src="https://img.shields.io/github/v/release/lycstar/flit?include_prereleases&amp;label=preview&amp;color=39BFEA" alt="Latest preview" /></a>
+  <a href="https://github.com/lycstar/flit/actions/workflows/android-release.yml"><img src="https://github.com/lycstar/flit/actions/workflows/android-release.yml/badge.svg" alt="Android Release" /></a>
+  <a href="https://github.com/lycstar/flit/stargazers"><img src="https://img.shields.io/github/stars/lycstar/flit?style=flat&amp;color=39BFEA" alt="GitHub stars" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-279CF0" alt="License: GPL-3.0" /></a>
+  <img src="https://img.shields.io/badge/Android-7.0%2B-51D7EB" alt="Android 7.0 and above" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/lycstar/flit/releases">下载预览版</a> ·
+  <a href="docs/architecture.md">架构说明</a> ·
+  <a href="https://github.com/lycstar/flit/issues">反馈问题</a> ·
+  <a href="CONTRIBUTING.md">参与贡献</a>
+</p>
 
 [English](README.md) · 简体中文
 
-Flit 是面向 Android 的 Flutter 开发工作区，支持编辑 Dart 代码、在设备上构建应用、通过无线 ADB 运行应用，以及在编辑器内预览 Flutter Web。
+Flit 支持编辑 Dart 代码、在设备上构建应用、通过无线 ADB 运行应用，以及在编辑器内预览 Flutter Web。
 
-应用 ID：`cc.lycstar.flit` · Android 7.0+ · arm64-v8a · [GPL-3.0](LICENSE)
+应用 ID：`cc.lycstar.flit` · Android 7.0+ · arm64-v8a
 
 ## 功能
 
