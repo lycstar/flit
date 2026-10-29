@@ -57,6 +57,7 @@ flutter:
     - assets/scripts/android_jdk.sh
     - assets/scripts/android_sdk.sh
     - assets/scripts/android_ndk.sh
+    - assets/scripts/android_cmake.sh
     - assets/scripts/android_gradle.sh
     - assets/scripts/flutter_sdk.sh
     - assets/scripts/flutter_tools.sh

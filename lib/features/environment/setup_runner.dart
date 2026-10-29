@@ -15,12 +15,17 @@ class SetupRunner {
   /// 与 flutter.ndkVersion 对齐(AGP 按目录名匹配); 同见 lib.sh 默认值
   static const ndkVersion = '28.2.13676358';
 
+  /// AGP 对 externalNativeBuild 的默认请求版本(flutter_pty 等原生插件依赖);
+  /// 见 manifest 的 cmake 组件
+  static const cmakeVersion = '3.22.1';
+
   static const _scriptNames = [
     'lib.sh',
     'check.sh',
     'android_jdk.sh',
     'android_sdk.sh',
     'android_ndk.sh',
+    'android_cmake.sh',
     'android_gradle.sh',
     'flutter_sdk.sh',
     'flutter_tools.sh',
@@ -59,6 +64,7 @@ class SetupRunner {
 
     final sdk = p('android-sdk');
     final ndk = p('ndk');
+    final cmake = p('cmake');
     final flt = p('flutter-sdk');
     return '''
 # 由 flit 从 toolchain_manifest.json 生成, 每次初始化覆盖; 勿手改
@@ -96,10 +102,13 @@ for __f in "\$PREFIX/lib/libtermux-exec-ld-preload.so" "\$PREFIX/lib/libtermux-e
 done
 unset __f
 export NDK_VERSION="$ndkVersion"
+export CMAKE_VERSION="$cmakeVersion"
 SDK_URLS=(${urls(sdk)})
 SDK_SHA256="${sha(sdk, 'sha256')}"
 NDK_URLS=(${urls(ndk)})
 NDK_SHA256="${sha(ndk, 'sha256')}"
+CMAKE_URLS=(${urls(cmake)})
+CMAKE_SHA256="${sha(cmake, 'sha256')}"
 FLUTTER_URLS=(${urls(flt)})
 FLUTTER_SHA256="${sha(flt, 'sha256')}"
 FLUTTER_VERSION="${flt['sdkVersion']}"

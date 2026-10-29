@@ -4,7 +4,7 @@
 set -uo pipefail
 umask 022
 DIR="$(cd "$(dirname "$0")" && pwd)"
-for _id in android_jdk android_sdk android_ndk android_gradle \
+for _id in android_jdk android_sdk android_ndk android_cmake android_gradle \
            flutter_tools flutter_sdk flutter_warmup; do
   bash "$DIR/$_id.sh" --check ||
     printf '\033[1;31m%s\033[0m\n' "[check] ✗ $_id 探测脚本异常退出（$?）"

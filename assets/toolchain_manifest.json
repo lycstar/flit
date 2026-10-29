@@ -34,6 +34,17 @@
         "https://github.com/lycstar/android-ndk-custom/releases/download/r28/android-ndk-r28c-aarch64-linux-android.tar.xz"
       ]
     },
+    "cmake": {
+      "version": "cmake-3.22.1-aarch64-linux-android.tar.xz",
+      "url": "https://github.com/lycstar/cmake-custom/releases/download/3.22.1/cmake-aarch64-linux-android.tar.xz",
+      "sha256": "adf091c8f27dc3dacbf44748d6ecc671720ee359385f8706aac465c6c0839685",
+      "size": 13582308,
+      "install": "$ANDROID_HOME/cmake/<version>",
+      "note": "AGP externalNativeBuild 默认请求 cmake;3.22.1(flutter_pty 等原生插件); 官方包是 Linux x86_64, 设备上不可执行, 缺包会让 AGP 静默下载错误架构",
+      "urls": [
+        "https://github.com/lycstar/cmake-custom/releases/download/3.22.1/cmake-aarch64-linux-android.tar.xz"
+      ]
+    },
     "flutter-sdk": {
       "sdkVersion": "3.47.8",
       "version": "flutter-3.47.8-aarch64-linux-android.tar.xz",

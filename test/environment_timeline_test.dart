@@ -69,12 +69,13 @@ void main() {
   });
 
   test('readyStageIds covers every scripted sub-task except bootstrap', () {
-    expect(readyStageIds, hasLength(7));
+    expect(readyStageIds, hasLength(8));
     expect(readyStageIds, isNot(contains('bootstrap')));
     expect(readyStageIds, containsAll([
       'android_jdk',
       'android_sdk',
       'android_ndk',
+      'android_cmake',
       'android_gradle',
       'flutter_tools',
       'flutter_sdk',

@@ -15,10 +15,12 @@ fi
 : "${JAVA_HOME:=$PREFIX/lib/jvm/java-17-openjdk}"
 : "${GRADLE_USER_HOME:=$HOME/.gradle}"
 : "${NDK_VERSION:=28.2.13676358}"
+: "${CMAKE_VERSION:=3.22.1}"
 : "${TMPDIR:=$PREFIX/tmp}"
 : "${FLIT_APT_SOURCE:=}"
 # 阶段变量兜底(旧版 env.sh 缺字段时防 set -u 中断; 正常由 app 生成完整 env.sh)
 : "${SDK_SHA256:=}"; : "${NDK_SHA256:=}"
+: "${CMAKE_SHA256:=}"
 : "${FLUTTER_SHA256:=}"
 : "${FLUTTER_VERSION:=3.47.7}"
 

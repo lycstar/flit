@@ -16,7 +16,7 @@ const stageDefs = [
   {
     'id': 'android_sdk',
     'title': 'Android 工具链',
-    'hint': 'OpenJDK 17 · Android SDK · NDK · Gradle 配置',
+    'hint': 'OpenJDK 17 · Android SDK · NDK · CMake · Gradle 配置',
   },
   {
     'id': 'flutter_sdk',
@@ -33,6 +33,7 @@ const stageParts = <String, List<String>>{
     'android_jdk',
     'android_sdk',
     'android_ndk',
+    'android_cmake',
     'android_gradle',
   ],
   'flutter_sdk': ['flutter_tools', 'flutter_sdk', 'flutter_warmup'],
@@ -44,6 +45,7 @@ const stageScripts = <String, List<String>>{
     'android_jdk',
     'android_sdk',
     'android_ndk',
+    'android_cmake',
     'android_gradle',
   ],
   'flutter_sdk': ['flutter_tools', 'flutter_sdk', 'flutter_warmup'],
@@ -62,6 +64,7 @@ const partNames = <String, String>{
   'android_jdk': 'OpenJDK 17',
   'android_sdk': 'Android SDK',
   'android_ndk': 'NDK',
+  'android_cmake': 'CMake',
   'android_gradle': 'Gradle 配置',
   'flutter_tools': 'Git 与 gh',
   'flutter_sdk': 'Flutter SDK',
@@ -83,14 +86,16 @@ U=$(du -sk "$HOME/.pub-cache" 2>/dev/null | cut -f1)
 S=$(du -sk "$HOME/android-sdk" 2>/dev/null | cut -f1)
 G=$(du -sk "$HOME/.gradle" 2>/dev/null | cut -f1)
 N=$(du -sk "$HOME/android-sdk/ndk" 2>/dev/null | cut -f1)
+M=$(du -sk "$HOME/android-sdk/cmake" 2>/dev/null | cut -f1)
 B=$(du -sk "$PREFIX/bin" 2>/dev/null | cut -f1)
 L=$(du -sk "$PREFIX/lib" 2>/dev/null | cut -f1)
 D=$(du -sk "$PREFIX/var/lib/dpkg" 2>/dev/null | cut -f1)
 K=$(dpkg -l 2>/dev/null | grep -c '^ii')
 echo bootstrap:$(( ${P:-0} - ${J:-0} - ${F:-0} ))
 echo android_jdk:${J:-0}
-echo android_sdk:$(( ${S:-0} - ${N:-0} ))
+echo android_sdk:$(( ${S:-0} - ${N:-0} - ${M:-0} ))
 echo android_ndk:${N:-0}
+echo android_cmake:${M:-0}
 echo android_gradle:${G:-0}
 echo flutter_sdk:$(( ${F:-0} + ${U:-0} ))
 ''';

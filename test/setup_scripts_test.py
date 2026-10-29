@@ -224,7 +224,7 @@ exit %d
     def test_check_emits_markers_in_pipeline_order(self):
         result = self.run_script('check.sh')
         self.assertEqual(result.returncode, 0, result.stdout)
-        order = ['android_jdk', 'android_sdk', 'android_ndk', 'android_gradle',
+        order = ['android_jdk', 'android_sdk', 'android_ndk', 'android_cmake', 'android_gradle',
                  'flutter_tools', 'flutter_sdk', 'flutter_warmup']
         positions = [result.stdout.find(f'__STAGE__{sid}:') for sid in order]
         self.assertTrue(all(p >= 0 for p in positions), result.stdout)
@@ -435,6 +435,30 @@ exit %d
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn('已安装，跳过', result.stdout)
         self.assertEqual((self.root / 'curl-calls').read_text(), downloads, '第二次不应再下载')
+
+    def test_cmake_installs_to_versioned_dir_and_skips_reinstall(self):
+        # AGP 默认请求 cmake;3.22.1(flutter_pty 等原生插件); 包内顶层即 3.22.1/
+        sha = self.archive([
+            ('3.22.1/bin/cmake', '#!/bin/sh\necho "cmake version 3.22.1"\n', 0o755),
+            ('3.22.1/bin/ninja', '#!/bin/sh\necho "1.12.1"\n', 0o755),
+        ])
+        self.config.write_text(
+            f"CMAKE_URLS=('https://test/cmake')\nCMAKE_SHA256='{sha}'\n")
+        self.install_fake_curl()
+
+        result = self.run_script('android_cmake.sh')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        cmake = self.root / 'android-sdk/cmake/3.22.1'
+        self.assertTrue((cmake / 'bin/cmake').exists())
+        self.assertTrue((cmake / 'bin/ninja').exists())
+        self.assertTrue(self.marker(cmake).exists())
+        self.assertIn('__VER__android_cmake:3.22.1', result.stdout)
+        downloads = (self.root / 'curl-calls').read_text()
+        result = self.run_script('android_cmake.sh')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn('已安装，跳过', result.stdout)
+        self.assertEqual((self.root / 'curl-calls').read_text(), downloads,
+                         '第二次不应再下载')
 
     def test_ndk_tar_failure_stops_installation(self):
         sha = self.ndk_fixture()
