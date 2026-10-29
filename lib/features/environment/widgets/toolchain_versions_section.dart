@@ -111,11 +111,18 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
               child: Center(child: CircularProgressIndicator()),
             )
           else if (versions.values.every((l) => l.isEmpty))
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: Text(
-                '暂未获取到可用版本，请检查网络后刷新。',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                !widget.catalog.configured
+                    ? '未配置版本目录仓库，当前使用内置发行清单。'
+                    : widget.catalog.errors.isNotEmpty
+                    ? '版本目录请求失败：${widget.catalog.errors.values.join('；')}'
+                    : '仓库暂无匹配的工具链版本。',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
               ),
             )
           else
@@ -141,9 +148,7 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
         style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
       ),
       trailing: const Icon(Icons.expand_more, size: 18),
-      onTap: widget.installing
-          ? null
-          : () => _pickAndInstall(id, entries),
+      onTap: widget.installing ? null : () => _pickAndInstall(id, entries),
     );
   }
 
@@ -157,10 +162,7 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
             for (final entry in entries)
               ListTile(
                 dense: true,
-                title: Text(
-                  entry.name,
-                  style: const TextStyle(fontSize: 13),
-                ),
+                title: Text(entry.name, style: const TextStyle(fontSize: 13)),
                 subtitle: Text(
                   '${_formatSize(entry.size)} · ${entry.tag}',
                   style: const TextStyle(

@@ -4,6 +4,8 @@
 旧安装认领、清单升级重装、只补缺的工具、check 零副作用。
 """
 import hashlib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import threading
 import io
 import os
 from pathlib import Path
@@ -199,6 +201,64 @@ exit %d
         self.assertIn('FAILED', result.stdout)
         self.assertFalse((self.prefix / 'opt/flutter').exists())
         self.assertFalse((self.tmp / 'flutter-sdk.tar.xz.part').exists())
+
+    def test_real_curl_follows_release_redirect_before_checksum(self):
+        payload = b'archive bytes behind a release redirect'
+
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                if self.path == '/release':
+                    self.send_response(302)
+                    self.send_header('Location', '/asset')
+                    self.end_headers()
+                else:
+                    self.send_response(200)
+                    self.send_header('Content-Length', str(len(payload)))
+                    self.end_headers()
+                    self.wfile.write(payload)
+
+            def log_message(self, *_):
+                pass
+
+        server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            destination = self.tmp / 'download'
+            result = subprocess.run(
+                ['bash', '-c', '. "$1"; dl "$2" "$3" "$4"', 'test',
+                 str(SCRIPTS / 'lib.sh'), hashlib.sha256(payload).hexdigest(),
+                 str(destination), f'http://127.0.0.1:{server.server_port}/release'],
+                env={**self.env, 'NO_PROXY': '127.0.0.1', 'no_proxy': '127.0.0.1'},
+                text=True, capture_output=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(destination.read_bytes(), payload)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
+
+    def test_checksum_mismatch_retries_same_url_without_partial_bytes(self):
+        self.flutter_archive()
+        self.config.write_text(self.config.read_text().replace("'https://test/missing' ", ''))
+        fake = self.tools / 'curl'
+        body = fake.read_text()
+        body = body.replace("out = args[args.index('-o') + 1]", """out = args[args.index('-o') + 1]
+count = pathlib.Path(os.environ['HOME']) / 'download-attempts'
+if not count.exists():
+    count.touch()
+    pathlib.Path(out).write_bytes(b'not the archive')
+    sys.exit(0)
+assert not pathlib.Path(out).exists(), 'corrupt partial must be removed'
+""")
+        fake.write_text(body)
+        result = self.run_script('flutter_sdk.sh')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn('从头重试同一地址', result.stdout)
+        self.assertIn('SHA-256 实际', result.stdout)
+        self.assertEqual(len((self.root / 'curl-calls').read_text().splitlines()), 2)
+        self.assertIn('__STAGE__flutter_sdk:DONE', result.stdout)
 
     # ---- 3-3 预热 ----
 

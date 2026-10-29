@@ -11,27 +11,42 @@ class ToolchainCatalog {
   /// 可注入测试
   Future<Object?> Function(String url) fetchJson = _fetchJsonDefault;
 
+  final errors = <String, String>{};
+  bool get configured => sources.values.any((source) => source.repo.isNotEmpty);
+
   final _cache = <String, List<CatalogEntry>>{};
 
   /// 每个组件的构建仓与资产匹配模式(组件注册表)。
   static const components = <String, CatalogSource>{
     'bootstrap': CatalogSource(
-      repo: String.fromEnvironment('FLIT_BOOTSTRAP_REPO'),
+      repo: String.fromEnvironment(
+        'FLIT_BOOTSTRAP_REPO',
+        defaultValue: 'lycstar/flit-termux-packages',
+      ),
       asset: 'bootstrap-aarch64.zip',
       install: r'$PREFIX (bootstrap 解压)',
     ),
     'android-sdk': CatalogSource(
-      repo: String.fromEnvironment('FLIT_ANDROID_SDK_REPO'),
+      repo: String.fromEnvironment(
+        'FLIT_ANDROID_SDK_REPO',
+        defaultValue: 'lycstar/android-sdk-custom',
+      ),
       asset: 'android-sdk-aarch64-linux-android.tar.xz',
       install: r'$HOME/android-sdk',
     ),
     'ndk': CatalogSource(
-      repo: String.fromEnvironment('FLIT_NDK_REPO'),
+      repo: String.fromEnvironment(
+        'FLIT_NDK_REPO',
+        defaultValue: 'lycstar/android-ndk-custom',
+      ),
       asset: 'android-ndk-*-aarch64-linux-android.tar.xz',
       install: r'$HOME/android-sdk/ndk/<Pkg.Revision>',
     ),
     'flutter-sdk': CatalogSource(
-      repo: String.fromEnvironment('FLIT_FLUTTER_SDK_REPO'),
+      repo: String.fromEnvironment(
+        'FLIT_FLUTTER_SDK_REPO',
+        defaultValue: 'lycstar/flutter-sdk-custom',
+      ),
       asset: 'flutter-*-aarch64-linux-android.tar.xz',
       install: r'$PREFIX/opt/flutter',
     ),
@@ -44,6 +59,7 @@ class ToolchainCatalog {
   /// 失败的组件从 [lastGood] 回退, 全都失败时该组件返回空列表。
   Future<Map<String, List<CatalogEntry>>> collect() async {
     final result = <String, List<CatalogEntry>>{};
+    errors.clear();
     for (final entry in sources.entries) {
       final id = entry.key;
       final cached = _cache[id] ?? const [];
@@ -92,7 +108,8 @@ class ToolchainCatalog {
         );
         result[id] = found;
         _cache[id] = found;
-      } on Exception {
+      } on Exception catch (error) {
+        errors[id] = error.toString();
         result[id] = cached;
         if (cached.isEmpty) _cache.remove(id);
       }
@@ -126,6 +143,7 @@ class ToolchainCatalog {
       ..connectionTimeout = const Duration(seconds: 15);
     try {
       final request = await client.getUrl(Uri.parse(url));
+      request.headers.set('User-Agent', 'Flit');
       request.headers.set('Accept', 'application/vnd.github+json');
       final response = await request.close();
       if (response.statusCode != 200) {

@@ -16,9 +16,9 @@
 
 bootstrap 和 APT 软件包必须为 `/data/data/cc.lycstar.flit/files/usr` 构建；SDK/NDK/Flutter 需要 Android bionic aarch64 宿主二进制。不得将桌面 Linux 工具或其他应用前缀的包直接安装进来。SHA-256 只能证明内容符合清单，不能证明二进制兼容。
 
-## 可选版本目录
+## 版本目录
 
-默认 APK 使用清单中固定的版本。可通过构建参数为环境页启用 GitHub Releases 版本目录，值为 `owner/repository`：
+默认安装使用清单中的固定版本；版本目录默认查询 Flit 的配套 GitHub Releases 仓库。可通过以下构建参数覆盖仓库，值为 `owner/repository`：
 
 | Dart define | 组件 |
 | --- | --- |
@@ -27,7 +27,7 @@ bootstrap 和 APT 软件包必须为 `/data/data/cc.lycstar.flit/files/usr` 构�
 | `FLIT_NDK_REPO` | Android NDK |
 | `FLIT_FLUTTER_SDK_REPO` | Flutter SDK |
 
-未配置的目录不发出请求，也不会提供版本切换选项。只配置经过兼容性验证的仓库；匿名下载不支持私有资产，不能把个人令牌写进应用。安装目录和资产名模式见 `ToolchainCatalog.components`。
+显式设为空字符串的目录不发出请求；页面会区分未配置、请求失败和无匹配版本。只配置经过兼容性验证的仓库；匿名下载不支持私有资产，不能把个人令牌写进应用。安装目录和资产名模式见 `ToolchainCatalog.components`。
 
 ## 发布验证
 

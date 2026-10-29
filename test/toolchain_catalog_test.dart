@@ -36,11 +36,22 @@ void main() {
     );
   });
   test('unconfigured repositories do not make network requests', () async {
-    final catalog = ToolchainCatalog()
-      ..fetchJson = (_) async => throw StateError('Unexpected request');
+    final catalog = ToolchainCatalog(
+      sources: const {
+        'android-sdk': CatalogSource(repo: '', asset: 'sdk', install: 'sdk'),
+      },
+    )..fetchJson = (_) async => throw StateError('Unexpected request');
     expect(
       (await catalog.collect()).values.every((entries) => entries.isEmpty),
       isTrue,
+    );
+  });
+
+  test('default catalog points to the published Flit repositories', () {
+    expect(ToolchainCatalog().configured, isTrue);
+    expect(
+      ToolchainCatalog.components['android-sdk']!.repo,
+      'lycstar/android-sdk-custom',
     );
   });
 
@@ -190,6 +201,7 @@ void main() {
       final second = await catalog.collect();
       expect(second['android-sdk']!.single.sha256, 'bb'); // lastGood 回退
       expect(second['ndk']!.single.tag, 'r28');
+      expect(catalog.errors['android-sdk'], contains('503'));
     },
   );
 }

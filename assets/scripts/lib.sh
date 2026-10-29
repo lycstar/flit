@@ -119,22 +119,34 @@ dl() {
     else
       info "[dl] 下载：$_dl_url"
     fi
-    # -sS: curl 自己的进度输出全关, 错误照常可见
-    if curl -fsS -C - --retry 3 --connect-timeout 30 -o "$_dl_dest.part" "$_dl_url"; then
-      info "[dl] 校验 SHA-256（期望：${_dl_sha}）"
-      if echo "$_dl_sha  $_dl_dest.part" | sha256sum -c -; then
-        mv "$_dl_dest.part" "$_dl_dest"
-        kill "$_dl_pid" 2>/dev/null
-        wait "$_dl_pid" 2>/dev/null || true
-        printf '\n'
-        ok "[dl] 下载并校验通过"
-        return 0
+    # 校验失败后，同一地址只从头重下一个完整文件；不能跳过校验。
+    for _dl_attempt in 1 2; do
+      if curl -fsSL -C - --retry 3 --connect-timeout 30 -o "$_dl_dest.part" "$_dl_url"; then
+        _dl_bytes=$(wc -c < "$_dl_dest.part" | tr -d ' ')
+        _dl_actual=$(sha256sum "$_dl_dest.part" | cut -d' ' -f1)
+        info "[dl] 文件大小：${_dl_bytes} 字节"
+        info "[dl] SHA-256 期望：${_dl_sha}"
+        info "[dl] SHA-256 实际：${_dl_actual}"
+        if [ "$_dl_actual" = "$_dl_sha" ]; then
+          mv "$_dl_dest.part" "$_dl_dest"
+          kill "$_dl_pid" 2>/dev/null
+          wait "$_dl_pid" 2>/dev/null || true
+          printf '\n'
+          ok "[dl] 下载并校验通过"
+          return 0
+        fi
+        rm -f "$_dl_dest.part"
+        if [ "$_dl_attempt" = 1 ]; then
+          warn '[dl] 文件校验失败，清除下载内容后从头重试同一地址'
+          continue
+        fi
+        warn '[dl] 重新下载后校验仍失败，请核对发行清单，或检查代理/下载服务是否改变文件内容'
+      else
+        warn '[dl] 下载失败，保留断点；下次安装可继续下载'
+        break
       fi
-      warn "[dl] 文件校验失败，正在尝试下一个下载源"
-    else
-      warn "[dl] 下载失败，正在尝试下一个下载源"
-    fi
-    rm -f "$_dl_dest.part"
+    done
+
   done
   kill "$_dl_pid" 2>/dev/null
   wait "$_dl_pid" 2>/dev/null || true
