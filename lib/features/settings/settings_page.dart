@@ -146,6 +146,8 @@ class _SettingsPageState extends State<SettingsPage>
       body: PageList(
         children: [
           const PageIntro('IDE 设置', '配置开发环境、设备连接和编辑器选项。'),
+          const SectionLabel('账户'),
+          _card(const [GithubAccountTile()]),
           const SectionLabel('开发环境'),
           _card([
             _link(
@@ -215,8 +217,6 @@ class _SettingsPageState extends State<SettingsPage>
               },
             ),
           ]),
-          const SectionLabel('账户'),
-          _card(const [GithubAccountTile()]),
           const SectionLabel('关于 Flit'),
           _card([
             ListTile(

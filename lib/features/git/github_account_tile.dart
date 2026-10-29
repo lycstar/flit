@@ -92,35 +92,64 @@ class _GithubAccountTileState extends State<GithubAccountTile> {
   @override
   Widget build(BuildContext context) {
     final account = context.watch<GithubAccount>();
-    final busy = account.busy;
-    final missing = account.auth == GithubAuth.missing;
-    final status = switch (account.auth) {
-      GithubAuth.missing => '未安装 gh · 在开发环境页完成 Flutter 阶段安装后可用',
-      GithubAuth.signedOut => '未登录 · 私有仓库的克隆与推送需要登录',
-      GithubAuth.credentialsSaved => '已登录 · git 凭据助手已接入',
-    };
     final fontSize = widget.dense ? 12.0 : 14.0;
     return ValueListenableBuilder<String?>(
       valueListenable: account.deviceCode,
-      builder: (context, code, _) => ListTile(
-        dense: widget.dense,
-        leading: Icon(
-          Icons.key_outlined,
-          size: widget.dense ? 18 : 22,
-          color: AppColors.accent,
-        ),
-        title: Text('GitHub 账户', style: TextStyle(fontSize: fontSize)),
-        subtitle: Text(
-          busy ? (code == null ? '正在处理…' : '等待浏览器授权…') : status,
-          style: TextStyle(fontSize: widget.dense ? 10 : 12),
-        ),
-        trailing: busy && code != null
-            ? TextButton(onPressed: _showCode, child: const Text('查看授权码'))
-            : TextButton(
-                onPressed: widget.enabled && !busy && !missing ? _toggle : null,
-                child: Text(account.signedIn ? '退出登录' : '登录'),
-              ),
-      ),
+      builder: (context, code, _) {
+        final busy = account.busy;
+        final missing = account.auth == GithubAuth.missing;
+        final status = switch (account.auth) {
+          GithubAuth.missing => '未安装 gh · 在开发环境页完成 Flutter 阶段安装后可用',
+          GithubAuth.signedOut => '未登录 · 私有仓库的克隆与推送需要登录',
+          GithubAuth.credentialsSaved => '已登录 · git 凭据助手已接入',
+        };
+        // 已登录且有档案时显示头像与名称, 否则退回占位
+        final showProfile = account.signedIn &&
+            (account.loginName?.isNotEmpty == true);
+        final titleText = showProfile
+            ? (account.name?.isNotEmpty == true ? account.name! : account.loginName!)
+            : 'GitHub 账户';
+        final subtitle = busy
+            ? (code == null ? '正在处理…' : '等待浏览器授权…')
+            : showProfile
+            ? '已登录 · ${account.loginName}'
+            : status;
+        return ListTile(
+          dense: widget.dense,
+          leading: showProfile && account.avatarUrl?.isNotEmpty == true
+              ? ClipOval(
+                  child: SizedBox(
+                    width: widget.dense ? 18 : 26,
+                    height: widget.dense ? 18 : 26,
+                    child: Image.network(
+                      account.avatarUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Icon(
+                        Icons.key_outlined,
+                        size: widget.dense ? 14 : 20,
+                        color: AppColors.accent,
+                      ),
+                    ),
+                  ),
+                )
+              : Icon(
+                  Icons.key_outlined,
+                  size: widget.dense ? 18 : 22,
+                  color: AppColors.accent,
+                ),
+          title: Text(titleText, style: TextStyle(fontSize: fontSize)),
+          subtitle: Text(
+            subtitle,
+            style: TextStyle(fontSize: widget.dense ? 10 : 12),
+          ),
+          trailing: busy && code != null
+              ? TextButton(onPressed: _showCode, child: const Text('查看授权码'))
+              : TextButton(
+                  onPressed: widget.enabled && !busy && !missing ? _toggle : null,
+                  child: Text(account.signedIn ? '退出登录' : '登录'),
+                ),
+        );
+      },
     );
   }
 }

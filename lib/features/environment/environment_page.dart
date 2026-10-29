@@ -24,7 +24,7 @@ class EnvironmentPage extends StatefulWidget {
 }
 
 class _EnvironmentPageState extends State<EnvironmentPage> {
-  bool _termCollapsed = false;
+  bool _termCollapsed = true;
 
   @override
   void initState() {

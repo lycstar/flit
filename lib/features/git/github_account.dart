@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
@@ -25,6 +26,11 @@ class GithubAccount extends ChangeNotifier {
   GithubAuth auth = GithubAuth.signedOut;
   bool busy = false;
   String? error;
+
+  /// 登录账户的展示档案(gh api user);离线或未登录时为空
+  String? loginName;
+  String? name;
+  String? avatarUrl;
 
   /// 登录中的一次性授权码; 非空时调用方弹对话框, 登录结束置空(对话框自动关)
   final deviceCode = ValueNotifier<String?>(null);
@@ -68,6 +74,22 @@ class GithubAccount extends ChangeNotifier {
       }
     } catch (_) {
       // 环境未就绪(还没有 bash)等情况保持上次状态
+      notifyListeners();
+      return;
+    }
+    // 档案供界面显示头像与名称; 拉取失败不影响登录态
+    if (auth == GithubAuth.credentialsSaved) {
+      try {
+        final profile = await _probe('gh api user');
+        final data = jsonDecode(profile.out) as Map? ?? const {};
+        loginName = data['login'] as String?;
+        name = data['name'] as String?;
+        avatarUrl = data['avatar_url'] as String?;
+      } catch (_) {
+        /* 保持已有档案 */
+      }
+    } else {
+      loginName = name = avatarUrl = null;
     }
     notifyListeners();
   }
