@@ -486,4 +486,41 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+
+  testWidgets('selection grows from a buffer anchor while auto-scrolling', (
+    tester,
+  ) async {
+    // 回归: 长按跨屏滚动时, 起点曾用视口坐标反复重建, 选区随视口滑走;
+    // 现在起点固定在缓冲坐标, 滚动后选区应包含最初选中的那行。
+    final lines = List.generate(200, (i) => 'line${i.toString().padLeft(3, '0')}');
+    final terminal = Terminal()..write('${lines.join('\r\n')}\r\n');
+    final controller = TerminalController();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: TerminalView(terminal, controller: controller)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final view = tester.state<TerminalViewState>(find.byType(TerminalView));
+
+    // 手指按住开始选择并保持: 视口停在底部, 首行即起点行
+    final gesture = await tester.startGesture(cell(tester, 1, 0));
+    await tester.pump(kLongPressTimeout + const Duration(milliseconds: 50));
+    final baseText = terminal.buffer.getText(controller.selection!).trim();
+    expect(baseText, startsWith('line'));
+
+    // 按住不放向上滚动(等价于边缘自动滚屏), 再把手指拖到当前首行:
+    // 选区应从缓冲锚点增长, 覆盖起点行
+    view.scrollByPixels(-300);
+    await tester.pump();
+    await gesture.moveTo(cell(tester, 1, 0));
+    await tester.pump();
+    final grown = terminal.buffer.getText(controller.selection!);
+    expect(grown, contains(baseText));
+    expect(grown.length, greaterThan(baseText.length));
+    await gesture.up();
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
 }

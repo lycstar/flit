@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
+import 'package:xterm/core.dart';
 import 'package:xterm/src/core/mouse/button.dart';
 import 'package:xterm/src/core/mouse/button_state.dart';
 import 'package:xterm/src/terminal_view.dart';
@@ -59,7 +60,8 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
 
   DragStartDetails? _lastDragStartDetails;
 
-  LongPressStartDetails? _lastLongPressStartDetails;
+  /// 长按选择的起点, 固定为缓冲坐标(视口坐标会在滚动后漂移)
+  CellOffset? _selectionBase;
 
   // ---- 长按选择的边缘自动滚屏(移动端选区跨屏的标配) ----
   Timer? _autoScrollTimer;
@@ -90,10 +92,9 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
     _autoScrollSpeed = speed;
     _autoScrollTimer = Timer.periodic(const Duration(milliseconds: 50), (_) {
       widget.terminalView.scrollByPixels(_autoScrollSpeed * 0.05);
-      final start = _lastLongPressStartDetails?.localPosition;
       final g = _lastLongPressGlobal;
-      if (start != null && g != null && box.attached) {
-        renderTerminal.selectWord(start, box.globalToLocal(g));
+      if (_selectionBase != null && g != null && box.attached) {
+        renderTerminal.extendWordFrom(_selectionBase!, box.globalToLocal(g));
       }
     });
   }
@@ -216,23 +217,21 @@ class _TerminalGestureHandlerState extends State<TerminalGestureHandler> {
   }
 
   void onLongPressStart(LongPressStartDetails details) {
-    _lastLongPressStartDetails = details;
     _lastLongPressGlobal = details.globalPosition;
+    _selectionBase = renderTerminal.getCellOffset(details.localPosition);
     renderTerminal.selectWord(details.localPosition);
   }
 
   void onLongPressMoveUpdate(LongPressMoveUpdateDetails details) {
     _lastLongPressGlobal = details.globalPosition;
-    renderTerminal.selectWord(
-      _lastLongPressStartDetails!.localPosition,
-      details.localPosition,
-    );
+    renderTerminal.extendWordFrom(_selectionBase!, details.localPosition);
     _updateAutoScroll();
   }
 
   void onLongPressUp() {
     _cancelAutoScroll();
     _lastLongPressGlobal = null;
+    _selectionBase = null;
   }
 
   void onDragStart(DragStartDetails details) {

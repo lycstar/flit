@@ -277,6 +277,21 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     }
   }
 
+  /// 以缓冲坐标的 [baseOffset] 为固定起点, 把选区延伸到当前指针下的单元格。
+  /// 长按跨屏自动滚动时起点不随视口漂移: 选区从缓冲锚点增长, 而不是滑走。
+  void extendWordFrom(CellOffset baseOffset, Offset to) {
+    final fromBoundary = _terminal.buffer.getWordBoundary(baseOffset);
+    final toOffset = getCellOffset(to);
+    final toBoundary = _terminal.buffer.getWordBoundary(toOffset);
+    if (fromBoundary == null || toBoundary == null) return;
+    final range = fromBoundary.merge(toBoundary);
+    _controller.setSelection(
+      _terminal.buffer.createAnchorFromOffset(range.begin),
+      _terminal.buffer.createAnchorFromOffset(range.end),
+      mode: SelectionMode.line,
+    );
+  }
+
   /// Selects characters in the terminal that starts from [from] to [to]. At
   /// least one cell is selected even if [from] and [to] are same.
   void selectCharacters(Offset from, [Offset? to]) {
