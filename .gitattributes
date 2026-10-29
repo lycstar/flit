@@ -1,0 +1,2 @@
+# 统一文本文件行尾为 LF(shell/patch 对 CRLF 敏感),二进制文件 git 自动识别不受影响
+* text=auto eol=lf

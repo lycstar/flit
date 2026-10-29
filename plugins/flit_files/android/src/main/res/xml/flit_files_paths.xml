@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 可授权给外部读取的范围: files/home(工程目录) 与共享存储(项目根 FlitProjects 在其下) -->
+<paths>
+    <files-path name="home" path="home/" />
+    <external-path name="shared" path="." />
+</paths>

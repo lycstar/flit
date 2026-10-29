@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="wing" x1="290" y1="430" x2="720" y2="716" gradientUnits="userSpaceOnUse"><stop stop-color="#5CE1E6"/><stop offset="1" stop-color="#4385FF"/></linearGradient>
+    <linearGradient id="accent" x1="255" y1="714" x2="407" y2="848" gradientUnits="userSpaceOnUse"><stop stop-color="#FFB547"/><stop offset="1" stop-color="#FF6B5E"/></linearGradient>
+  </defs>
+  <g transform="translate(143 143) scale(.72)">
+  <path d="M239 719L430 548L482 603L294 784C275 802 245 793 238 769C233 751 233 735 239 719Z" fill="url(#wing)"/>
+  <path d="M264 817L391 701L435 748L308 864C286 884 249 870 247 840C246 831 252 823 264 817Z" fill="url(#accent)"/>
+  <path d="M321 576C321 448 416 346 544 346C674 346 765 433 765 548C765 663 669 744 546 744C455 744 382 697 345 628C329 599 321 585 321 576Z" fill="#F7FAFF"/>
+  <path d="M631 387C672 315 754 288 819 327C856 349 881 390 879 434C877 486 833 526 778 526H716C717 469 684 418 631 387Z" fill="#F7FAFF"/>
+  <path d="M873 411L956 443L873 475C854 482 836 468 836 443C836 418 854 404 873 411Z" fill="#FFB547"/>
+  <circle cx="811" cy="388" r="17" fill="#0B1424"/>
+  <path d="M366 573C405 474 486 425 575 436C626 442 665 468 681 507C698 548 674 593 630 623C560 670 455 678 366 630C352 622 351 603 366 573Z" fill="url(#wing)"/>
+  <path d="M474 469C519 448 571 448 608 462" fill="none" stroke="#B8FFFF" stroke-width="13" stroke-linecap="round" opacity=".72"/>
+  </g>
+</svg>

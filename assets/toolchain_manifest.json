@@ -1,0 +1,49 @@
+{
+  "aptSource": "https://github.com/lycstar/flit-termux-packages/releases/download/pool ./",
+  "packages": {
+    "bootstrap": {
+      "version": "bootstrap-aarch64.zip",
+      "url": "https://github.com/lycstar/flit-termux-packages/releases/download/bootstrap-flit-aarch64-40672502837/bootstrap-aarch64.zip",
+      "sha256": "c7c5e96943af1b93d805cf05ec2381d328da4be6ba5aa41675c2720c12f49dcd",
+      "size": 128298498,
+      "install": "$PREFIX (bootstrap 解压)",
+      "note": "flit 前缀 bootstrap（flit-termux-packages CI 自建）",
+      "urls": [
+        "https://github.com/lycstar/flit-termux-packages/releases/download/bootstrap-flit-aarch64-40672502837/bootstrap-aarch64.zip"
+      ]
+    },
+    "android-sdk": {
+      "version": "android-sdk-aarch64-linux-android.tar.xz",
+      "url": "https://github.com/lycstar/android-sdk-custom/releases/download/36.0.1/android-sdk-aarch64-linux-android.tar.xz",
+      "sha256": "ef561ecc96154a0328658f9e52c926e9d5e51eda32ddd8218293edd7e6c13774",
+      "size": 164294872,
+      "install": "$HOME/android-sdk",
+      "note": "自建 bionic aarch64(Homu 配方, 我们的 CI 出包; build-tools 36.x)",
+      "urls": [
+        "https://github.com/lycstar/android-sdk-custom/releases/download/36.0.1/android-sdk-aarch64-linux-android.tar.xz"
+      ]
+    },
+    "ndk": {
+      "version": "android-ndk-r28c-aarch64-linux-android.tar.xz",
+      "url": "https://github.com/lycstar/android-ndk-custom/releases/download/r28/android-ndk-r28c-aarch64-linux-android.tar.xz",
+      "sha256": "969bc688e9f84cb98b6f7a8da5ee7cfe7e40da4963e3f11d3824d8b79641bebe",
+      "size": 136807188,
+      "install": "$HOME/android-sdk/ndk/28.2.13676358",
+      "note": "NDK r28c = 28.2.13676358 (= flutter.ndkVersion)",
+      "urls": [
+        "https://github.com/lycstar/android-ndk-custom/releases/download/r28/android-ndk-r28c-aarch64-linux-android.tar.xz"
+      ]
+    },
+    "flutter-sdk": {
+      "version": "flutter-3.47.7-aarch64-linux-android.tar.xz",
+      "url": "https://github.com/lycstar/flutter-sdk-custom/releases/download/3.47.7/flutter-3.47.7-aarch64-linux-android.tar.xz",
+      "sha256": "bb831aeed683e2b725e2c107864df81b69a22bc9c42efc3d4a4868a70e2af05a",
+      "size": 647245244,
+      "install": "$PREFIX/opt/flutter",
+      "note": "自建 Flutter SDK (fork CI: engine 交叉编译 + deb→tarball)",
+      "urls": [
+        "https://github.com/lycstar/flutter-sdk-custom/releases/download/3.47.7/flutter-3.47.7-aarch64-linux-android.tar.xz"
+      ]
+    }
+  }
+}

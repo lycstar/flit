@@ -1,0 +1,18 @@
+name: flit_files
+description: Android 文件集成：文件分享、系统安装器与工程目录 DocumentsProvider。
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: cc.lycstar.flit.files
+        pluginClass: FlitFilesPlugin

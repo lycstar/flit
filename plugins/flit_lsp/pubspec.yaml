@@ -1,0 +1,21 @@
+name: flit_lsp
+description: 官方 dart language-server 的进程传输：原生收发 JSON-RPC 帧，握手与协议语义在应用侧。
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # 分析器进程跑在 Termux 环境里(PATH/JAVA_HOME 等由 flit_env 构造)
+  flit_env:
+    path: ../flit_env
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: cc.lycstar.flit.lsp
+        pluginClass: FlitLspPlugin

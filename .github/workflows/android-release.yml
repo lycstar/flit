@@ -1,0 +1,97 @@
+name: Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag (for example v1.0.0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GRADLE_OPTS: -Dorg.gradle.vfs.watch=false
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release tag
+        shell: bash
+        run: '[[ "$RELEASE_VERSION" =~ ^v[0-9]+([A-Za-z0-9.-]*$) ]]'
+      # v8 / v8.0.0 / v8-hotfix1 均可
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.7
+      - name: Restore release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: python
+        run: |
+          import base64
+          import os
+          from pathlib import Path
+          names = ['KEYSTORE_BASE64', 'ANDROID_STORE_PASSWORD', 'ANDROID_KEY_ALIAS', 'ANDROID_KEY_PASSWORD']
+          if any(not os.environ.get(name) for name in names):
+              raise SystemExit('Release signing secrets are incomplete')
+          def escape(value):
+              return ''.join(r'\u%04x' % int.from_bytes(raw[i:i+2], 'big') for raw in [value.encode('utf-16-be')] for i in range(0, len(raw), 2))
+          key = Path('android/flit-release.jks')
+          key.write_bytes(base64.b64decode(os.environ['KEYSTORE_BASE64'], validate=True))
+          key.chmod(0o600)
+          props = Path('android/key.properties')
+          props.write_text('storeFile=../flit-release.jks\n' + '\n'.join(
+              f'{name}={escape(os.environ[env])}' for name, env in [
+                  ('storePassword', 'ANDROID_STORE_PASSWORD'),
+                  ('keyAlias', 'ANDROID_KEY_ALIAS'),
+                  ('keyPassword', 'ANDROID_KEY_PASSWORD'),
+              ]) + '\n', encoding='utf-8')
+          props.chmod(0o600)
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: python3 -m unittest discover -s test -p '*test.py'
+      - name: Build release APK
+        run: flutter build apk --release --target-platform android-arm64 --dart-define=BUILD_SHA=${{ github.sha }}
+      - name: Verify APK signature
+        shell: bash
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$APKSIGNER" verify build/app/outputs/flutter-apk/app-release.apk
+      - name: Prepare artifact
+        run: |
+          SHORT_SHA="$(echo "${{ github.sha }}" | cut -c1-7)"
+          STAMP="$(date -u +%Y%m%d%H%M)"
+          APK_NAME="flit-${RELEASE_VERSION}-${STAMP}-${SHORT_SHA}.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "$APK_NAME"
+          echo "APK_NAME=$APK_NAME" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flit-${{ inputs.version }}-apk
+          path: ${{ env.APK_NAME }}
+          if-no-files-found: error
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$RELEASE_VERSION" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_VERSION" "${APK_NAME}" --clobber
+          else
+            gh release create "$RELEASE_VERSION" "${APK_NAME}" --title "Flit ${RELEASE_VERSION}" --notes 'Android arm64 release.'
+          fi'
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/key.properties android/flit-release.jks
