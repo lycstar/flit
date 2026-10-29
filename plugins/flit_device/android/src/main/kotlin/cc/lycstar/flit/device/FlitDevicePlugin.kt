@@ -73,6 +73,24 @@ class FlitDevicePlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
                 discovery.start()
             }
             "isIgnoringBatteryOptimizations" -> result.success(ignoringBatteryOptimizations())
+            "openNotificationSettings" -> {
+                // targetSdk 28 下系统不为 POST_NOTIFICATIONS 的运行时请求弹授权框,
+                // 只能引导用户到通知设置页手动开关; API 26 以下无通知运行时权限,
+                // 正常不会走到这里, 兜底跳应用详情页
+                val intent = if (Build.VERSION.SDK_INT >= 26) {
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    }
+                } else {
+                    Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:${context.packageName}"),
+                    )
+                }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                runCatching { (activity ?: context).startActivity(intent) }
+                    .onSuccess { result.success(true) }
+                    .onFailure { result.error("open_failed", it.message, null) }
+            }
             "requestIgnoreBatteryOptimizations" -> {
                 if (ignoringBatteryOptimizations()) {
                     result.success(true)

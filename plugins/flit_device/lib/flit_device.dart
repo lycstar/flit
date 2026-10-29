@@ -55,4 +55,10 @@ class FlitDevice {
   /// 跳转系统"忽略电池优化"确认框; true = 已经是忽略状态, 无需确认
   static Future<bool> requestIgnoreBatteryOptimizations() async =>
       await channel.invokeMethod('requestIgnoreBatteryOptimizations') == true;
+
+  /// 深链到系统的应用通知设置页(开关直达, 不经过应用详情页)。
+  /// targetSdk 28 下系统不为通知权限的运行时请求弹授权框, 只能引导用户手动开关。
+  static Future<void> openNotificationSettings() async {
+    await channel.invokeMethod('openNotificationSettings');
+  }
 }

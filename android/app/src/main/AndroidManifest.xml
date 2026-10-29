@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- targetSdk 28 下声明本权限后, 系统不再在首建通知渠道时自动弹窗, 改由应用内直接请求 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- 前台服务/通知、电池优化、安装未知应用等权限随各自 plugin 的清单合并进来(plugins/) -->
     <!-- 内部存储浏览: Android 11+ 走「所有文件访问」, 旧版本走运行时存储权限 -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>

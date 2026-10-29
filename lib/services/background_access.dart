@@ -5,68 +5,145 @@ import 'package:provider/provider.dart';
 
 import '../features/settings/appearance_preferences.dart';
 
-/// 首次初始化前说明后台运行用途；每项设置由用户分别打开。
+/// 首次初始化前说明后台运行用途；每项设置都在对话框内直接发起。
+/// 权限入口与设置页共用，拒绝后可在设置页再次调整。
 class BackgroundAccess {
   static Future<void> explain(BuildContext context) async {
     final preferences = context.read<AppearancePreferences>();
     if (preferences.backgroundNoticeShown) return;
-    Future<void> configure(Future<dynamic> Function() action) async {
-      try {
-        await action();
-      } catch (_) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('无法打开设置，可稍后在系统应用设置中调整')));
-        }
-      }
-    }
 
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('后台运行与通知'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('初始化、终端和构建可能需要较长时间。以下设置均为可选，暂不设置也可继续使用。'),
-              const SizedBox(height: 16),
-              const Text('任务通知仅显示通用运行状态，不展示项目名、代码、终端输出或登录凭据。'),
-              // targetSdk 28 的通知弹窗时机由系统控制，使用系统设置入口。
-              TextButton(
-                onPressed: () => configure(openAppSettings),
-                child: const Text('设置通知'),
-              ),
-              const SizedBox(height: 8),
-              const Text('允许后台运行可减少切到后台后任务被中断，可能增加耗电。仅点击下方按钮后申请不受电池优化限制。'),
-              TextButton(
-                onPressed: () =>
-                    configure(FlitDevice.requestIgnoreBatteryOptimizations),
-                child: const Text('设置后台运行'),
-              ),
-              const SizedBox(height: 8),
-              const Text('可稍后在系统应用设置中调整；文件访问权限会在使用相关功能时另行说明。'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('暂不设置'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('继续初始化'),
-          ),
-        ],
-      ),
+      builder: (_) => const _BackgroundSetupDialog(),
     );
     try {
       await preferences.update(backgroundNoticeShown: true);
     } catch (_) {
       // 保存提示偏好失败不应阻止初始化。
     }
+  }
+}
+
+/// 初始化前置说明：描边按钮就地发起，结果回显在按钮上，避免"点了没反应"。
+class _BackgroundSetupDialog extends StatefulWidget {
+  const _BackgroundSetupDialog();
+
+  @override
+  State<_BackgroundSetupDialog> createState() => _BackgroundSetupDialogState();
+}
+
+class _BackgroundSetupDialogState extends State<_BackgroundSetupDialog>
+    with WidgetsBindingObserver {
+  /// null = 未知(通道不可用或检测中)，按钮保持可点
+  bool? _foregroundAllowed;
+  bool? _batteryAllowed;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadStatus();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 从系统通知设置开关后返回时刷新按钮状态
+    if (state == AppLifecycleState.resumed) _loadStatus();
+  }
+
+  Future<void> _loadStatus() async {
+    try {
+      final notification = await Permission.notification.status;
+      final battery = await FlitDevice.isIgnoringBatteryOptimizations();
+      if (mounted) {
+        setState(() {
+          _foregroundAllowed = notification.isGranted;
+          _batteryAllowed = battery;
+        });
+      }
+    } catch (_) {
+      /* 测试环境没有通道 mock，保持未知态 */
+    }
+  }
+
+  Future<void> _openNotificationSettings() async {
+    try {
+      await FlitDevice.openNotificationSettings();
+    } catch (_) {
+      // 个别 ROM 不认通知设置直达 intent 时, 退回应用详情页
+      try {
+        await openAppSettings();
+      } catch (_) {
+        /* 两级都失败保持原状态, 用户仍可从系统应用信息进入 */
+      }
+    }
+  }
+
+  Future<void> _requestBattery() async {
+    try {
+      final allowed = await FlitDevice.requestIgnoreBatteryOptimizations();
+      if (mounted) setState(() => _batteryAllowed = allowed);
+    } catch (_) {
+      /* 请求失败保持原状态，可再点 */
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final caption = Theme.of(context).textTheme.bodySmall;
+    return AlertDialog(
+      title: const Text('后台运行与通知'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('初始化和构建可能耗时较长，建议开启：'),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _foregroundAllowed == true
+                      ? null
+                      : _openNotificationSettings,
+                  icon: Icon(
+                    _foregroundAllowed == true ? Icons.check : Icons.task_alt,
+                    size: 18,
+                  ),
+                  label: Text(_foregroundAllowed == true ? '已开启' : '前台服务'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _batteryAllowed == true ? null : _requestBattery,
+                  icon: Icon(
+                    _batteryAllowed == true
+                        ? Icons.check
+                        : Icons.battery_saver_outlined,
+                    size: 18,
+                  ),
+                  label: Text(_batteryAllowed == true ? '已允许' : '后台运行'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text('前台服务仅显示通用运行状态，开关在系统通知设置中，可稍后在「设置 → 后台与通知」里再调。', style: caption),
+        ],
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('继续'),
+        ),
+      ],
+    );
   }
 }
