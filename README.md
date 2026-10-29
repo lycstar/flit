@@ -111,6 +111,8 @@ The application’s default downloads and SHA-256 digests are defined in [`asset
 
 Toolchain build recipes belong in those repositories. This repository contains only the application’s installation scripts and distribution manifest. See [runtime configuration](docs/runtime-environment.md) for version catalogs and validation requirements.
 
+Distribution tags use component prefixes and complete versions: `sdk-36.0.0` (Build Tools), `ndk-r27d`, `llvm-r27d`, `cmake-3.22.1` and `flutter-3.47.8`. NDK revisions such as r27 and r27d are separate releases.
+
 The SDK build matrix targets Build Tools **30.0.3, 33.0.1, 34.0.0, 35.0.0 and 36.0.0**. The 36.0.0 bundle also includes Android Platforms **API 30–36**. Additional NDK builds target **r25b (25.1.8937393), r26b (26.1.10909125) and r27 (27.0.12077973)** alongside the existing r28c and newer distributions. Versions become available in the catalog after their builds publish successfully. CMake **3.22.1** and **3.31.6** are selectable in the same catalog.
 
 ## Structure

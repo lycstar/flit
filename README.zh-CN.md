@@ -111,6 +111,8 @@ flutter build apk --debug --target-platform android-arm64
 
 工具链构建脚本由这些仓库维护。本仓库仅保留应用的安装脚本和发行清单。版本目录与验证要求见[运行环境配置](docs/runtime-environment.md)。
 
+工具链 Tag 统一使用组件前缀与完整版本：`sdk-36.0.0`（Build Tools）、`ndk-r27d`、`llvm-r27d`、`cmake-3.22.1`、`flutter-3.47.8`。NDK 的 r27 与 r27d 属于不同修订版，独立发布。
+
 SDK 构建矩阵覆盖 Build Tools **30.0.3、33.0.1、34.0.0、35.0.0、36.0.0**，其中 36.0.0 安装包还包含 **API 30–36** 的 Android Platforms。NDK 补充构建 **r25b（25.1.8937393）、r26b（26.1.10909125）、r27（27.0.12077973）**，与已有 r28c 及更新版本并存。构建发布成功后，相应版本才会出现在版本目录中。CMake **3.22.1** 与 **3.31.6** 也可在同一目录中选择。
 
 ## 目录结构

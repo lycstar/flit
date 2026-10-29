@@ -5,6 +5,39 @@ import 'package:flit/features/environment/environment_controller.dart';
 import 'package:flit/features/environment/toolchain_catalog.dart';
 
 void main() {
+  test('prefixed release tags pass real versions to SDK installers', () async {
+    final home = Directory.systemTemp.createTempSync('flit-release-tags-');
+    addTearDown(() => home.deleteSync(recursive: true));
+    final scripts = Directory('${home.path}/.flit/scripts')
+      ..createSync(recursive: true);
+    for (final item in [
+      ('flutter-sdk', 'flutter-3.47.8', 'flutter_sdk.sh', '3.47.8'),
+      ('cmake', 'cmake-3.31.6', 'android_cmake.sh', '3.31.6'),
+    ]) {
+      File(
+        '${scripts.path}/${item.$3}',
+      ).writeAsStringSync('printf "%s" "\$4" > "\$HOME/version"\n');
+      final command = EnvironmentController.buildInstallCommand(
+        CatalogEntry(
+          component: item.$1,
+          repo: 'example/tools',
+          tag: item.$2,
+          name: 'archive.tar.xz',
+          url: 'https://example.invalid/archive',
+          size: 0,
+          sha256: 'a' * 64,
+        ),
+      );
+      final result = await Process.run(
+        'bash',
+        ['-c', command],
+        environment: {'HOME': home.path},
+      );
+      expect(result.exitCode, 0, reason: result.stderr.toString());
+      expect(File('${home.path}/version').readAsStringSync(), item.$4);
+    }
+  });
+
   test(
     'SDK catalog refreshes Gradle policy only after a successful install',
     () async {

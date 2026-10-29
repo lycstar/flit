@@ -14,47 +14,47 @@
     },
     "android-sdk": {
       "version": "android-sdk-aarch64-linux-android.tar.xz",
-      "url": "https://github.com/lycstar/android-sdk-custom/releases/download/36.0.1/android-sdk-aarch64-linux-android.tar.xz",
-      "sha256": "ef561ecc96154a0328658f9e52c926e9d5e51eda32ddd8218293edd7e6c13774",
-      "size": 164294872,
+      "url": "https://github.com/lycstar/android-sdk-custom/releases/download/sdk-36.0.0/android-sdk-aarch64-linux-android.tar.xz",
+      "sha256": "4cb2df7980ced522cc64a85179785dd51350b1cf426283251b6f7003a2d481dd",
+      "size": 323773220,
       "install": "$HOME/android-sdk",
-      "note": "自建 bionic aarch64(Homu 配方, 我们的 CI 出包; build-tools 36.x)",
+      "note": "Android ARM64 Build Tools 36.0.0; Android Platforms API 30–36",
       "urls": [
-        "https://github.com/lycstar/android-sdk-custom/releases/download/36.0.1/android-sdk-aarch64-linux-android.tar.xz"
+        "https://github.com/lycstar/android-sdk-custom/releases/download/sdk-36.0.0/android-sdk-aarch64-linux-android.tar.xz"
       ]
     },
     "ndk": {
       "version": "android-ndk-r28c-aarch64-linux-android.tar.xz",
-      "url": "https://github.com/lycstar/android-ndk-custom/releases/download/r28/android-ndk-r28c-aarch64-linux-android.tar.xz",
+      "url": "https://github.com/lycstar/android-ndk-custom/releases/download/ndk-r28c/android-ndk-r28c-aarch64-linux-android.tar.xz",
       "sha256": "969bc688e9f84cb98b6f7a8da5ee7cfe7e40da4963e3f11d3824d8b79641bebe",
       "size": 136807188,
       "install": "$HOME/android-sdk/ndk/28.2.13676358",
       "note": "NDK r28c = 28.2.13676358 (= flutter.ndkVersion)",
       "urls": [
-        "https://github.com/lycstar/android-ndk-custom/releases/download/r28/android-ndk-r28c-aarch64-linux-android.tar.xz"
+        "https://github.com/lycstar/android-ndk-custom/releases/download/ndk-r28c/android-ndk-r28c-aarch64-linux-android.tar.xz"
       ]
     },
     "cmake": {
       "version": "cmake-3.22.1-aarch64-linux-android.tar.xz",
-      "url": "https://github.com/lycstar/cmake-custom/releases/download/3.22.1/cmake-aarch64-linux-android.tar.xz",
+      "url": "https://github.com/lycstar/cmake-custom/releases/download/cmake-3.22.1/cmake-aarch64-linux-android.tar.xz",
       "sha256": "adf091c8f27dc3dacbf44748d6ecc671720ee359385f8706aac465c6c0839685",
       "size": 13582308,
       "install": "$ANDROID_HOME/cmake/<version>",
       "note": "AGP externalNativeBuild 默认请求 cmake;3.22.1(flutter_pty 等原生插件); 官方包是 Linux x86_64, 设备上不可执行, 缺包会让 AGP 静默下载错误架构",
       "urls": [
-        "https://github.com/lycstar/cmake-custom/releases/download/3.22.1/cmake-aarch64-linux-android.tar.xz"
+        "https://github.com/lycstar/cmake-custom/releases/download/cmake-3.22.1/cmake-aarch64-linux-android.tar.xz"
       ]
     },
     "flutter-sdk": {
       "sdkVersion": "3.47.8",
       "version": "flutter-3.47.8-aarch64-linux-android.tar.xz",
-      "url": "https://github.com/lycstar/flutter-sdk-custom/releases/download/3.47.8/flutter-3.47.8-aarch64-linux-android.tar.xz",
+      "url": "https://github.com/lycstar/flutter-sdk-custom/releases/download/flutter-3.47.8/flutter-3.47.8-aarch64-linux-android.tar.xz",
       "sha256": "9a4c989f4d7632f0182f2d25a6cc345a8b112dabc990b89940e52a2585ed37cb",
       "size": 776151952,
       "install": "$PREFIX/opt/flutter/<version>",
       "note": "自建 Flutter SDK (fork CI: engine 交叉编译 + deb→tarball)",
       "urls": [
-        "https://github.com/lycstar/flutter-sdk-custom/releases/download/3.47.8/flutter-3.47.8-aarch64-linux-android.tar.xz"
+        "https://github.com/lycstar/flutter-sdk-custom/releases/download/flutter-3.47.8/flutter-3.47.8-aarch64-linux-android.tar.xz"
       ]
     }
   }

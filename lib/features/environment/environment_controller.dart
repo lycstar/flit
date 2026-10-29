@@ -224,9 +224,10 @@ class EnvironmentController extends ChangeNotifier {
       _ => null,
     };
     if (script != null) {
+      final version = entry.tag.replaceFirst(RegExp(r'^(flutter|cmake)-'), '');
       return 'bash "\$HOME/.flit/scripts/$script" --release '
           '${shQuote(entry.url)} ${shQuote(sha)}'
-          '${{'flutter-sdk', 'cmake'}.contains(entry.component) ? ' ${shQuote(entry.tag)}' : ''}'
+          '${{'flutter-sdk', 'cmake'}.contains(entry.component) ? ' ${shQuote(version)}' : ''}'
           '${entry.component == 'android-sdk' ? ' && bash "\$HOME/.flit/scripts/android_gradle.sh"' : ''}';
     }
     final url = shQuote(entry.url);

@@ -104,7 +104,7 @@ void main() {
         if (url.contains('android-ndk-custom')) {
           return [
             release(
-              'r27',
+              'ndk-r27d',
               '2026-10-01T00:00:00Z',
               assets: [
                 {
@@ -119,7 +119,7 @@ void main() {
         if (url.contains('android-sdk-custom')) {
           return [
             release(
-              '36.0.1',
+              'sdk-36.1.0',
               '2026-10-02T00:00:00Z',
               assets: [
                 {
@@ -134,7 +134,7 @@ void main() {
         if (url.contains('cmake-custom')) {
           return [
             release(
-              '3.31.6',
+              'cmake-3.31.6',
               '2026-10-02T00:00:00Z',
               assets: [
                 {
@@ -149,7 +149,7 @@ void main() {
         if (url.contains('flutter-sdk-custom')) {
           return [
             release(
-              '3.47.7',
+              'flutter-3.47.7',
               '2026-10-03T00:00:00Z',
               assets: [
                 {
@@ -178,11 +178,11 @@ void main() {
     expect(result.containsKey('bootstrap'), isFalse);
     final ndk = result['ndk']!;
     expect(ndk, hasLength(1));
-    expect(ndk.single.tag, 'r27');
+    expect(ndk.single.tag, 'ndk-r27d');
     expect(ndk.single.sha256, 'aa'.padRight(64, '0'));
-    expect(ndk.single.url, contains('releases/download/r27/'));
+    expect(ndk.single.url, contains('releases/download/ndk-r27d/'));
     expect(result['flutter-sdk']!.single.size, 590);
-    expect(result['cmake']!.single.tag, '3.31.6');
+    expect(result['cmake']!.single.tag, 'cmake-3.31.6');
   });
 
   test(
@@ -191,7 +191,7 @@ void main() {
       final catalog = exampleCatalog;
       catalog.fetchJson = (url) async => [
         release(
-          '36.0.1',
+          'sdk-36.1.0',
           '2026-10-02T00:00:00Z',
           assets: [
             {
@@ -212,7 +212,7 @@ void main() {
         }
         return [
           release(
-            'r28',
+            'ndk-r28c',
             '2026-10-05T00:00:00Z',
             assets: [
               {
@@ -229,7 +229,7 @@ void main() {
         second['android-sdk']!.single.sha256,
         'bb'.padRight(64, '0'),
       ); // lastGood 回退
-      expect(second['ndk']!.single.tag, 'r28');
+      expect(second['ndk']!.single.tag, 'ndk-r28c');
       expect(catalog.errors['android-sdk'], contains('503'));
     },
   );
