@@ -33,4 +33,27 @@ void main() {
     expect(fileKindFromSniff('text\n'), FileKind.code);
     expect(fileKindFromSniff(''), FileKind.code);
   });
+
+  test('card actions: share always first, apk swaps open for install', () {
+    expect(cardActions('build/app/outputs/app-release.apk'), [
+      FileCardAction.installApk,
+      FileCardAction.share,
+    ]);
+    expect(cardActions('assets/images/logo.png'), [
+      FileCardAction.share,
+      FileCardAction.openExternal,
+    ]);
+    expect(cardActions('dist/data.sqlite'), [
+      FileCardAction.share,
+      FileCardAction.openExternal,
+    ]);
+  });
+
+  test('renderable document formats are extension based', () {
+    expect(renderableDocumentFormat('README.md'), 'md');
+    expect(renderableDocumentFormat('docs/guide.markdown'), 'md');
+    expect(renderableDocumentFormat('assets/logo.svg'), 'svg');
+    expect(renderableDocumentFormat('lib/main.dart'), isNull);
+    expect(renderableDocumentFormat('notes.txt'), isNull);
+  });
 }

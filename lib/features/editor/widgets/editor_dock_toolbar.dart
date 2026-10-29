@@ -17,9 +17,10 @@ class EditorDockToolbar extends StatelessWidget {
     required this.onCode,
     required this.onPreview,
     required this.onTerminal,
-    this.markdownAvailable = false,
-    this.markdownPreview = false,
-    this.onMarkdown,
+    this.docPreviewAvailable = false,
+    this.docPreviewOn = false,
+    this.docPreviewLabel = 'MD',
+    this.onDocPreview,
   });
 
   final CodeController controller;
@@ -27,8 +28,9 @@ class EditorDockToolbar extends StatelessWidget {
   final VoidCallback onCode, onPreview, onTerminal;
 
   /// 当前缓冲是 markdown 时出现, 切编辑缓冲 ↔ 渲染预览
-  final bool markdownAvailable, markdownPreview;
-  final VoidCallback? onMarkdown;
+  final bool docPreviewAvailable, docPreviewOn;
+  final String docPreviewLabel;
+  final VoidCallback? onDocPreview;
 
   Widget _tab(String label, bool selected, VoidCallback action) => TextButton(
     onPressed: action,
@@ -56,9 +58,9 @@ class EditorDockToolbar extends StatelessWidget {
             height: 44,
             child: Row(
               children: [
-                _tab('代码', !showPreview && !markdownPreview, onCode),
-                if (markdownAvailable)
-                  _tab('MD', markdownPreview, onMarkdown ?? () {}),
+                _tab('代码', !showPreview && !docPreviewOn, onCode),
+                if (docPreviewAvailable)
+                  _tab(docPreviewLabel, docPreviewOn, onDocPreview ?? () {}),
                 if (previewAvailable) _tab('预览', showPreview, onPreview),
                 const SizedBox(width: 4),
                 WorkbenchButton(

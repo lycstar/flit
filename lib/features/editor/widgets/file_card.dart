@@ -7,7 +7,7 @@ import '../../../core/theme.dart';
 import '../file_kind.dart';
 
 /// 非文本文件的 tab 内容: 图片给预览, 其余给一张文件卡——图标、名字、路径、
-/// 大小/时间, 以及"用这个文件"的动作(安装 apk / 用其他应用打开 / 分享)。
+/// 大小/时间, 以及动作清单(file_kind.cardActions 按格式分发, 分享永远在)。
 /// 文件系统操作(改名/删除)不在这里, 在文件树的长按菜单。
 class FileCard extends StatefulWidget {
   const FileCard({
@@ -31,7 +31,10 @@ class _FileCardState extends State<FileCard> {
   FileStat? _stat;
 
   String get _absolute => '${widget.projectRoot}/${widget.path}';
-  bool get _isApk => widget.path.toLowerCase().endsWith('.apk');
+
+  /// 动作清单唯一事实源在 file_kind.cardActions; 图标等展示随清单推导
+  List<FileCardAction> get _actions => cardActions(widget.path);
+  bool get _installable => _actions.contains(FileCardAction.installApk);
 
   @override
   void initState() {
@@ -114,7 +117,7 @@ class _FileCardState extends State<FileCard> {
               Icon(
                 isImage
                     ? Icons.image_outlined
-                    : _isApk
+                    : _installable
                     ? Icons.android
                     : Icons.insert_drive_file_outlined,
                 size: 64,
@@ -152,35 +155,39 @@ class _FileCardState extends State<FileCard> {
               runSpacing: 12,
               alignment: WrapAlignment.center,
               children: [
-                if (_isApk)
-                  FilledButton.icon(
-                    onPressed: !exists
-                        ? null
-                        : () => _run(
-                            () => FlitFiles.installApk(_absolute),
-                            '无法安装：请先在系统设置里授予 Flit“安装未知应用”权限',
-                          ),
-                    icon: const Icon(Icons.install_mobile_outlined, size: 18),
-                    label: const Text('安装到本机'),
-                  ),
-                if (!_isApk)
-                  OutlinedButton.icon(
-                    onPressed: !exists
-                        ? null
-                        : () => _run(
-                            () => FlitFiles.open(_absolute),
-                            '没有能打开此文件的应用',
-                          ),
-                    icon: const Icon(Icons.open_in_new, size: 18),
-                    label: const Text('用其他应用打开'),
-                  ),
-                OutlinedButton.icon(
-                  onPressed: !exists
-                      ? null
-                      : () => _run(() => FlitFiles.share(_absolute), '无法分享该文件'),
-                  icon: const Icon(Icons.share_outlined, size: 18),
-                  label: const Text('分享'),
-                ),
+                for (final action in cardActions(widget.path))
+                  switch (action) {
+                    FileCardAction.installApk => FilledButton.icon(
+                      onPressed: !exists
+                          ? null
+                          : () => _run(
+                              () => FlitFiles.installApk(_absolute),
+                              '无法安装：请先在系统设置里授予 Flit“安装未知应用”权限',
+                            ),
+                      icon: const Icon(Icons.install_mobile_outlined, size: 18),
+                      label: const Text('安装到本机'),
+                    ),
+                    FileCardAction.openExternal => OutlinedButton.icon(
+                      onPressed: !exists
+                          ? null
+                          : () => _run(
+                              () => FlitFiles.open(_absolute),
+                              '没有能打开此文件的应用',
+                            ),
+                      icon: const Icon(Icons.open_in_new, size: 18),
+                      label: const Text('用其他应用打开'),
+                    ),
+                    FileCardAction.share => OutlinedButton.icon(
+                      onPressed: !exists
+                          ? null
+                          : () => _run(
+                              () => FlitFiles.share(_absolute),
+                              '无法分享该文件',
+                            ),
+                      icon: const Icon(Icons.share_outlined, size: 18),
+                      label: const Text('分享'),
+                    ),
+                  },
               ],
             ),
           ],

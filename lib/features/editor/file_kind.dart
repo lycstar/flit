@@ -50,3 +50,27 @@ String sniffCommand(String absolutePath) =>
 /// 解析嗅探输出
 FileKind fileKindFromSniff(String output) =>
     output.trim().endsWith('binary') ? FileKind.binary : FileKind.code;
+
+/// 文件卡上的动作: 分享永远第一, 格式特有动作随后。
+enum FileCardAction { share, openExternal, installApk }
+
+/// 文件卡的判断与分发: 一种格式一份动作清单, 卡片按清单渲染, 不散落条件分支。
+/// - apk: 安装是主操作; 交给外部"打开"对安装包没有意义, 不提供;
+/// - 其余(image/binary): 交给系统 + 分享。
+List<FileCardAction> cardActions(String path) {
+  if (_extensionOf(path) == 'apk') {
+    return [FileCardAction.installApk, FileCardAction.share];
+  }
+  return [FileCardAction.share, FileCardAction.openExternal];
+}
+
+/// 编辑器内可切换渲染预览的文档格式(.md/.markdown/.svg); 其余文本为 null。
+/// 仅凭后缀(这些格式嗅探必然是文本)。
+String? renderableDocumentFormat(String path) {
+  final ext = _extensionOf(path);
+  return switch (ext) {
+    'md' || 'markdown' => 'md',
+    'svg' => 'svg',
+    _ => null,
+  };
+}

@@ -8,6 +8,7 @@ import 'controller/code_controller.dart';
 import 'file_kind.dart';
 import 'widgets/editor_dock_toolbar.dart';
 import 'widgets/markdown_preview.dart';
+import 'widgets/svg_preview.dart';
 import 'widgets/editor_file_tabs.dart';
 import 'widgets/editor_surface.dart';
 import 'widgets/editor_run_controls.dart';
@@ -69,18 +70,17 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
   /// 当前 tab 的相对路径(代码或文件卡)
   String? get _openFile => _current?.path;
 
-  /// 当前代码缓冲是 markdown(.md/.markdown)时, 工具栏出现 MD 预览切换
-  bool get _markdownOpen => switch (_current) {
-    CodeTab(:final path) =>
-      path.toLowerCase().endsWith('.md') ||
-      path.toLowerCase().endsWith('.markdown'),
-    _ => false,
+  /// 当前代码缓冲是可渲染文档(md/svg)时, 工具栏出现预览切换
+  String? get _docPreviewFormat => switch (_current) {
+    CodeTab(:final path) => renderableDocumentFormat(path),
+    _ => null,
   };
+  bool get _previewableOpen => _docPreviewFormat != null;
   final _editorFocus = FocusNode();
   bool _loadingFile = false;
 
-  /// markdown 缓冲的渲染预览开关; 换 tab/换文件即复位
-  bool _mdPreview = false;
+  /// 可渲染文档的预览开关; 换 tab/换文件即复位
+  bool _docPreview = false;
   int _fileSeq = 0;
   int _gitRevision = 0;
   StreamSubscription<String>? _artifacts;
@@ -239,7 +239,7 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
   Future<void> _selectTab(OpenItem item) async {
     if (identical(_current, item)) return;
     if (item is CodeTab) {
-      setState(() => _mdPreview = false);
+      setState(() => _docPreview = false);
       // 重选代码 tab 走同一条打开路径: 干净缓冲顺便和磁盘重新同步
       await _openFileByPath(item.path, asText: true);
     } else {
@@ -433,19 +433,27 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
                       Positioned.fill(
                         child: switch (_current) {
                           null => _emptyHint(),
-                          CodeTab(:final document) =>
-                            _markdownOpen && _mdPreview
-                                ? MarkdownPreview(
-                                    key: ValueKey('md:${_currentPath()}'),
-                                    controller: document.controller,
-                                    projectRoot: widget.projectPath,
-                                  )
-                                : EditorSurface(
-                                    key: ValueKey(_currentPath()),
-                                    controller: document.controller,
-                                    path: _currentPath()!,
-                                    focusNode: _editorFocus,
-                                  ),
+                          CodeTab(:final document) => switch ((
+                            _previewableOpen,
+                            _docPreview,
+                            _docPreviewFormat,
+                          )) {
+                            (true, true, 'svg') => SvgPreview(
+                              key: const ValueKey('svg-preview'),
+                              controller: document.controller,
+                            ),
+                            (true, true, _) => MarkdownPreview(
+                              key: ValueKey('md:${_currentPath()}'),
+                              controller: document.controller,
+                              projectRoot: widget.projectPath,
+                            ),
+                            _ => EditorSurface(
+                              key: ValueKey(_currentPath()),
+                              controller: document.controller,
+                              path: _currentPath()!,
+                              focusNode: _editorFocus,
+                            ),
+                          },
                           FileTab(:final path, :final kind) => FileCard(
                             key: ValueKey('file:$path'),
                             projectRoot: widget.projectPath,
@@ -472,7 +480,7 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
                   );
                   return TerminalHost(
                     // MD 预览与编辑同样不自动弹终端
-                    expanded: layout.terminalExpanded && !editing && !_mdPreview,
+                    expanded: layout.terminalExpanded && !editing && !_docPreview,
                     onToggle: _toggleTerminal,
                     footer: EditorDockToolbar(
                       controller: _codeCtrl,
@@ -480,13 +488,14 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
                           runTarget == 'web' || web.state != WebRunState.idle,
                       showPreview: layout.showPreview,
                       terminalExpanded: layout.terminalExpanded && !editing,
-                      markdownAvailable: _markdownOpen,
-                      markdownPreview: _mdPreview,
-                      onMarkdown: () => setState(() => _mdPreview = !_mdPreview),
+                      docPreviewAvailable: _previewableOpen,
+                      docPreviewOn: _docPreview,
+                      docPreviewLabel: _docPreviewFormat == 'svg' ? 'SVG' : 'MD',
+                      onDocPreview: () => setState(() => _docPreview = !_docPreview),
                       canEdit:
-                          !layout.showPreview && !_mdPreview && _current is CodeTab,
+                          !layout.showPreview && !_docPreview && _current is CodeTab,
                       onCode: () {
-                        setState(() => _mdPreview = false);
+                        setState(() => _docPreview = false);
                         _layout.selectView(preview: false);
                       },
                       onPreview: () => _layout.selectView(preview: true),

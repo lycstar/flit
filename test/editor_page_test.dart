@@ -118,6 +118,8 @@ void main() {
                       ? 'otherFile'
                       : cmd.contains('readme.md')
                       ? mdSource
+                      : cmd.contains('logo.svg')
+                      ? mdSource
                       : diskSource,
                 ),
               ),
@@ -545,6 +547,27 @@ void main() {
       await closeSession(tester, project);
     },
   );
+
+  testWidgets('svg files toggle a rendered preview too', (tester) async {
+    listing = 'lib/main.dart\nassets/logo.svg';
+    mdSource = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24">'
+        '<rect width="24" height="24"/></svg>';
+    final project = ProjectSession('/project', launcher: services.launcher);
+    await open(tester, session: project);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+    openFromDrawer(tester, 'assets/logo.svg');
+    await tester.pumpAndSettle();
+    expect(find.text('SVG'), findsOneWidget);
+    await tester.tap(find.text('SVG'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CodeField), findsNothing);
+    await tester.tap(find.text('代码'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CodeField), findsOneWidget);
+    await closeSession(tester, project);
+  });
 
   testWidgets('markdown files toggle a rendered preview', (tester) async {
     listing = 'lib/main.dart\nreadme.md';
