@@ -89,7 +89,7 @@ class ToolchainCatalog {
                 name: name,
                 url: asset['browser_download_url'] as String? ?? '',
                 size: asset['size'] as int? ?? 0,
-                sha256: (asset['digest'] as String?)?.split(':').last,
+                sha256: parseSha256(asset['digest'] as String?),
                 publishedAt: DateTime.tryParse(
                   release['published_at'] as String? ?? '',
                 ),
@@ -115,6 +115,15 @@ class ToolchainCatalog {
       }
     }
     return result;
+  }
+
+  /// 只接受 GitHub 明确提供的 SHA-256，不把其他算法或空值当作摘要。
+  static String? parseSha256(String? digest) {
+    if (digest == null ||
+        !RegExp(r'^sha256:[0-9a-fA-F]{64}$').hasMatch(digest)) {
+      return null;
+    }
+    return digest.substring(7).toLowerCase();
   }
 
   /// 资产名通配符匹配(只支持 '*', 够用: 组件资产模式固定); 公开供测试

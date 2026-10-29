@@ -318,6 +318,32 @@ exit %d
         self.assertTrue((ndk_dir / 'clang').exists(), '重装 SDK 不得连带删掉 NDK')
         self.assertTrue(self.marker(self.root / 'android-sdk').exists())
 
+    def test_catalog_sdk_uses_release_digest_and_keeps_default_manifest(self):
+        sha = self.sdk_archive()
+        original = "SDK_URLS=('https://test/default')\nSDK_SHA256='default-hash'\n"
+        self.config.write_text(original)
+        self.install_fake_curl()
+        result = self.run_script('android_sdk.sh', '--release', 'https://test/selected', sha)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(self.marker(self.root / 'android-sdk').read_text().strip(), sha)
+        self.assertEqual(self.config.read_text(), original)
+        result = self.run_script('android_sdk.sh', '--check')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn('__STAGE__android_sdk:DONE', result.stdout)
+        self.assertNotIn('https://test/default', (self.root / 'curl-calls').read_text())
+
+    def test_catalog_flutter_uses_shared_install_and_completion_marker(self):
+        self.flutter_archive()
+        sha = hashlib.sha256(Path(self.env['TEST_ARCHIVE']).read_bytes()).hexdigest()
+        original = "FLUTTER_URLS=('https://test/default')\nFLUTTER_SHA256='default-hash'\n"
+        self.config.write_text(original)
+        result = self.run_script('flutter_sdk.sh', '--release', 'https://test/selected', sha)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(self.marker(self.prefix / 'opt/flutter').read_text().strip(), sha)
+        self.assertEqual(self.config.read_text(), original)
+        result = self.run_script('flutter_sdk.sh', '--check')
+        self.assertIn('__STAGE__flutter_sdk:DONE', result.stdout)
+
     def test_sdk_old_install_is_adopted_without_download(self):
         self.sdk_archive()
         self.install_fake_curl()

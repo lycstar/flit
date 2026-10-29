@@ -11,7 +11,7 @@ init_stage flutter_sdk
 FLUTTER_DIR="$PREFIX/opt/flutter"
 
 probe() {
-  if installed_ok "$FLUTTER_DIR" "$FLUTTER_SHA256"; then
+  if installed_ok "$FLUTTER_DIR"; then
     st "$STAGE" DONE
     if [ -f "$FLUTTER_DIR/version" ]; then echo "__VER__$STAGE:$(cat "$FLUTTER_DIR/version")"; fi
   else
@@ -24,7 +24,7 @@ install() {
     ok "[flutter] SDK 已安装，跳过下载与解压"
     return 0
   fi
-  if [ ! -f "$FLUTTER_DIR/.flit-complete" ] &&
+  if [ "${1:-}" != --release ] && [ ! -f "$FLUTTER_DIR/.flit-complete" ] &&
      [ -x "$FLUTTER_DIR/bin/flutter" ] && [ -d "$FLUTTER_DIR/packages/flutter_tools" ]; then
     # 旧版脚本装的没有标记: 结构性认领一次并补标记, 避免给已装好的设备重下 1.2GB。
     # 只限"没有标记"; 标记在但 sha 不一致 = 清单升级, 必须走下面的重装

@@ -15,7 +15,9 @@ Map<String, dynamic> release(
         'size': a['size'],
         'browser_download_url':
             'https://github.com/example/toolchain/releases/download/$tag/${a['name']}',
-        'digest': 'sha256:${a['digest']}',
+        'digest': a['digest'] == null
+            ? null
+            : 'sha256:${(a['digest'] as String).padRight(64, '0')}',
       },
   ],
 };
@@ -53,6 +55,15 @@ void main() {
       ToolchainCatalog.components['android-sdk']!.repo,
       'lycstar/android-sdk-custom',
     );
+  });
+
+  test('only complete SHA-256 asset digests are accepted', () {
+    final hash = 'a'.padRight(64, 'b');
+    expect(ToolchainCatalog.parseSha256('sha256:$hash'), hash);
+    expect(ToolchainCatalog.parseSha256('sha256:${hash.toUpperCase()}'), hash);
+    for (final digest in [null, '', 'sha256:', 'sha256:abc', 'sha512:$hash']) {
+      expect(ToolchainCatalog.parseSha256(digest), isNull);
+    }
   });
 
   test('asset matching: plain name and star patterns', () {
@@ -154,7 +165,7 @@ void main() {
     final ndk = result['ndk']!;
     expect(ndk, hasLength(1));
     expect(ndk.single.tag, 'r27');
-    expect(ndk.single.sha256, 'aa');
+    expect(ndk.single.sha256, 'aa'.padRight(64, '0'));
     expect(ndk.single.url, contains('releases/download/r27/'));
     expect(result['flutter-sdk']!.single.size, 590);
   });
@@ -199,7 +210,7 @@ void main() {
         ];
       };
       final second = await catalog.collect();
-      expect(second['android-sdk']!.single.sha256, 'bb'); // lastGood 回退
+      expect(second['android-sdk']!.single.sha256, 'bb'.padRight(64, '0')); // lastGood 回退
       expect(second['ndk']!.single.tag, 'r28');
       expect(catalog.errors['android-sdk'], contains('503'));
     },

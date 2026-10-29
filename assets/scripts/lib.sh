@@ -31,11 +31,11 @@ fi
 st() { echo "__STAGE__$1:$2"; }
 
 # 安装完整性标记: 解压与后处理全部成功后才写入(内容=来源 tarball 的 sha256)。
-# 目录存在 ≠ 装好——解压中途被停也有目录; 标记在且 sha 一致 = 完整且为当前清单版本,
-# sha 不一致 = manifest 升级 → 视为未装, 重试清目录重解压(缓存包在则免下载)。
+# 不传摘要时只检测完整安装状态；指定摘要时判断是否为本次要安装的产物。
+# 版本目录可以安装非默认版本，状态探测不能强制要求内置清单的摘要。
 installed_ok() {
-  [ -f "$1/.flit-complete" ] &&
-    [ "$(cat "$1/.flit-complete" 2>/dev/null)" = "$2" ]
+  [ -s "$1/.flit-complete" ] &&
+    { [ -z "${2:-}" ] || [ "$(cat "$1/.flit-complete" 2>/dev/null)" = "$2" ]; }
 }
 mark_installed() { printf '%s\n' "$2" > "$1/.flit-complete"; }
 
@@ -72,6 +72,17 @@ apt_repair() {
 stage_main() {
   case "${1:-}" in
     --check) probe ;;
+    --release)
+      [ "$#" = 3 ] || die '安装版本需要下载地址和 SHA-256'
+      case "$STAGE" in
+        android_sdk) SDK_URLS=("$2"); SDK_SHA256=$3 ;;
+        flutter_sdk) FLUTTER_URLS=("$2"); FLUTTER_SHA256=$3 ;;
+        *) die '该组件不支持版本切换' ;;
+      esac
+      st "$STAGE" RUNNING
+      install --release
+      st "$STAGE" DONE
+      ;;
     *)
       st "$STAGE" RUNNING
       install

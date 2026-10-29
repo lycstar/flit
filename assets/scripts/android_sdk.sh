@@ -20,7 +20,7 @@ version() {
 }
 
 probe() {
-  if installed_ok "$ANDROID_HOME" "$SDK_SHA256"; then
+  if installed_ok "$ANDROID_HOME"; then
     st "$STAGE" DONE
     echo "__VER__$STAGE:$(version)"
   else
@@ -34,7 +34,7 @@ install() {
     return 0
   fi
   _bt=$(_latest_build_tools)
-  if [ ! -f "$ANDROID_HOME/.flit-complete" ] &&
+  if [ "${1:-}" != --release ] && [ ! -f "$ANDROID_HOME/.flit-complete" ] &&
      [ -n "$_bt" ] && [ -x "$ANDROID_HOME/build-tools/$_bt/aapt2" ]; then
     # 旧版脚本装的没有标记: 结构性认领一次并补标记, 避免给已装好的设备重下。
     # 只限"没有标记"; 标记在但 sha 不一致 = 清单升级, 必须走下面的重装

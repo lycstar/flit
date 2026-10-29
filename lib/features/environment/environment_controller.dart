@@ -184,7 +184,7 @@ class EnvironmentController extends ChangeNotifier {
       _term('请先安装基础环境，再安装其他版本', color: _cWarn);
       return;
     }
-    if (entry.sha256 == null) {
+    if (ToolchainCatalog.parseSha256('sha256:${entry.sha256}') == null) {
       _term('该产物缺少校验值，已拒绝安装', color: _cErr);
       return;
     }
@@ -194,7 +194,7 @@ class EnvironmentController extends ChangeNotifier {
     try {
       final code = await _runInTerminal(
         c,
-        _installCommand(entry),
+        buildInstallCommand(entry),
         timeout: const Duration(minutes: 45),
       );
       if (code == 0) {
@@ -209,37 +209,46 @@ class EnvironmentController extends ChangeNotifier {
     }
   }
 
-  static String _installCommand(CatalogEntry entry) {
+  @visibleForTesting
+  static String buildInstallCommand(CatalogEntry entry) {
+    final sha = entry.sha256!;
+    final script = switch (entry.component) {
+      'android-sdk' => 'android_sdk.sh',
+      'flutter-sdk' => 'flutter_sdk.sh',
+      _ => null,
+    };
+    if (script != null) {
+      return 'bash "\$HOME/.flit/scripts/$script" --release '
+          '${shQuote(entry.url)} ${shQuote(sha)}';
+    }
     final url = shQuote(entry.url);
-    final shaCheck = entry.sha256 == null
-        ? ''
-        : 'echo ${shQuote('${entry.sha256}  ')}"\$tmp/pkg" '
-              '| sha256sum -c - || { rm -rf "\$tmp"; exit 1; }\n';
+    final shaCheck =
+        'echo ${shQuote('$sha  ')}"\$tmp/pkg" '
+        '| sha256sum -c - || { rm -rf "\$tmp"; exit 1; }\n';
     final body = switch (entry.component) {
       'ndk' =>
-        'tar -xJf "\$tmp/pkg" -C "\$tmp"\n'
-            'rev=\$(sed -n \'s/^Pkg\\.Revision = //p\' "\$tmp"/android-ndk-*/source.properties '
+        'tar -xJf "\$tmp/pkg" -C "\$tmp" '
+            "--exclude='*/shader-tools/linux-x86_64*' "
+            "--exclude='*/toolchains/llvm/prebuilt/linux-x86_64*'\n"
+            'set -- "\$tmp"/android-ndk-*; ndk=\$1\n'
+            '[ -d "\$ndk" ] || exit 1\n'
+            'rev=\$(sed -n \'s/^Pkg\\.Revision[[:space:]]*=[[:space:]]*//p\' "\$ndk/source.properties" '
             '| head -n1 | tr -d \' \\r\')\n'
             '[ -n "\$rev" ] || { echo \'无法读取 Pkg.Revision\'; rm -rf "\$tmp"; exit 1; }\n'
             'mkdir -p "\$HOME/android-sdk/ndk"\n'
+            'ln -sfn linux-arm64 "\$ndk/shader-tools/linux-x86_64"\n'
+            'ln -sfn linux-arm64 "\$ndk/toolchains/llvm/prebuilt/linux-x86_64"\n'
+            'test -x "\$ndk/toolchains/llvm/prebuilt/linux-arm64/bin/clang" || exit 1\n'
             'rm -rf "\$HOME/android-sdk/ndk/\$rev"\n'
-            'mv "\$tmp"/android-ndk-* "\$HOME/android-sdk/ndk/\$rev"\n'
+            'mv "\$ndk" "\$HOME/android-sdk/ndk/\$rev"\n'
+            'printf "%s\\n" ${shQuote(sha)} > "\$HOME/android-sdk/ndk/\$rev/.flit-complete"\n'
             'rm -rf "\$tmp"\n'
             'echo "已安装 NDK \$rev"',
-      'android-sdk' =>
-        'tar -xJf "\$tmp/pkg" -C "\$tmp"\n'
-            'mkdir -p "\$HOME/android-sdk"\n'
-            'cp -a "\$tmp"/android-sdk/. "\$HOME/android-sdk/"\n'
-            'rm -rf "\$tmp"\n'
-            'echo \'已安装/合并 Android SDK\'',
-      'flutter-sdk' =>
-        'rm -rf "\$PREFIX/opt/flutter"\n'
-            'tar -xJf "\$tmp/pkg" -C "\$PREFIX/opt"\n'
-            'rm -rf "\$tmp"\n'
-            'echo \'已安装 Flutter SDK（重新打开终端生效）\'',
       _ => throw StateError('组件不支持版本安装: ${entry.component}'),
     };
-    return 'tmp=\$(mktemp -d) || exit 1\n'
+    return 'set -e\n'
+        'tmp=\$(mktemp -d) || exit 1\n'
+        "trap 'rm -rf \"\$tmp\"' EXIT\n"
         'curl -fL --retry 3 -o "\$tmp/pkg" $url || { rm -rf "\$tmp"; exit 1; }\n'
         '$shaCheck'
         '$body';

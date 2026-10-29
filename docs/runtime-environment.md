@@ -16,6 +16,8 @@
 
 bootstrap 和 APT 软件包必须为 `/data/data/cc.lycstar.flit/files/usr` 构建；SDK/NDK/Flutter 需要 Android bionic aarch64 宿主二进制。不得将桌面 Linux 工具或其他应用前缀的包直接安装进来。SHA-256 只能证明内容符合清单，不能证明二进制兼容。
 
+内置摘要随应用固定，默认安装无需额外请求 GitHub API。生成的 `env.sh` 只供脚本读取，不作为独立维护的清单。安装目录中的 `.flit-complete` 仅在安装及后处理成功后写入，记录已安装归档的摘要；它不提供下载前的预期校验值。
+
 ## 版本目录
 
 默认安装使用清单中的固定版本；版本目录默认查询 Flit 的配套 GitHub Releases 仓库。可通过以下构建参数覆盖仓库，值为 `owner/repository`：
@@ -26,6 +28,8 @@ bootstrap 和 APT 软件包必须为 `/data/data/cc.lycstar.flit/files/usr` 构�
 | `FLIT_ANDROID_SDK_REPO` | Android SDK |
 | `FLIT_NDK_REPO` | Android NDK |
 | `FLIT_FLUTTER_SDK_REPO` | Flutter SDK |
+
+版本目录安装直接使用 GitHub Release 资产的 `digest`（SHA-256），不写回内置清单，也不另存一份远程校验清单。缺少有效 SHA-256 的资产拒绝安装。SDK 和 Flutter 复用默认安装脚本；NDK 按 `Pkg.Revision` 并存。
 
 显式设为空字符串的目录不发出请求；页面会区分未配置、请求失败和无匹配版本。只配置经过兼容性验证的仓库；匿名下载不支持私有资产，不能把个人令牌写进应用。安装目录和资产名模式见 `ToolchainCatalog.components`。
 
