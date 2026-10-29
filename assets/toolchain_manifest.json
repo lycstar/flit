@@ -3,13 +3,13 @@
   "packages": {
     "bootstrap": {
       "version": "bootstrap-aarch64.zip",
-      "url": "https://github.com/lycstar/flit-termux-packages/releases/download/bootstrap-flit-aarch64-40672502837/bootstrap-aarch64.zip",
-      "sha256": "c7c5e96943af1b93d805cf05ec2381d328da4be6ba5aa41675c2720c12f49dcd",
-      "size": 128298498,
+      "url": "https://github.com/lycstar/flit-termux-packages/releases/download/bootstrap-flit-aarch64-40801524107/bootstrap-aarch64.zip",
+      "sha256": "b0838a80a559f5c4c0bbc178cfd9e39a39e67b7df416b12d90ed83167d40d708",
+      "size": 33196508,
       "install": "$PREFIX (bootstrap 解压)",
       "note": "flit 前缀 bootstrap（flit-termux-packages CI 自建）",
       "urls": [
-        "https://github.com/lycstar/flit-termux-packages/releases/download/bootstrap-flit-aarch64-40672502837/bootstrap-aarch64.zip"
+        "https://github.com/lycstar/flit-termux-packages/releases/download/bootstrap-flit-aarch64-40801524107/bootstrap-aarch64.zip"
       ]
     },
     "android-sdk": {

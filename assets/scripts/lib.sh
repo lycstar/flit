@@ -60,15 +60,8 @@ init_stage() {
   trap '_flit_error=$?; bad "[$STAGE] ✗ 命令失败（退出码 ${_flit_error}，第 ${LINENO} 行）：$BASH_COMMAND"; st "$STAGE" FAILED; exit "$_flit_error"' ERR
 }
 
-# 旧 bootstrap 收进了构建时顺带生成的 dpkg 开发子包，却没有 clang。
-# 仅迁移这个已知版本；不删除 dpkg，也不强制绕过其他包的依赖检查。
+# 上次安装中断后先完成包配置；失败输出必须保留。
 apt_repair() {
-  if [ "$(dpkg-query -W -f='${Version}' dpkg-perl 2>/dev/null || true)" = '1.22.6-5' ] &&
-     ! command -v clang >/dev/null 2>&1; then
-    warn '[apt] 修复旧基础环境：移除误装的 dpkg 开发子包（保留 dpkg）'
-    dpkg --remove dpkg-scanpackages dpkg-perl ||
-      die '[apt] 旧基础环境修复失败，请查看上方依赖信息'
-  fi
   dpkg --configure -a || die '[apt] 软件包配置失败，请查看上方具体错误'
 }
 
