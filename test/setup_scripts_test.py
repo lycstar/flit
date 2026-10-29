@@ -38,6 +38,8 @@ class SetupScriptsTests(unittest.TestCase):
         if shutil.which('gsed'):
             (self.tools / 'sed').symlink_to(shutil.which('gsed'))
         self.write_exec(self.tools / 'git', '#!/bin/sh\necho git version 2.47\necho 2.47\n')
+        self.write_exec(self.tools / 'dpkg', '#!/bin/sh\nexit 0\n')
+        self.write_exec(self.tools / 'dpkg-query', '#!/bin/sh\nexit 1\n')
         self.curl_calls = []
 
     def write_exec(self, path, body):
@@ -374,7 +376,7 @@ sys.exit(0)
         for directory in (Path('/usr/bin'), Path('/bin')):
             for tool in directory.iterdir():
                 target = host_tools / tool.name
-                if tool.name not in {'git', 'gh'} and not target.exists() and tool.is_file():
+                if tool.name not in {'git', 'gh', 'clang'} and not target.exists() and tool.is_file():
                     target.symlink_to(tool)
         self.env['PATH'] = f"{self.tools}:{host_tools}"
         (self.root / 'apt-calls').touch()
@@ -398,6 +400,27 @@ sys.exit(0)
         self.assertNotIn('install', (self.root / 'apt-calls').read_text())
 
     # ---- check.sh 循环 ----
+
+    def test_legacy_bootstrap_repair_removes_only_development_subpackages(self):
+        self.write_exec(self.tools / 'dpkg-query', '#!/bin/sh\nprintf 1.22.6-5\n')
+        self.write_exec(self.tools / 'dpkg', '#!/bin/sh\necho "$*" >> "$HOME/dpkg-calls"\n')
+        # 模拟旧 bootstrap，clang 不在 PATH；其他基础命令使用测试宿主目录。
+        self.write_fake_apt(installed=['git'])
+        result = subprocess.run(['bash', '-c', '. "$1"; apt_repair', 'test',
+                                 str(SCRIPTS / 'lib.sh')], env=self.env,
+                                text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((self.root / 'dpkg-calls').read_text().splitlines(),
+                         ['--remove dpkg-scanpackages dpkg-perl', '--configure -a'])
+
+    def test_package_configuration_failure_is_visible_and_stops_installation(self):
+        self.write_exec(self.tools / 'dpkg', '#!/bin/sh\necho configuration-failed >&2\nexit 1\n')
+        result = subprocess.run(['bash', '-c', '. "$1"; apt_repair', 'test',
+                                 str(SCRIPTS / 'lib.sh')], env=self.env,
+                                text=True, capture_output=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('configuration-failed', result.stderr)
+        self.assertIn('软件包配置失败', result.stdout)
 
     def test_check_loops_every_subtask_without_side_effects(self):
         self.flutter_archive()
