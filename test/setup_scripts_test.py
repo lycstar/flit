@@ -368,8 +368,15 @@ sys.exit(0)
 ''')
         self.env['APT_LOG'] = str(self.root / 'apt-calls')
         self.env['TOOL_BIN'] = str(self.tools)
-        # 宿主机可能装了 gh/git: 只让脚本看见桩目录与系统基础命令
-        self.env['PATH'] = f"{self.tools}:/usr/bin:/bin"
+        # CI 的 /usr/bin 也可能有 gh；保留基础命令，但排除被测试的宿主工具。
+        host_tools = self.root / 'host-bin'
+        host_tools.mkdir()
+        for directory in (Path('/usr/bin'), Path('/bin')):
+            for tool in directory.iterdir():
+                target = host_tools / tool.name
+                if tool.name not in {'git', 'gh'} and not target.exists() and tool.is_file():
+                    target.symlink_to(tool)
+        self.env['PATH'] = f"{self.tools}:{host_tools}"
         (self.root / 'apt-calls').touch()
         for name in installed:
             self.write_exec(self.tools / name, f'#!/bin/sh\necho {name} version 9.9\necho 9.9\n')
