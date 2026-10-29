@@ -39,7 +39,7 @@ void main() {
     await tester.pump();
     await tester.pumpAndSettle();
     expect(find.text('后台运行与通知'), findsOneWidget);
-    await tester.tap(find.text('暂不设置'));
+    await tester.tap(find.text('继续'));
     for (var i = 0; i < 10; i++) {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 10)),
