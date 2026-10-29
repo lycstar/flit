@@ -11,11 +11,16 @@ CMAKE_DIR="$ANDROID_HOME/cmake/$CMAKE_VERSION"
 
 version() {
   [ -x "$CMAKE_DIR/bin/cmake" ] &&
-    "$CMAKE_DIR/bin/cmake" --version 2>/dev/null | awk 'NR==1 { print $3 }'
+    timeout 10 "$CMAKE_DIR/bin/cmake" --version 2>/dev/null | awk 'NR==1 { print $3 }'
+}
+
+tools_work() {
+  [ "$(version)" = "$CMAKE_VERSION" ] &&
+    timeout 10 "$CMAKE_DIR/bin/ninja" --version >/dev/null 2>&1
 }
 
 probe() {
-  if installed_ok "$CMAKE_DIR" "$CMAKE_SHA256" && [ -x "$CMAKE_DIR/bin/ninja" ]; then
+  if installed_ok "$CMAKE_DIR" "$CMAKE_SHA256" && [ -s "$CMAKE_DIR/source.properties" ] && tools_work; then
     st "$STAGE" DONE
     echo "__VER__$STAGE:$(version)"
   else
@@ -24,7 +29,8 @@ probe() {
 }
 
 install() {
-  if installed_ok "$CMAKE_DIR" "$CMAKE_SHA256" && [ -x "$CMAKE_DIR/bin/ninja" ]; then
+  if installed_ok "$CMAKE_DIR" "$CMAKE_SHA256" && tools_work; then
+    printf 'Pkg.Revision=%s\n' "$CMAKE_VERSION" > "$CMAKE_DIR/source.properties"
     ok "[cmake] 已安装，跳过"
     return 0
   fi
@@ -42,8 +48,8 @@ install() {
   [ -x "$CMAKE_DIR/bin/cmake" ] || die "[cmake] ✗ 解压后缺少 cmake"
   [ -x "$CMAKE_DIR/bin/ninja" ] || die "[cmake] ✗ 解压后缺少 ninja"
   # 静态二进制: 真跑一把 --version, 架构不对在这里就暴露
-  "$CMAKE_DIR/bin/cmake" --version >/dev/null 2>&1 ||
-    die "[cmake] ✗ cmake 无法执行（架构不匹配？）"
+  tools_work ||
+    die "[cmake] ✗ CMake 版本不匹配或 CMake / Ninja 无法执行，请查看工具链架构"
   # 自家构建包没有 source.properties, 补一份供 AGP 按 Pkg.Revision 识别
   [ -f "$CMAKE_DIR/source.properties" ] ||
     printf 'Pkg.Revision=%s\n' "$CMAKE_VERSION" > "$CMAKE_DIR/source.properties"

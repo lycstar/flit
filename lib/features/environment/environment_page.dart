@@ -26,6 +26,17 @@ class EnvironmentPage extends StatefulWidget {
 class _EnvironmentPageState extends State<EnvironmentPage> {
   bool _termCollapsed = true;
 
+  Future<bool> _prepareToolchainChange(BuildContext context) async {
+    if (context.read<ProjectWorkspace>().active != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请先关闭项目，再更改 SDK 或工具链')));
+      return false;
+    }
+    await context.read<PtySession>().stop();
+    return true;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -80,17 +91,7 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
                   ToolchainVersionsSection(
                     catalog: context.read<ToolchainCatalog>(),
                     onInstall: (entry) async {
-                      if (entry.component == 'flutter-sdk') {
-                        if (context.read<ProjectWorkspace>().active != null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('请先关闭项目，再切换 Flutter SDK'),
-                            ),
-                          );
-                          return;
-                        }
-                        await context.read<PtySession>().stop();
-                      }
+                      if (!await _prepareToolchainChange(context)) return;
                       await env.installFromCatalog(entry);
                     },
                     installing: env.installing,
@@ -191,7 +192,10 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
                 FilledButton(
                   onPressed: env.allDone
                       ? () => Navigator.of(context).pop()
-                      : env.startPipeline,
+                      : () async {
+                          if (!await _prepareToolchainChange(context)) return;
+                          await env.startPipeline();
+                        },
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(0, 36),
                     padding: const EdgeInsets.symmetric(horizontal: 14),

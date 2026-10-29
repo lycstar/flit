@@ -129,6 +129,7 @@ Read [architecture](docs/architecture.md), [session ownership](docs/session-mode
 ## Limitations
 
 - Android target SDK is fixed at 28 because development tools execute from app-private storage; distribution is intended for sideloading.
+- On-device builds use ARM64 host tools. AGP auto-downloads of SDK/NDK/CMake are disabled; install the versions required by the project before building. Toolchain versions coexist, and changing them requires closing the active project.
 - Complete toolchain setup and network access for initial artifacts/dependencies are required. Project caches and build outputs consume additional storage.
 - One project is active at a time. Returning to the project list keeps its tasks alive; closing or switching the project saves documents and stops its processes.
 - An Android process kill does not restore terminal processes or unsaved in-memory sessions. A foreground service helps keep active work alive but cannot guarantee survival.

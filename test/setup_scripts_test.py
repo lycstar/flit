@@ -356,6 +356,20 @@ exit %d
         self.assertTrue((ndk_dir / 'clang').exists(), '重装 SDK 不得连带删掉 NDK')
         self.assertTrue(self.marker(self.root / 'android-sdk').exists())
 
+    def test_sdk_rejects_unusable_tools_before_replacing_installed_version(self):
+        sdk = self.root / 'android-sdk'
+        aapt2 = sdk / 'build-tools/36.1.0/aapt2'
+        original = '#!/bin/sh\nexit 0\n'
+        self.write_exec(aapt2, original)
+        sha = self.archive([
+            ('android-sdk/build-tools/36.1.0/aapt2', '#!/bin/sh\nexit 126\n', 0o755),
+        ])
+        self.install_fake_curl()
+        result = self.run_script('android_sdk.sh', '--release', 'https://test/sdk', sha)
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(aapt2.read_text(), original)
+        self.assertFalse(self.marker(sdk).exists())
+
     def test_catalog_sdk_uses_release_digest_and_keeps_default_manifest(self):
         sha = self.sdk_archive()
         original = "SDK_URLS=('https://test/default')\nSDK_SHA256='default-hash'\n"
@@ -382,16 +396,22 @@ exit %d
         result = self.run_script('flutter_sdk.sh', '--check')
         self.assertIn('__STAGE__flutter_sdk:DONE', result.stdout)
 
-    def test_sdk_old_install_is_adopted_without_download(self):
-        self.sdk_archive()
+    def test_sdk_versions_coexist_and_refresh_gradle_config(self):
+        sha = self.sdk_archive()
         self.install_fake_curl()
         sdk = self.root / 'android-sdk'
-        self.write_exec(sdk / 'build-tools/36.1.0/aapt2', '#!/bin/sh\nexit 0\n')
-        result = self.run_script('android_sdk.sh')
+        self.write_exec(sdk / 'build-tools/35.0.0/aapt2', '#!/bin/sh\nexit 0\n')
+        (sdk / 'platforms/android-35').mkdir(parents=True)
+        (sdk / 'platforms/android-35/android.jar').write_text('older API')
+        result = self.run_script('android_sdk.sh', '--release', 'https://test/sdk', sha)
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertIn('旧安装补记完整性标记', result.stdout)
-        self.assertTrue(self.marker(sdk).exists())
-        self.assertEqual((self.root / 'curl-calls').read_text(), '')
+        self.assertTrue((sdk / 'build-tools/35.0.0/aapt2').exists())
+        self.assertTrue((sdk / 'platforms/android-35/android.jar').exists())
+        result = self.run_script('android_gradle.sh')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        props = (self.root / '.gradle/gradle.properties').read_text()
+        self.assertIn('build-tools/36.1.0/aapt2', props)
+        self.assertIn('android.builder.sdkDownload=false', props)
 
     def test_sdk_interrupted_extract_leaves_no_marker_and_retries_clean(self):
         sha = self.sdk_archive()
@@ -454,9 +474,11 @@ exit %d
         self.assertTrue(self.marker(cmake).exists())
         self.assertIn('__VER__android_cmake:3.22.1', result.stdout)
         downloads = (self.root / 'curl-calls').read_text()
+        (cmake / 'source.properties').unlink()
         result = self.run_script('android_cmake.sh')
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn('已安装，跳过', result.stdout)
+        self.assertEqual((cmake / 'source.properties').read_text(), 'Pkg.Revision=3.22.1\n')
         self.assertEqual((self.root / 'curl-calls').read_text(), downloads,
                          '第二次不应再下载')
 
@@ -490,6 +512,58 @@ exit %d
         self.assertIn('custom.setting=keep\n', props)
         self.assertEqual(props.count('android.aapt2FromMavenOverride='), 1)
         self.assertIn('build-tools/36.1.0/aapt2', props)
+
+    def test_gradle_rejects_broken_aapt2_and_keeps_working_version(self):
+        sdk = self.root / 'android-sdk'
+        self.write_exec(sdk / 'build-tools/35.0.0/aapt2', '#!/bin/sh\nexit 0\n')
+        self.write_exec(sdk / 'build-tools/36.0.0/aapt2', '#!/bin/sh\nexit 126\n')
+        result = self.run_script('android_gradle.sh')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        props = self.root / '.gradle/gradle.properties'
+        self.assertIn('build-tools/35.0.0/aapt2', props.read_text())
+        (sdk / 'build-tools/35.0.0/aapt2').unlink()
+        original = props.read_text()
+        result = self.run_script('android_gradle.sh')
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(props.read_text(), original)
+
+    @unittest.skipUnless(os.environ.get('FLIT_TEST_GRADLE'), 'requires local Gradle')
+    def test_gradle_guard_rejects_unsafe_overrides_before_loading_project(self):
+        self.write_exec(self.root / 'android-sdk/build-tools/36.1.0/aapt2',
+                        '#!/bin/sh\nexit 0\n')
+        result = self.run_script('android_gradle.sh')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        project = self.root / 'project'
+        project.mkdir()
+        (project / 'settings.gradle').write_text("rootProject.name = 'guard-test'\n")
+        (project / 'gradle.properties').write_text(
+            'android.builder.sdkDownload=true\nandroid.aapt2FromMavenOverride=/wrong/project\n')
+        (project / 'build.gradle').write_text("""
+assert providers.gradleProperty('android.builder.sdkDownload').get() == 'false'
+assert providers.gradleProperty('android.aapt2FromMavenOverride').get().endsWith('/36.1.0/aapt2')
+tasks.register('verifyGuard')
+""")
+        env = dict(self.env)
+        # 用宿主 Java 运行 Gradle，待测脚本的 Android JAVA_HOME 不适用于 macOS。
+        env.pop('JAVA_HOME', None)
+        result = subprocess.run([
+            os.environ['FLIT_TEST_GRADLE'], '--offline', '--no-daemon',
+            '-p', str(project), 'verifyGuard',
+        ], env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=90)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn('BUILD SUCCESSFUL', result.stdout)
+        # -P 优先级高于用户级配置，必须在加载项目之前拒绝，不能假装已覆盖。
+        (project / 'settings.gradle').write_text("throw new GradleException('PROJECT_LOADED')")
+        for override in ('android.builder.sdkDownload=true',
+                         'android.aapt2FromMavenOverride=/wrong/cli'):
+            result = subprocess.run([
+                os.environ['FLIT_TEST_GRADLE'], '--offline', '--no-daemon',
+                '-p', str(project), '-P' + override, 'verifyGuard',
+            ], env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=90)
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertIn('unsafe Android toolchain override', result.stdout)
+            self.assertNotIn('PROJECT_LOADED', result.stdout)
+
 
     def test_gradle_requires_sdk(self):
         result = self.run_script('android_gradle.sh')

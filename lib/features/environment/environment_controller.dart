@@ -225,7 +225,8 @@ class EnvironmentController extends ChangeNotifier {
     if (script != null) {
       return 'bash "\$HOME/.flit/scripts/$script" --release '
           '${shQuote(entry.url)} ${shQuote(sha)}'
-          '${entry.component == 'flutter-sdk' ? ' ${shQuote(entry.tag)}' : ''}';
+          '${entry.component == 'flutter-sdk' ? ' ${shQuote(entry.tag)}' : ''}'
+          '${entry.component == 'android-sdk' ? ' && bash "\$HOME/.flit/scripts/android_gradle.sh"' : ''}';
     }
     final url = shQuote(entry.url);
     final shaCheck =

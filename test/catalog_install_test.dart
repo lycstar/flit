@@ -6,6 +6,48 @@ import 'package:flit/features/environment/toolchain_catalog.dart';
 
 void main() {
   test(
+    'SDK catalog refreshes Gradle policy only after a successful install',
+    () async {
+      final home = Directory.systemTemp.createTempSync('flit-sdk-catalog-');
+      addTearDown(() => home.deleteSync(recursive: true));
+      final scripts = Directory('${home.path}/.flit/scripts')
+        ..createSync(recursive: true);
+      File('${scripts.path}/android_sdk.sh').writeAsStringSync(
+        'echo sdk >> "\$HOME/calls"\nexit "\${SDK_EXIT:-0}"\n',
+      );
+      File(
+        '${scripts.path}/android_gradle.sh',
+      ).writeAsStringSync('echo gradle >> "\$HOME/calls"\n');
+      final command = EnvironmentController.buildInstallCommand(
+        CatalogEntry(
+          component: 'android-sdk',
+          repo: 'example/sdk',
+          tag: '36',
+          name: 'sdk.tar.xz',
+          url: 'https://example.invalid/sdk',
+          size: 0,
+          sha256: 'a' * 64,
+        ),
+      );
+      final failed = await Process.run(
+        'bash',
+        ['-c', command],
+        environment: {'HOME': home.path, 'SDK_EXIT': '1'},
+      );
+      expect(failed.exitCode, 1);
+      expect(File('${home.path}/calls').readAsStringSync(), 'sdk\n');
+      File('${home.path}/calls').deleteSync();
+      final success = await Process.run(
+        'bash',
+        ['-c', command],
+        environment: {'HOME': home.path, 'SDK_EXIT': '0'},
+      );
+      expect(success.exitCode, 0, reason: success.stderr.toString());
+      expect(File('${home.path}/calls').readAsStringSync(), 'sdk\ngradle\n');
+    },
+  );
+
+  test(
     'NDK catalog installation verifies, repairs links and records completion',
     () async {
       final root = Directory.systemTemp.createTempSync('flit-catalog-');
