@@ -17,15 +17,9 @@ class ToolchainCatalog {
   final _cache = <String, List<CatalogEntry>>{};
 
   /// 每个组件的构建仓与资产匹配模式(组件注册表)。
+  /// bootstrap 不入目录: 它是初始化管线一次性铺满 $PREFIX 的整包,
+  /// 在活动环境上覆写没有"升级"语义且会砸掉运行中的会话, 只走初始化安装。
   static const components = <String, CatalogSource>{
-    'bootstrap': CatalogSource(
-      repo: String.fromEnvironment(
-        'FLIT_BOOTSTRAP_REPO',
-        defaultValue: 'lycstar/flit-termux-packages',
-      ),
-      asset: 'bootstrap-aarch64.zip',
-      install: r'$PREFIX (bootstrap 解压)',
-    ),
     'android-sdk': CatalogSource(
       repo: String.fromEnvironment(
         'FLIT_ANDROID_SDK_REPO',

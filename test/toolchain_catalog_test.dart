@@ -30,7 +30,7 @@ void main() {
         for (final entry in ToolchainCatalog.components.entries)
           entry.key: CatalogSource(
             repo:
-                'example/${const {'bootstrap': 'bootstrap', 'android-sdk': 'android-sdk-custom', 'ndk': 'android-ndk-custom', 'flutter-sdk': 'flutter-sdk-custom'}[entry.key]}',
+                'example/${const {'android-sdk': 'android-sdk-custom', 'ndk': 'android-ndk-custom', 'flutter-sdk': 'flutter-sdk-custom'}[entry.key]}',
             asset: entry.value.asset,
             install: entry.value.install,
           ),
@@ -158,10 +158,9 @@ void main() {
       };
 
     final result = await catalog.collect();
-    expect(
-      result.keys,
-      containsAll(['bootstrap', 'android-sdk', 'ndk', 'flutter-sdk']),
-    );
+    // bootstrap 走初始化管线整包安装, 不出现在版本目录
+    expect(result.keys, containsAll(['android-sdk', 'ndk', 'flutter-sdk']));
+    expect(result.containsKey('bootstrap'), isFalse);
     final ndk = result['ndk']!;
     expect(ndk, hasLength(1));
     expect(ndk.single.tag, 'r27');
