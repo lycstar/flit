@@ -15,6 +15,8 @@ class ToolchainCatalog {
   bool get configured => sources.values.any((source) => source.repo.isNotEmpty);
 
   final _cache = <String, List<CatalogEntry>>{};
+  Future<Map<String, List<CatalogEntry>>>? _collecting;
+  Map<String, List<CatalogEntry>>? _snapshot;
 
   // Only repository names, release tags and asset naming rules are bundled.
   // URLs, hashes and sizes always come from GitHub at installation time.
@@ -178,38 +180,54 @@ class ToolchainCatalog {
     }
   }
 
-  /// SDK parts share one paginated repository request, including older Platforms.
-  Future<Map<String, List<CatalogEntry>>> collect() async {
+  /// 目录属于应用会话，不属于列表项。滚动销毁、重新进入页面以及同时打开
+  /// 多个入口都复用同一结果/请求；空目录和失败也缓存，避免滚动触发重试风暴。
+  /// 安装仍用 resolve 校验最新资产；用户通过刷新显式更新版本列表。
+  Future<Map<String, List<CatalogEntry>>> collect({bool forceRefresh = false}) {
+    if (_collecting != null) return _collecting!;
+    if (!forceRefresh && _snapshot != null) return Future.value(_snapshot!);
+    return _collecting = _collect()
+        .then((result) {
+          _snapshot = result;
+          return result;
+        })
+        .whenComplete(() => _collecting = null);
+  }
+
+  /// 同仓库的 SDK 分包共用分页请求，不同仓库并行读取。
+  Future<Map<String, List<CatalogEntry>>> _collect() async {
     final result = <String, List<CatalogEntry>>{};
     final repositories = <String, Future<List<dynamic>>>{};
     errors.clear();
-    for (final source in sources.entries) {
-      final id = source.key;
-      if (source.value.repo.isEmpty) {
-        result[id] = const [];
-        continue;
-      }
-      try {
-        final releases = await (repositories[source.value.repo] ??= _releases(
-          source.value.repo,
-        ));
-        final found =
-            [
-              for (final release in releases)
-                ..._entries(id, source.value, release as Map),
-            ]..sort(
-              (a, b) => (b.publishedAt ?? DateTime(0)).compareTo(
-                a.publishedAt ?? DateTime(0),
-              ),
-            );
-        result[id] = found;
-        _cache[id] = found;
-      } on Exception catch (error) {
-        errors[id] = error.toString();
-        result[id] = _cache[id] ?? const [];
-      }
-    }
-    return result;
+    await Future.wait(
+      sources.entries.map((source) async {
+        final id = source.key;
+        if (source.value.repo.isEmpty) {
+          result[id] = const [];
+          return;
+        }
+        try {
+          final releases = await (repositories[source.value.repo] ??= _releases(
+            source.value.repo,
+          ));
+          final found =
+              [
+                for (final release in releases)
+                  ..._entries(id, source.value, release as Map),
+              ]..sort(
+                (a, b) => (b.publishedAt ?? DateTime(0)).compareTo(
+                  a.publishedAt ?? DateTime(0),
+                ),
+              );
+          result[id] = List.unmodifiable(found);
+          _cache[id] = result[id]!;
+        } on Exception catch (error) {
+          errors[id] = error.toString();
+          result[id] = _cache[id] ?? const [];
+        }
+      }),
+    );
+    return Map.unmodifiable(result);
   }
 
   /// 只接受 GitHub 明确提供的 SHA-256，不把其他算法或空值当作摘要。

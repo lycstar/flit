@@ -19,6 +19,7 @@ void main() {
   var damaged = false;
   var checkCode = 0;
   var languageRestarts = 0;
+  var listCode = 0;
 
   setUp(() async {
     root = Directory.systemTemp.createTempSync('flit-environment-audit-');
@@ -27,6 +28,7 @@ void main() {
     damaged = false;
     checkCode = 0;
     languageRestarts = 0;
+    listCode = 0;
     mockFlitPlugins(binding.defaultBinaryMessenger);
     binding.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('flit/env'),
@@ -38,7 +40,12 @@ void main() {
             'bootstrapped': true,
           };
         }
-        if (call.method == 'exec') return {'exitCode': 0, 'output': ''};
+        if (call.method == 'exec') {
+          final isList = (call.arguments['cmd'] as String? ?? '').contains(
+            '--list',
+          );
+          return {'exitCode': isList ? listCode : 0, 'output': ''};
+        }
         return true;
       },
     );
@@ -93,6 +100,30 @@ void main() {
     );
   });
 
+  const flutter = InstalledToolchain(
+    path: 'flutter/3.48.0',
+    sizeKb: 1,
+    active: false,
+    complete: true,
+    revision: '',
+  );
+
+  test(
+    'failed inventory keeps last local versions and exposes unknown state',
+    () async {
+      expect(environment.installedLoaded, isTrue);
+      environment.installed = [flutter];
+      listCode = 1;
+      await environment.refreshStatus();
+      expect(environment.installed, [flutter]);
+      expect(environment.installedError, isNotNull);
+      listCode = 0;
+      await environment.refreshStatus();
+      expect(environment.installed, isEmpty);
+      expect(environment.installedError, isNull);
+    },
+  );
+
   test(
     'continuing setup rechecks stale readiness and stops on failed postcheck',
     () async {
@@ -119,14 +150,6 @@ void main() {
       await environment.refreshStatus();
       expect(environment.allDone, false);
     },
-  );
-
-  const flutter = InstalledToolchain(
-    path: 'flutter/3.48.0',
-    sizeKb: 1,
-    active: false,
-    complete: true,
-    revision: '',
   );
 
   test(

@@ -27,7 +27,8 @@ case "${1:-}" in
         esac
       fi
       _revision=$(sed -n 's/^Pkg\.Revision[[:space:]]*=[[:space:]]*//p' "$dir/source.properties" 2>/dev/null | head -1 | tr -d ' \r' || true)
-      printf '__TOOL__%s|%s|%s|%s|%s\n' "${dir#"$FLIT_TOOLCHAINS/"}" "$(du -sk "$dir" | cut -f1)" "$_active" "$_complete" "$_revision"
+      _sha=$(cat "$dir/.flit-complete" 2>/dev/null || true)
+      printf '__TOOL__%s|%s|%s|%s|%s|%s\n' "${dir#"$FLIT_TOOLCHAINS/"}" "$(du -sk "$dir" | cut -f1)" "$_active" "$_complete" "$_revision" "$_sha"
     done
     ;;
   --select)

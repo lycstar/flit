@@ -8,8 +8,7 @@ import '../../core/page_layout.dart';
 import '../environment/environment_controller.dart';
 import '../environment/widgets/stage_timeline.dart';
 import '../environment/toolchain_catalog.dart';
-import '../environment/widgets/toolchain_versions_section.dart';
-import 'widgets/installed_toolchains_section.dart';
+import 'widgets/toolchain_components_section.dart';
 import '../settings/settings_page.dart';
 import '../terminal/terminal_host.dart';
 import '../terminal/terminal_side_pane.dart';
@@ -41,8 +40,8 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
   @override
   void initState() {
     super.initState();
-    // 任务属于应用(离开页面继续跑); 页面只负责触发一次初始化并呈现
-    context.read<EnvironmentController>().init();
+    // 任务属于应用（离开页面继续跑）；再次进入只复查本地状态。
+    context.read<EnvironmentController>().refreshOnOpen();
   }
 
   @override
@@ -86,28 +85,29 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
                 const PageIntro('SDK 与工具链', '管理 SDK 和构建工具链，在终端查看安装输出。'),
                 _summaryCard(env),
                 const SizedBox(height: 12),
-                StageTimeline(stages: env.stages, busy: env.busy),
-                if (env.stages['bootstrap']?.state == 'DONE') ...[
-                  const SizedBox(height: 12),
-                  InstalledToolchainsSection(
-                    tools: env.installed,
-                    root: '${env.home}/toolchains',
-                    busy: env.busy,
-                    onChange: (tool, {bool delete = false}) async {
-                      if (!await _prepareToolchainChange(context)) return;
-                      await env.changeInstalled(tool, delete: delete);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  ToolchainVersionsSection(
-                    catalog: context.read<ToolchainCatalog>(),
-                    onInstall: (entry) async {
-                      if (!await _prepareToolchainChange(context)) return;
-                      await env.installFromCatalog(entry);
-                    },
-                    installing: env.busy,
-                  ),
-                ],
+                if (env.allDone)
+                  ExpansionTile(
+                    key: const PageStorageKey('environment-setup-details'),
+                    title: const Text('初始化详情', style: TextStyle(fontSize: 13)),
+                    children: [
+                      StageTimeline(stages: env.stages, busy: env.busy),
+                    ],
+                  )
+                else
+                  StageTimeline(stages: env.stages, busy: env.busy),
+                const SizedBox(height: 12),
+                ToolchainComponentsSection(
+                  environment: env,
+                  catalog: context.read<ToolchainCatalog>(),
+                  onChange: (tool, {bool delete = false}) async {
+                    if (!await _prepareToolchainChange(context)) return;
+                    await env.changeInstalled(tool, delete: delete);
+                  },
+                  onInstall: (entry) async {
+                    if (!await _prepareToolchainChange(context)) return;
+                    await env.installFromCatalog(entry);
+                  },
+                ),
               ],
             );
             // 平板/横屏大屏: 清单与终端并排, 边装边看输出
@@ -148,7 +148,9 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
       (s) => s.state == 'RUNNING',
       orElse: () => StageState(),
     );
-    final title = env.installing
+    final title = env.checking
+        ? '正在检测环境'
+        : env.installing
         ? '正在管理工具链'
         : env.allDone
         ? '环境已就绪'
@@ -157,7 +159,9 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
         : failed > 0
         ? '安装失败'
         : '环境未就绪';
-    final subtitle = env.installing
+    final subtitle = env.checking
+        ? '正在核对本地组件，请稍候'
+        : env.installing
         ? '详细输出见终端'
         : env.allDone
         ? '组件已就绪，可以创建项目和构建 APK'

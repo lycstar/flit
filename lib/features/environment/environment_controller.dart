@@ -181,6 +181,8 @@ class EnvironmentController extends ChangeNotifier {
       installing ||
       AndroidBuildWrapper.installing;
   List<InstalledToolchain> installed = [];
+  bool installedLoaded = false;
+  String? installedError;
   // 状态按子任务维护(bootstrap + 7 个脚本), 展示层按 stageParts 聚合成 3 行
   final Map<String, StageState> stages = {
     for (final parts in stageParts.values)
@@ -299,6 +301,18 @@ class EnvironmentController extends ChangeNotifier {
   }
 
   Future<void> init() => _initializing ??= _init();
+
+  /// 项目构建也可能补装组件。每次打开环境页重新读取本地状态，初始化本身
+  /// 仍只执行一次；这与远程版本目录刷新无关，滚动不会触发。
+  Future<void> refreshOnOpen() async {
+    if (_initializing == null) {
+      await init();
+    } else {
+      await _initializing;
+      await refreshStatus();
+    }
+  }
+
   Future<void> _init() async {
     try {
       final st = await Shell.instance.bootstrapStatus();
@@ -437,6 +451,10 @@ class EnvironmentController extends ChangeNotifier {
       }
       await _loadSizes();
       await _loadInstalled();
+    } else {
+      installed = [];
+      installedLoaded = !bootstrapped;
+      installedError = bootstrapped ? '组件检测尚未就绪，请重新检测' : null;
     }
     _updateAllDone();
     notifyListeners();
@@ -456,8 +474,11 @@ class EnvironmentController extends ChangeNotifier {
               .whereType<InstalledToolchain>()
               .toList()
             ..sort((a, b) => a.path.compareTo(b.path));
-    } catch (_) {
-      installed = [];
+      installedLoaded = true;
+      installedError = null;
+    } catch (error) {
+      // 检测失败不能冒充“未安装”，保留最近一次成功结果并禁止基于旧状态操作。
+      installedError = '无法读取已安装组件，请重新检测：$error';
     }
   }
 

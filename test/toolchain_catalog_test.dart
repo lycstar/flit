@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flit/features/environment/toolchain_catalog.dart';
 
@@ -38,6 +40,60 @@ void main() {
       },
     );
   });
+  test(
+    'directory shares in-flight requests, caches empty results, and refreshes explicitly',
+    () async {
+      final pending = Completer<Object?>();
+      var calls = 0;
+      final catalog =
+          ToolchainCatalog(
+              sources: {
+                'platforms': ToolchainCatalog.components['platforms']!,
+                'build-tools': ToolchainCatalog.components['build-tools']!,
+              },
+            )
+            ..fetchJson = (_) {
+              calls++;
+              return pending.future;
+            };
+      final first = catalog.collect();
+      final concurrent = catalog.collect(forceRefresh: true);
+      expect(calls, 1);
+      pending.complete([]);
+      expect(await first, await concurrent);
+      await catalog.collect();
+      expect(calls, 1);
+      await catalog.collect(forceRefresh: true);
+      expect(calls, 2);
+    },
+  );
+
+  test(
+    'failed catalog is not retried on remount and explicit refresh can recover',
+    () async {
+      var calls = 0;
+      final catalog =
+          ToolchainCatalog(
+              sources: {'platforms': ToolchainCatalog.components['platforms']!},
+            )
+            ..fetchJson = (_) async {
+              calls++;
+              throw const HttpExceptionWithCode('offline');
+            };
+      await catalog.collect();
+      await catalog.collect();
+      expect(calls, 1);
+      expect(catalog.errors['platforms'], contains('offline'));
+      catalog.fetchJson = (_) async {
+        calls++;
+        return [];
+      };
+      await catalog.collect(forceRefresh: true);
+      expect(calls, 2);
+      expect(catalog.errors, isEmpty);
+    },
+  );
+
   test('exact tags resolve current bundle and minor Platform metadata', () async {
     final urls = <String>[];
     final catalog = ToolchainCatalog()
@@ -140,7 +196,9 @@ void main() {
     expect(found['platforms']!.single.tag, 'platform-34');
     catalog.fetchJson = (_) async => [];
     expect(
-      (await catalog.collect()).values.every((entries) => entries.isEmpty),
+      (await catalog.collect(
+        forceRefresh: true,
+      )).values.every((entries) => entries.isEmpty),
       isTrue,
     );
   });
@@ -321,7 +379,7 @@ void main() {
           ),
         ];
       };
-      final second = await catalog.collect();
+      final second = await catalog.collect(forceRefresh: true);
       expect(
         second['android-sdk']!.single.sha256,
         'bb'.padRight(64, '0'),

@@ -794,6 +794,8 @@ exit 8
         result = self.run_script('toolchain_manager.sh', '--list')
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn('__TOOL__flutter/3.48.0|', result.stdout)
+        listed = next(line for line in result.stdout.splitlines() if line.startswith('__TOOL__flutter/3.48.0|'))
+        self.assertEqual(listed.split('|')[5], sha)
         self.assertNotIn('__TOOL__flutter/current|', result.stdout)
         active = self.run_script('toolchain_manager.sh', '--delete', 'flutter/3.48.0')
         self.assertNotEqual(active.returncode, 0, active.stdout)

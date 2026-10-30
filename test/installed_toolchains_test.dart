@@ -1,7 +1,7 @@
 import 'package:flit/core/theme.dart';
 import 'package:flit/features/environment/environment_controller.dart';
 import 'package:flit/features/environment/installed_toolchain.dart';
-import 'package:flit/features/environment/widgets/installed_toolchains_section.dart';
+import 'package:flit/features/environment/widgets/installed_toolchain_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -47,12 +47,16 @@ void main() {
           theme: flitTheme(),
           home: Scaffold(
             body: SingleChildScrollView(
-              child: InstalledToolchainsSection(
-                tools: tools,
-                busy: busy,
-                root: r'$HOME/toolchains',
-                onChange: (tool, {bool delete = false}) async =>
-                    actions.add('${tool.path}:$delete'),
+              child: Column(
+                children: [
+                  for (final tool in tools)
+                    InstalledToolchainTile(
+                      tool: tool,
+                      busy: busy,
+                      onChange: (tool, {bool delete = false}) async =>
+                          actions.add('${tool.path}:$delete'),
+                    ),
+                ],
               ),
             ),
           ),
