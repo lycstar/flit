@@ -8,19 +8,16 @@ import 'package:provider/provider.dart';
 import '../../core/page_layout.dart';
 import '../../core/theme.dart';
 import '../../services/adb_ops.dart';
-import '../../services/shell.dart';
 import '../settings/appearance_preferences.dart';
 import '../terminal/console_session.dart';
 import '../terminal/terminal_host.dart';
 import 'device_connection.dart';
 
+/// 本机优先：扫描连接 + 通知配对。手动输入用于分屏或其他设备，独立于本机
+/// 通知服务。页面只轮询服务状态；离开页面也不打断用户在系统窗口中的配对。
 class DeviceConnectPage extends StatefulWidget {
   const DeviceConnectPage({super.key, this.autoConnectOnOpen = true});
-
-  /// 测试缝: 打开页面即自动连接会带着 fake-clock 里永不结束的会话,
-  /// 掐死后续交互; 测试构造时关掉, 自动连接本身有专属单测。
   final bool autoConnectOnOpen;
-
   @override
   State<DeviceConnectPage> createState() => _DeviceConnectPageState();
 }
@@ -30,39 +27,54 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
   late final DeviceConnection _connection;
   late final AppearancePreferences _prefs;
   late final TextEditingController _host;
-  bool _pairDiscovering = false;
-  bool _batteryIgnoring = true; // 查询失败按已忽略处理(不弹提示)
   final _pairPort = TextEditingController();
   final _pairCode = TextEditingController();
   final _connPort = TextEditingController();
   bool _expanded = false;
-
-  bool get _paired => _prefs.adbPaired && _prefs.adbHost == _hostname;
+  bool _pairDiscovering = false;
+  bool _startingPairing = false;
+  bool _readingPairing = false;
+  bool _foreground = true;
+  String _pairingState = 'idle';
+  String? _pairingMessage;
+  String? _pageError;
+  int _handledPairing = 0;
+  int _scanGeneration = 0;
+  Timer? _poll;
+  bool get _notificationActive =>
+      {'searching', 'ready', 'pairing'}.contains(_pairingState);
+  bool get _blocked =>
+      _connection.busy || _notificationActive || _startingPairing;
   String get _hostname =>
       _host.text.trim().isEmpty ? '127.0.0.1' : _host.text.trim();
+  bool get _local =>
+      {'127.0.0.1', 'localhost', '::1', '[::1]'}.contains(_hostname);
+  bool get _paired => _prefs.adbPaired && _prefs.adbHost == _hostname;
 
   @override
   void initState() {
     super.initState();
     _prefs = context.read<AppearancePreferences>();
+    _host = TextEditingController(text: _prefs.adbHost);
     _connection = DeviceConnection(
       launcher: context.read<ProcessLauncher>(),
       preferences: _prefs,
     );
-    _host = TextEditingController(text: _prefs.adbHost);
-    WidgetsBinding.instance.addObserver(this);
     _connection.addListener(_changed);
-    _initialize();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(_initialize());
   }
 
   Future<void> _initialize() async {
-    _batteryIgnoring = await FlitDevice.isIgnoringBatteryOptimizations()
-        .catchError((_) => true);
-    if (!mounted) return;
     await _connection.refresh();
-    // 进页即自动连接: 已配对秒连; 未配对页面停在配对流程并给出引导
-    if (widget.autoConnectOnOpen && mounted && !_connection.busy) {
-      unawaited(_connection.autoConnect());
+    if (!mounted) return;
+    final paired = await _readPairingStatus();
+    if (mounted &&
+        !paired &&
+        widget.autoConnectOnOpen &&
+        !_blocked &&
+        !_connection.missing) {
+      await _connection.autoConnect();
     }
   }
 
@@ -70,100 +82,183 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
     if (mounted) setState(() {});
   }
 
+  void _schedulePoll() {
+    _poll?.cancel();
+    if (_notificationActive && mounted && _foreground) {
+      _poll = Timer(
+        const Duration(seconds: 1),
+        () => unawaited(_readPairingStatus()),
+      );
+    }
+  }
+
+  Future<bool> _readPairingStatus() async {
+    if (_readingPairing) return false;
+    _readingPairing = true;
+    try {
+      final status = await FlitDevice.pairingStatus();
+      if (!mounted) return false;
+      final state = status['state'] as String? ?? 'idle';
+      final revision = status['revision'] as int? ?? 0;
+      setState(() {
+        _pairingState = state;
+        _pairingMessage = status['message'] as String?;
+      });
+      if (state == 'success' &&
+          revision > _handledPairing &&
+          !_connection.busy) {
+        _handledPairing = revision;
+        try {
+          await _prefs.update(
+            adbHost: '127.0.0.1',
+            adbPaired: true,
+            adbConnectPort: _prefs.adbHost == '127.0.0.1'
+                ? _prefs.adbConnectPort
+                : '',
+          );
+        } catch (_) {}
+        if (!mounted) return false;
+        _host.text = '127.0.0.1';
+        await _connection.autoConnect();
+        return true;
+      }
+    } catch (error) {
+      if (mounted && _notificationActive) {
+        setState(() => _pageError = '无法读取配对状态，请返回后重试');
+      }
+    } finally {
+      _readingPairing = false;
+      if (mounted) _schedulePoll();
+    }
+    return false;
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _connection.refresh();
+    _foreground = state == AppLifecycleState.resumed;
+    if (_foreground) {
+      unawaited(_connection.refresh());
+      unawaited(_readPairingStatus());
+    } else {
+      _poll?.cancel();
+    }
   }
 
   @override
   void dispose() {
+    _poll?.cancel();
+    ++_scanGeneration;
     WidgetsBinding.instance.removeObserver(this);
     _connection.removeListener(_changed);
     _connection.dispose();
-    for (final controller in [_host, _pairPort, _pairCode, _connPort]) {
-      controller.dispose();
+    for (final c in [_host, _pairPort, _pairCode, _connPort]) {
+      c.dispose();
     }
     super.dispose();
   }
 
-  Widget _pairStep(int n, String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CircleAvatar(
-          radius: 10,
-          backgroundColor: AppColors.accent.withValues(alpha: 0.15),
-          child: Text(
-            '$n',
-            style: const TextStyle(fontSize: 11, color: AppColors.accent),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
+  void _error(Object error) {
+    if (!mounted) return;
+    setState(
+      () => _pageError = error is PlatformException
+          ? error.message ?? '系统操作失败'
+          : '$error',
+    );
+  }
 
   Future<void> _openSettings() async {
     try {
-      if (await Shell.instance.openSettings(
-        'android.settings.APPLICATION_DEVELOPMENT_SETTINGS',
-      )) {
-        return;
-      }
-    } catch (_) {
-      /* Some vendors do not expose this intent. */
+      await FlitDevice.openWirelessSettings();
+    } catch (error) {
+      _error(error);
     }
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请在系统设置中手动打开开发者选项 → 无线调试')));
+  }
+
+  Future<void> _notificationPair() async {
+    if (_blocked) return;
+    _connection.clearMessage();
+    setState(() {
+      _startingPairing = true;
+      _pageError = null;
+    });
+    try {
+      await FlitDevice.startPairing();
+      if (!mounted) return;
+      setState(() {
+        _pairingState = 'searching';
+        _pairingMessage = '打开系统配对码窗口，在通知中输入配对码';
+      });
+      _schedulePoll();
+      await _openSettings();
+    } catch (error) {
+      _error(error);
+    } finally {
+      if (mounted) setState(() => _startingPairing = false);
+    }
+  }
+
+  Future<void> _stopPairing() async {
+    try {
+      await FlitDevice.stopPairing();
+      if (mounted) {
+        setState(() {
+          _pairingState = 'idle';
+          _pairingMessage = null;
+        });
+      }
+      _poll?.cancel();
+    } catch (error) {
+      _error(error);
     }
   }
 
   Future<void> _pair() async {
+    setState(() => _pageError = null);
     FocusScope.of(context).unfocus();
-    setState(() => _expanded = true);
-    final paired = await _connection.pair(
-      _hostname,
-      _pairPort.text,
-      _pairCode.text,
-    );
+    final host = _hostname;
+    final paired = await _connection.pair(host, _pairPort.text, _pairCode.text);
     if (paired && mounted) {
       _pairCode.clear();
-      // 配对授权是永久的, 立刻自动发现连接端口并连上, 用户不用再抄端口
-      unawaited(_connection.autoConnect());
+      // 通知配对/自动扫描仅服务于本机；远程配对不能错误地连接 127.0.0.1。
+      if (_local) {
+        await _connection.autoConnect();
+      } else if (_connPort.text.trim().isNotEmpty) {
+        await _connection.connect(host, _connPort.text);
+      }
     }
   }
 
-  /// 系统配对弹窗开着时, 本机会广播 _adb-tls-pairing._tcp: 发现即自动填端口
   Future<void> _discoverPairPort() async {
-    setState(() => _pairDiscovering = true);
-    final found = await FlitDevice.discoverAdb(
-      service: FlitDevice.adbPairingService,
-      timeout: const Duration(seconds: 12),
-    );
-    if (!mounted) return;
+    if (_blocked || _pairDiscovering || !_local) return;
+    final generation = ++_scanGeneration;
+    final host = _hostname;
     setState(() {
-      _pairDiscovering = false;
-      if (found.isNotEmpty) _pairPort.text = found.first.port;
+      _pairDiscovering = true;
+      _pageError = null;
+      _pairPort.clear();
     });
-  }
-
-  void _connect() {
-    FocusScope.of(context).unfocus();
-    setState(() => _expanded = true);
-    _connection.connect(_hostname, _connPort.text);
+    try {
+      final found = await FlitDevice.discoverAdb(
+        service: FlitDevice.adbPairingService,
+        timeout: const Duration(seconds: 12),
+      );
+      if (!mounted || generation != _scanGeneration || host != _hostname) {
+        return;
+      }
+      setState(() {
+        if (found.isEmpty) {
+          _pageError = '未发现配对端口，请保持系统配对窗口开启';
+        } else {
+          _pairPort.text = found.first.port;
+        }
+      });
+    } catch (error) {
+      if (mounted && generation == _scanGeneration) _error(error);
+    } finally {
+      if (mounted && generation == _scanGeneration) {
+        setState(() => _pairDiscovering = false);
+      }
+    }
   }
 
   @override
@@ -173,10 +268,10 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
       actions: [
         IconButton(
           tooltip: '刷新设备',
-          onPressed: _connection.busy || _connection.refreshing
+          onPressed: _blocked || _connection.refreshing
               ? null
               : _connection.refresh,
-          icon: const Icon(Icons.refresh),
+          icon: const Icon(Icons.refresh, size: 20),
         ),
       ],
     ),
@@ -187,141 +282,170 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
       onToggle: () => setState(() => _expanded = !_expanded),
       child: PageList(
         children: [
-          const PageIntro('无线调试', '连接本机或同一网络的 Android 设备。首次使用先配对，再用连接端口连接。'),
+          const SizedBox(height: 8),
           _deviceCard(),
-          // 操作反馈放顶部: 页面长(自动连接卡片+两段表单), 底部通知会被视口裁掉
-          if (_connection.message != null) ...[
-            StatusNotice(
-              _connection.message!,
-              error: _connection.messageIsError,
-            ),
+          if (_pageError != null || _connection.message != null) ...[
             const SizedBox(height: 12),
+            StatusNotice(
+              _pageError ?? _connection.message!,
+              error: _pageError != null || _connection.messageIsError,
+            ),
           ],
-          const SectionLabel('自动连接'),
+          const SizedBox(height: 12),
           SurfaceCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '自动发现本机无线调试的当前端口并连接，无需手输端口（无线调试需开启）。'
-                  '未配对时会引导你完成配对，配对端口也会自动填入。',
-                  style: TextStyle(color: AppColors.textSecondary, height: 1.5),
+                  '本机无线调试',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
+                const Text(
+                  '已配对直接连接，首次使用先配对。',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: _connection.busy || _connection.missing
+                    onPressed: _blocked || _connection.missing
                         ? null
-                        : () => unawaited(_connection.autoConnect()),
-                    icon: const Icon(Icons.auto_fix_high, size: 18),
-                    label: const Text('自动连接本机'),
+                        : () {
+                            setState(() => _pageError = null);
+                            unawaited(_connection.autoConnect());
+                          },
+                    icon: _connection.busy
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.radar, size: 18),
+                    label: Text(_connection.busy ? '连接中…' : '扫描并连接'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.accent.withValues(alpha: .12),
+                      foregroundColor: AppColors.accent,
+                    ),
+                    onPressed: _blocked || _connection.missing
+                        ? null
+                        : _notificationPair,
+                    icon: const Icon(
+                      Icons.notifications_active_outlined,
+                      size: 18,
+                    ),
+                    label: const Text('通知配对'),
+                  ),
+                ),
+                if (_notificationActive || _pairingState == 'failed') ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _pairingMessage ?? '正在寻找配对端口…',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _pairingState == 'failed'
+                          ? AppColors.danger
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                  if (_notificationActive)
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: LinearProgressIndicator(minHeight: 2),
+                        ),
+                        TextButton(
+                          onPressed: _stopPairing,
+                          child: const Text('取消配对'),
+                        ),
+                      ],
+                    ),
+                ],
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _openSettings,
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: const Text('无线调试设置'),
                   ),
                 ),
               ],
             ),
           ),
-          const SectionLabel('设备地址'),
+          const SizedBox(height: 12),
           SurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: EdgeInsets.zero,
+            child: ExpansionTile(
+              key: const PageStorageKey('manual-adb'),
+              maintainState: true,
+              title: const Text('手动连接 / 其他设备', style: TextStyle(fontSize: 13)),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               children: [
                 TextField(
+                  key: const PageStorageKey('adb-host-input'),
                   controller: _host,
-                  enabled: !_connection.busy,
+                  enabled: !_blocked,
                   autocorrect: false,
                   keyboardType: TextInputType.url,
-                  onChanged: (_) {
-                    _connection.clearMessage();
-                    setState(() {});
-                  },
                   decoration: const InputDecoration(
                     labelText: '设备地址',
                     hintText: '127.0.0.1',
                   ),
+                  onChanged: (_) {
+                    ++_scanGeneration;
+                    _pairDiscovering = false;
+                    _pairPort.clear();
+                    _connection.clearMessage();
+                    setState(() => _pageError = null);
+                  },
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  '本机使用 127.0.0.1；其他设备使用无线调试页面显示的 IP 地址。',
-                  style: TextStyle(color: AppColors.textSecondary, height: 1.5),
-                ),
-                TextButton.icon(
-                  onPressed: _openSettings,
-                  icon: const Icon(Icons.open_in_new, size: 16),
-                  label: const Text('打开开发者选项'),
-                ),
-              ],
-            ),
-          ),
-          const SectionLabel('1 · 配对授权'),
-          if (!_batteryIgnoring)
-            Material(
-              color: AppColors.warn.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(
-                          Icons.battery_alert,
-                          size: 16,
-                          color: AppColors.warn,
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '部分系统（如 MIUI）会在应用切到后台时限制网络甚至冻结应用，导致自动发现端口失败。',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.warn,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: FilledButton.tonal(
-                        onPressed: () =>
-                            FlitDevice.requestIgnoreBatteryOptimizations(),
-                        child: const Text('关闭电池优化'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          SurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (_paired) ...[
-                  const Text(
-                    '有配对记录',
-                    style: TextStyle(color: AppColors.success),
+                _numberField(_connPort, '连接端口'),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonal(
+                    onPressed: _blocked || _connection.missing
+                        ? null
+                        : () {
+                            setState(() => _pageError = null);
+                            FocusScope.of(context).unfocus();
+                            _connection.connect(_hostname, _connPort.text);
+                          },
+                    child: const Text('连接'),
                   ),
-                  const SizedBox(height: 8),
-                ],
-                _pairStep(1, '打开「开发者选项 → 无线调试」，点按左侧整行进入详情页并开启（仅开右侧开关是错误的）。'),
-                Row(
-                  children: [
-                    const SizedBox(width: 6),
-                    FilledButton.tonal(
-                      onPressed: _openSettings,
-                      child: const Text('开发者选项'),
-                    ),
-                  ],
                 ),
-                _pairStep(2, '点「使用配对码配对设备」并保持系统弹窗开启 —— 回到 Flit 后配对端口会自动填入。'),
-                _pairStep(3, '输入 6 位配对码，点「配对」，完成后自动连接。'),
-                const SizedBox(height: 4),
+                const Divider(height: 28),
+                if (_paired)
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '有配对记录',
+                      style: TextStyle(color: AppColors.success, fontSize: 12),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '手动配对时请分屏保留系统配对窗口。',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(child: _numberField(_pairPort, '配对端口')),
                     const SizedBox(width: 12),
@@ -330,56 +454,67 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
                     ),
                   ],
                 ),
-                TextButton.icon(
-                  onPressed: _pairDiscovering ? null : _discoverPairPort,
-                  icon: _pairDiscovering
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.radar, size: 16),
-                  label: Text(
-                    _pairDiscovering ? '发现中…（保持系统配对弹窗开启）' : '自动发现配对端口',
+                if (_local)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: _blocked || _pairDiscovering
+                          ? null
+                          : _discoverPairPort,
+                      icon: const Icon(Icons.radar, size: 16),
+                      label: Text(_pairDiscovering ? '扫描中…' : '扫描配对端口'),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.tonal(
-                    onPressed: _connection.busy || _connection.missing
-                        ? null
-                        : _pair,
+                    onPressed: _blocked || _connection.missing ? null : _pair,
                     child: const Text('配对'),
                   ),
                 ),
               ],
             ),
           ),
-          const SectionLabel('2 · 连接设备'),
-          SurfaceCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '使用「无线调试」主页的端口，与配对端口不同。重新开启无线调试后，端口可能变化。',
-                  style: TextStyle(color: AppColors.textSecondary, height: 1.5),
-                ),
-                const SizedBox(height: 16),
-                _numberField(_connPort, '连接端口'),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _connection.busy || _connection.missing
-                        ? null
-                        : _connect,
-                    icon: const Icon(Icons.phonelink_setup, size: 18),
-                    label: const Text('连接'),
+          const SizedBox(height: 8),
+          ExpansionTile(
+            title: const Text('连接帮助', style: TextStyle(fontSize: 13)),
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Android 11 及以上：开启无线调试 → 使用配对码配对设备 → 下拉通知输入配对码。\n连接端口和配对端口不同；重新开启无线调试后请重新扫描。',
+                  style: TextStyle(
+                    fontSize: 12,
+                    height: 1.6,
+                    color: AppColors.textSecondary,
                   ),
                 ),
-              ],
-            ),
+              ),
+              Wrap(
+                children: [
+                  TextButton(
+                    onPressed: () async {
+                      try {
+                        await FlitDevice.openNotificationSettings();
+                      } catch (e) {
+                        _error(e);
+                      }
+                    },
+                    child: const Text('通知设置'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      try {
+                        await FlitDevice.requestIgnoreBatteryOptimizations();
+                      } catch (e) {
+                        _error(e);
+                      }
+                    },
+                    child: const Text('允许后台运行'),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -391,8 +526,9 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
     String label, {
     int length = 5,
   }) => TextField(
+    key: PageStorageKey('adb-input-$label'),
     controller: controller,
-    enabled: !_connection.busy,
+    enabled: !_blocked,
     keyboardType: TextInputType.number,
     inputFormatters: [
       FilteringTextInputFormatter.digitsOnly,
@@ -400,7 +536,6 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
     ],
     decoration: InputDecoration(labelText: label),
   );
-
   Widget _deviceCard() => SurfaceCard(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,7 +575,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
           const StatusNotice('未找到 ADB，请在“开发环境”中安装 Android 工具链。', error: true)
         else if (_connection.devices.isEmpty)
           const Text(
-            '暂无设备。配对并连接后可查看设备状态。',
+            '暂无连接',
             style: TextStyle(color: AppColors.textSecondary, height: 1.5),
           ),
         for (final device in _connection.devices)

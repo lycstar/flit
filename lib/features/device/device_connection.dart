@@ -184,28 +184,38 @@ class DeviceConnection extends ChangeNotifier {
     }
     await _remember(host, paired: true);
     if (_closed) return false;
-    _result('配对完成。请填写无线调试主页的连接端口；配对端口不能用于连接。');
+    _result('配对成功');
     await _read();
     return true;
   });
 
   /// 进页自动连接: 已连→true; 未配对→false(页面留在配对流程); 没发现端口→false。
   Future<bool> autoConnect() => _action(() async {
+    final current = _log;
     final outcome = await autoConnectAdb(
-      console: _log,
+      console: current,
       preferences: _preferences,
     );
-    if (_closed) return false;
+    if (_closed || current.disposed || current.stopRequested) return false;
     switch (outcome) {
       case AdbAutoResult.connected:
-        await _read();
-        if (!_closed) _result('✓ 已自动连接本机无线调试');
+        final verified = await _read();
+        if (_closed || current.disposed || current.stopRequested) return false;
+        if (!verified ||
+            !devices.any((d) => _isLocalAdbDevice(d) && d.online)) {
+          _result('连接后未能确认设备在线，请刷新设备或查看日志', error: true);
+          return false;
+        }
+        _result('✓ 已自动连接本机无线调试');
         return true;
       case AdbAutoResult.needsPairing:
-        _result('本机尚未配对：点「打开开发者选项」→「无线调试」→「使用配对码配对设备」，配对端口会自动填入，只需输入 6 位配对码。');
+        _result('需要配对，请点击“通知配对”');
+        return false;
+      case AdbAutoResult.failed:
+        _result('连接未成功，请查看日志或使用当前端口手动连接', error: true);
         return false;
       case AdbAutoResult.unavailable:
-        _result('未发现本机无线调试端口：请确认「开发者选项 → 无线调试」已打开后重试', error: true);
+        _result('未发现连接端口，请开启无线调试后重试', error: true);
         return false;
     }
   });
@@ -229,7 +239,11 @@ class DeviceConnection extends ChangeNotifier {
       }
       device = devices.where((d) => d.serial == target).firstOrNull;
       if (device?.online == true) {
-        await _remember(host);
+        await _remember(
+          host,
+          paired: true,
+          port: int.parse(port.trim()).toString(),
+        );
         _result('✓ 已连接 $target');
         return true;
       }
@@ -274,12 +288,15 @@ class DeviceConnection extends ChangeNotifier {
     return ok;
   });
 
-  Future<void> _remember(String host, {bool? paired}) async {
+  Future<void> _remember(String host, {bool? paired, String? port}) async {
     final preferences = _preferences;
     host = host.trim().isEmpty ? '127.0.0.1' : host.trim();
     try {
       await preferences.update(
         adbHost: host,
+        adbConnectPort:
+            port ??
+            (host == preferences.adbHost ? preferences.adbConnectPort : ''),
         adbPaired:
             paired ?? (preferences.adbHost == host && preferences.adbPaired),
       );
@@ -308,95 +325,117 @@ class DeviceConnection extends ChangeNotifier {
   }
 }
 
-enum AdbAutoResult { connected, needsPairing, unavailable }
+bool _isLocalAdbDevice(AdbStatus device) =>
+    RegExp(r'^(127\.0\.0\.1|localhost|\[::1\]):\d+$').hasMatch(device.serial);
 
-/// 自动连接本机无线调试: 上次端口快试 → NSD 发现当前端口 → 逐个 adb connect。
-/// 配对(授权)是永久的, 变的只是端口; 这里把"读端口-手输-连接"整个自动化。
-/// 命令与结果写进调用方的 [console]; 端口记忆读写 [preferences]。
+enum AdbAutoResult { connected, needsPairing, unavailable, failed }
+
+/// 本机连接只认可回环地址的目标设备。缓存端口先尝试，失败再发现；
+/// 发现服务不代表已配对，端口拒绝也不代表认证失败。
 Future<AdbAutoResult> autoConnectAdb({
   required ConsoleSession console,
   required AppearancePreferences preferences,
 }) async {
   final c = console;
-  final prefs = preferences;
-  StreamSubscription<String>? watch;
-  var output = '';
-  try {
-    watch = c.textStream.listen((chunk) {
-      output = (output + chunk).substring(
-        output.length + chunk.length > 8192
-            ? output.length + chunk.length - 8192
-            : 0,
-      );
-    });
-    String clean() => output.replaceAll('\r', '');
-
-    /// `	device` 行 = 已授权就绪; unauthorized = 在广播但没配对
-    Future<({bool ready, bool unauthorized})> deviceState() async {
-      output = '';
-      if (c.disposed) return (ready: false, unauthorized: false);
-      await c.run('adb devices', timeout: const Duration(seconds: 20));
-      final text = clean();
-      return (
-        ready: RegExp(r'^[\d.]+:\d+\tdevice$', multiLine: true).hasMatch(text),
-        unauthorized: text.contains('\tunauthorized'),
-      );
+  bool cancelled() => c.disposed || c.stopRequested;
+  Future<({int code, String output})> run(String command) async {
+    if (cancelled()) return (code: -1, output: '');
+    final output = StringBuffer();
+    final subscription = c.textStream.listen(output.write);
+    try {
+      final code = await c.run(command, timeout: const Duration(seconds: 12));
+      return (code: code, output: output.toString().replaceAll('\r', ''));
+    } finally {
+      await subscription.cancel();
     }
+  }
 
-    // 0) 已有就绪设备就直接用(自连/局域网都算)
-    if ((await deviceState()).ready) return AdbAutoResult.connected;
-
-    // 1) 上次成功过的端口: 无线调试不重开就不变, 命中即秒连
-    final candidates = <String>[];
-    final last = prefs.adbConnectPort.trim();
-    if (last.isNotEmpty) candidates.add(last);
-    // 2) NSD 发现当前端口(本机过滤在原生侧做)
-    final found = await FlitDevice.discoverAdb(
-      timeout: const Duration(seconds: 6),
-    );
-    for (final service in found) {
-      if (!candidates.contains(service.port)) candidates.add(service.port);
+  Future<List<AdbStatus>> devices() async {
+    final result = await run('adb devices');
+    if (result.code != 0 ||
+        !result.output.contains('List of devices attached')) {
+      throw StateError('无法读取 ADB 设备状态');
     }
+    return AdbOps.parseStatuses(result.output);
+  }
 
-    var unauthorized = false;
-    for (final port in candidates) {
-      if (c.disposed) return AdbAutoResult.unavailable;
-      output = '';
-      await c.run(
-        'adb connect 127.0.0.1:$port',
-        timeout: const Duration(seconds: 15),
-      );
-      final text = clean();
-      if (text.contains('unauthorized') ||
-          text.contains('failed to authenticate')) {
-        unauthorized = true;
-        break;
-      }
-      final state = await deviceState();
-      if (state.ready) {
-        // 端口记忆是尽力而为: 存储不可用不影响"已连接"这个事实
+  Future<AdbAutoResult> connect(String port) async {
+    final target = '127.0.0.1:$port';
+    final result = await run('adb connect $target');
+    if (cancelled()) return AdbAutoResult.unavailable;
+    if (result.output.toLowerCase().contains('failed to authenticate')) {
+      return AdbAutoResult.needsPairing;
+    }
+    final failed =
+        result.code != 0 ||
+        RegExp(
+          r'cannot connect|failed to connect|unable to connect|refused',
+          caseSensitive: false,
+        ).hasMatch(result.output);
+    for (var i = 0; i < (failed ? 1 : 6); i++) {
+      if (cancelled()) return AdbAutoResult.unavailable;
+      final targetState = (await devices())
+          .where((d) => d.serial == target)
+          .firstOrNull;
+      if (cancelled()) return AdbAutoResult.unavailable;
+      if (targetState?.online == true) {
         try {
-          await prefs.update(
-            adbConnectPort: port,
+          await preferences.update(
             adbHost: '127.0.0.1',
+            adbConnectPort: port,
             adbPaired: true,
           );
         } catch (_) {}
         return AdbAutoResult.connected;
       }
-      if (state.unauthorized) {
-        unauthorized = true;
-        break;
+      if (targetState?.state == 'unauthorized') {
+        return AdbAutoResult.needsPairing;
+      }
+      if (i < 5 && !failed) {
+        await Future<void>.delayed(const Duration(milliseconds: 400));
       }
     }
+    return AdbAutoResult.failed;
+  }
+
+  try {
+    final initial = await devices();
+    if (cancelled()) return AdbAutoResult.unavailable;
+    if (initial.any((d) => _isLocalAdbDevice(d) && d.online)) {
+      return AdbAutoResult.connected;
+    }
+    final tried = <String>{};
+    var unauthorized = false;
+    final last = preferences.adbConnectPort.trim();
+    if (preferences.adbHost == '127.0.0.1' &&
+        RegExp(r'^\d+$').hasMatch(last) &&
+        (int.tryParse(last) ?? 0) >= 1 &&
+        (int.tryParse(last) ?? 0) <= 65535) {
+      tried.add(last);
+      c.log.info('尝试上次连接端口 $last');
+      final result = await connect(last);
+      if (cancelled()) return AdbAutoResult.unavailable;
+      if (result == AdbAutoResult.connected) return result;
+      unauthorized = result == AdbAutoResult.needsPairing;
+    }
+    if (cancelled()) return AdbAutoResult.unavailable;
+    c.log.info('扫描本机无线调试连接端口…');
+    final found = await FlitDevice.discoverAdb(
+      timeout: const Duration(seconds: 8),
+    );
+    if (cancelled()) return AdbAutoResult.unavailable;
+    for (final service in found) {
+      if (!tried.add(service.port)) continue;
+      c.log.info('发现连接端口 ${service.port}');
+      final result = await connect(service.port);
+      if (cancelled()) return AdbAutoResult.unavailable;
+      if (result == AdbAutoResult.connected) return result;
+      unauthorized |= result == AdbAutoResult.needsPairing;
+    }
     if (unauthorized) return AdbAutoResult.needsPairing;
-    // 端口在广播 = 无线调试开着, 连不上多半是没配对; 什么都不广播 = 没开
-    return found.isEmpty
-        ? AdbAutoResult.unavailable
-        : AdbAutoResult.needsPairing;
-  } catch (_) {
-    return AdbAutoResult.unavailable;
-  } finally {
-    await watch?.cancel();
+    return found.isEmpty ? AdbAutoResult.unavailable : AdbAutoResult.failed;
+  } catch (error) {
+    if (!cancelled()) c.log.err('扫描或连接失败：$error');
+    return AdbAutoResult.failed;
   }
 }

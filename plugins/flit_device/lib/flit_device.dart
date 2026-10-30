@@ -30,7 +30,7 @@ class FlitDevice {
             'service': service,
             'timeoutMs': timeout.inMilliseconds,
           })
-          .timeout(timeout, onTimeout: () => null);
+          .timeout(timeout + const Duration(seconds: 2));
       return (result ?? const [])
           .whereType<Map<Object?, Object?>>()
           .map(
@@ -39,14 +39,27 @@ class FlitDevice {
               port: e['port']?.toString() ?? '',
             ),
           )
-          .where((e) => e.port.isNotEmpty)
+          .where(
+            (e) =>
+                (int.tryParse(e.port) ?? 0) >= 1 &&
+                (int.tryParse(e.port) ?? 0) <= 65535,
+          )
           .toList();
-    } on PlatformException {
-      return const [];
     } on MissingPluginException {
       return const [];
     }
   }
+
+  static Future<void> startPairing() async =>
+      channel.invokeMethod('startPairing');
+  static Future<void> stopPairing() async =>
+      channel.invokeMethod('stopPairing');
+  static Future<Map<String, dynamic>> pairingStatus() async =>
+      Map<String, dynamic>.from(
+        await channel.invokeMethod('pairingStatus') ?? const {},
+      );
+  static Future<void> openWirelessSettings() async =>
+      channel.invokeMethod('openWirelessSettings');
 
   /// MIUI 等系统对后台/不可见时的网络限制: 是否已忽略电池优化
   static Future<bool> isIgnoringBatteryOptimizations() async =>

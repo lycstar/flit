@@ -19,6 +19,9 @@ void main() {
   late AppearancePreferences prefs;
   var reads = 0;
   var available = true;
+  final nativeCalls = <String>[];
+  Map<String, Object> pairingStatus = {};
+  List<Map<String, Object>> scanResults = [];
 
   Map<String, Object> deviceList(String lines) => {
     'exitCode': 0,
@@ -26,6 +29,9 @@ void main() {
   };
 
   setUp(() async {
+    nativeCalls.clear();
+    pairingStatus = {};
+    scanResults = [];
     processes.clear();
     commands.clear();
     reads = 0;
@@ -59,10 +65,20 @@ void main() {
     messenger.setMockMethodCallHandler(const MethodChannel('flit/device'), (
       call,
     ) async {
+      nativeCalls.add(call.method);
+      if (call.method == 'pairingStatus') return pairingStatus;
+      if (call.method == 'startPairing') {
+        pairingStatus = {'state': 'searching', 'message': '等待配对窗口'};
+        return true;
+      }
+      if (call.method == 'stopPairing') {
+        pairingStatus = {'state': 'idle'};
+        return true;
+      }
       // 电池优化已忽略: 电池提示卡不出现, 页面布局保持紧凑
       if (call.method == 'isIgnoringBatteryOptimizations') return true;
       // NSD 发现返回空: 自动连接的发现环节立即结束(视为无线调试未开)
-      if (call.method == 'discoverAdb') return const <Map<String, Object>>[];
+      if (call.method == 'discoverAdb') return scanResults;
       return null;
     });
     await prefs.load();
@@ -76,12 +92,13 @@ void main() {
   Future<void> settle(WidgetTester tester) async {
     // Preferences are shared with code outside the widget test's fake clock.
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-    await tester.pumpAndSettle();
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
   }
 
-  Future<void> open(WidgetTester tester) async {
-    // 页面加入 Shizuku 式步骤卡后变长: 拉高视口让全部区块一次建出,
-    // 避免懒加载列表把区块 2 留在视口外导致 finder 找不到字段
+  Future<void> open(WidgetTester tester, {bool manual = true}) async {
+    // 表单行为测试展开手动区块；紧凑布局另用手机视口验证。
     tester.view.physicalSize = const Size(600, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -107,19 +124,14 @@ void main() {
       ),
     );
     await settle(tester);
+    if (manual) {
+      await tester.tap(find.text('手动连接 / 其他设备'));
+      await settle(tester);
+    }
   }
 
   Future<void> enter(WidgetTester tester, String label, String text) async {
     final f = field(label);
-    for (
-      var i = 0;
-      i < 10 &&
-          tester.any(find.descendant(of: find.byType(ListView), matching: f));
-      i++
-    ) {
-      await tester.drag(find.byType(ListView).last, const Offset(0, -150));
-      await tester.pump();
-    }
     await tester.ensureVisible(f);
     await tester.enterText(f, text);
     await tester.pump();
@@ -183,15 +195,8 @@ void main() {
       );
       await processes.last.finish();
       await settle(tester);
-      // 配对成功会自动触发连接: 等它的探测进程出现并跑完(无缓存端口且
-      // NSD 不可用 → 以"未发现端口"收场), busy 释放后连接按钮才可用
-      for (var i = 0; i < 20 && processes.length < 3; i++) {
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 10)),
-        );
-      }
-      await processes.last.finish();
-      await settle(tester);
+      // 远程配对不触发本机自动连接。
+      expect(commands, hasLength(2));
       expect(find.text('有配对记录'), findsOneWidget);
       expect(tester.widget<TextField>(field('配对码（6 位）')).controller!.text, '');
       expect(tester.widget<FilledButton>(button('连接')).onPressed, isNotNull);
@@ -211,7 +216,7 @@ void main() {
       expect(tester.widget<FilledButton>(button('连接')).onPressed, isNull);
       expect(tester.widget<FilledButton>(button('配对')).onPressed, isNull);
       expect(tester.widget<TextField>(field('设备地址')).enabled, false);
-      expect(commands, hasLength(4)); // pair · 自动连接的探测 · pair · connect
+      expect(commands, hasLength(3)); // pair · pair · connect
       expect(commands.last, "adb connect '127.0.0.1:32100'");
       pending.complete(
         deviceList(
@@ -306,4 +311,63 @@ void main() {
       await close(tester);
     },
   );
+  testWidgets(
+    'phone layout is compact and notification pairing starts before opening settings',
+    (tester) async {
+      await open(tester, manual: false);
+      tester.view.physicalSize = const Size(390, 844);
+      await settle(tester);
+      expect(field('配对端口'), findsNothing);
+      expect(tester.getRect(button('扫描并连接')).bottom, lessThan(700));
+      expect(tester.getRect(button('通知配对')).bottom, lessThan(700));
+      await press(tester, '通知配对');
+      await settle(tester);
+      expect(
+        nativeCalls.indexOf('startPairing'),
+        lessThan(nativeCalls.indexOf('openWirelessSettings')),
+      );
+      expect(tester.widget<FilledButton>(button('扫描并连接')).onPressed, isNull);
+      await tester.tap(find.text('取消配对'));
+      await settle(tester);
+      expect(nativeCalls, contains('stopPairing'));
+      expect(tester.widget<FilledButton>(button('扫描并连接')).onPressed, isNotNull);
+      await close(tester);
+    },
+  );
+
+  testWidgets(
+    'manual scan fills local pairing port and remote host has no local scanner',
+    (tester) async {
+      scanResults = [
+        {'host': '127.0.0.1', 'port': 43210},
+      ];
+      await open(tester);
+      await tester.tap(find.text('扫描配对端口'));
+      await settle(tester);
+      expect(tester.widget<TextField>(field('配对端口')).controller!.text, '43210');
+      await enter(tester, '设备地址', '192.168.1.8');
+      await settle(tester);
+      expect(find.text('扫描配对端口'), findsNothing);
+      expect(tester.widget<TextField>(field('配对端口')).controller!.text, '');
+      await close(tester);
+    },
+  );
+
+  testWidgets('notification pairing success reconnects localhost on return', (
+    tester,
+  ) async {
+    await open(tester, manual: false);
+    readDevices = () async => deviceList('127.0.0.1:43210 device\n');
+    pairingStatus = {'state': 'success', 'message': '配对成功', 'revision': 10};
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await settle(tester);
+    expect(commands, ['adb devices']);
+    processes.last.emit('List of devices attached\n127.0.0.1:43210 device\n');
+    await processes.last.finish();
+    await settle(tester);
+    expect(find.textContaining('已自动连接本机'), findsOneWidget);
+    expect(prefs.adbPaired, true);
+    await close(tester);
+  });
 }

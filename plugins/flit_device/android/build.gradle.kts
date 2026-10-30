@@ -25,3 +25,8 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
+
+// Notification pairing uses the same process environment and ADB identity as the app.
+dependencies {
+    implementation(project(":flit_env"))
+}

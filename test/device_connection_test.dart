@@ -202,4 +202,13 @@ void main() {
       expect(connection.message, contains('配对授权仍保留'));
     },
   );
+  test(
+    'automatic connection never reports success if final device check fails',
+    () async {
+      final result = connection.autoConnect();
+      await finish('List of devices attached\n127.0.0.1:43210 device\n');
+      expect(await result, isFalse);
+      expect(connection.message, contains('未能确认设备在线'));
+    },
+  );
 }

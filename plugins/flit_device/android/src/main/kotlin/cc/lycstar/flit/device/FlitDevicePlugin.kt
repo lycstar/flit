@@ -4,8 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.net.nsd.NsdManager
-import android.net.nsd.NsdServiceInfo
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -16,9 +14,6 @@ import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import java.io.IOException
-import java.net.InetSocketAddress
-import java.net.ServerSocket
 
 /**
  * 本机调试设备原生桥(flit/device): 无线调试端口 NSD 发现(本机过滤)、
@@ -29,7 +24,7 @@ class FlitDevicePlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
     private lateinit var channel: MethodChannel
     private var activity: Activity? = null
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val discoveries = mutableSetOf<AdbDiscovery>()
+    private val discoveries = mutableSetOf<() -> Unit>()
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         context = binding.applicationContext
@@ -39,7 +34,7 @@ class FlitDevicePlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
-        synchronized(discoveries) { discoveries.toList() }.forEach { it.finish() }
+        discoveries.toList().forEach { it() }
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -62,16 +57,58 @@ class FlitDevicePlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
         when (call.method) {
             "discoverAdb" -> {
                 val service = call.argument<String>("service") ?: "_adb-tls-connect._tcp"
-                val timeoutMs = call.argument<Number>("timeoutMs")?.toLong() ?: 6000L
-                val nsd = context.getSystemService(Context.NSD_SERVICE) as? NsdManager
-                if (nsd == null) {
-                    result.success(emptyList<Map<String, Any?>>())
+                if (service !in setOf("_adb-tls-connect._tcp", "_adb-tls-pairing._tcp")) {
+                    result.error("invalid_service", "不支持的扫描类型", null)
                     return
                 }
-                val discovery = AdbDiscovery(nsd, service, timeoutMs, result)
-                synchronized(discoveries) { discoveries += discovery }
-                discovery.start()
+                val timeoutMs = (call.argument<Number>("timeoutMs")?.toLong() ?: 6000L).coerceIn(1000, 30000)
+                var replied = false
+                lateinit var scanner: AdbDiscovery
+                lateinit var cancel: () -> Unit
+                var timeout: Runnable? = null
+                fun finish(found: List<Map<String, Any>> = emptyList(), error: String? = null) {
+                    if (replied) return
+                    replied = true
+                    timeout?.let { mainHandler.removeCallbacks(it) }
+                    scanner.stop()
+                    discoveries.remove(cancel)
+                    if (error == null) result.success(found) else result.error("discovery_failed", error, null)
+                }
+                scanner = AdbDiscovery(context, service,
+                    onFound = { info -> finish(listOf(mapOf("host" to "127.0.0.1", "port" to info.port))) },
+                    onError = { finish(error = it) })
+                cancel = { finish() }
+                discoveries += cancel
+                timeout = Runnable { finish() }
+                mainHandler.postDelayed(timeout!!, timeoutMs)
+                scanner.start()
             }
+            "startPairing" -> {
+                if (Build.VERSION.SDK_INT < 30) {
+                    result.error("unsupported", "通知配对需要 Android 11 或更高版本", null)
+                    return
+                }
+                val problem = AdbPairingService.availability(context)
+                if (problem != null) { result.error("pairing_unavailable", problem, null); return }
+                runCatching {
+                    context.startForegroundService(Intent(context, AdbPairingService::class.java).setAction("start"))
+                }.onSuccess { result.success(true) }
+                    .onFailure { result.error("pairing_unavailable", it.message, null) }
+            }
+            "stopPairing" -> {
+                context.stopService(Intent(context, AdbPairingService::class.java))
+                result.success(true)
+            }
+            "pairingStatus" -> result.success(AdbPairingService.status(context))
+            "openWirelessSettings" -> {
+                val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+                    .putExtra(":settings:fragment_args_key", "toggle_adb_wireless")
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                runCatching { (activity ?: context).startActivity(intent) }
+                    .onSuccess { result.success(true) }
+                    .onFailure { result.error("open_failed", it.message, null) }
+            }
+
             "isIgnoringBatteryOptimizations" -> result.success(ignoringBatteryOptimizations())
             "openNotificationSettings" -> {
                 // targetSdk 28 下系统不为 POST_NOTIFICATIONS 的运行时请求弹授权框,
@@ -114,101 +151,4 @@ class FlitDevicePlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
         return pm.isIgnoringBatteryOptimizations(context.packageName)
     }
 
-    /**
-     * adbd 的无线调试监听绑在所有接口上: 本机绑 127.0.0.1:port 失败 = 它在听(接受);
-     * 绑成功 = 本机没人听 = 同网段别的设备的广播(拒绝)。
-     * 不比对网卡地址: 代理/VPN 的 TUN 接口会让地址比对失真(Shizuku 同款判据)。
-     */
-    private fun listeningLocally(port: Int): Boolean = try {
-        ServerSocket().use { it.bind(InetSocketAddress("127.0.0.1", port), 1) }
-        false
-    } catch (_: IOException) {
-        true
-    }
-
-    /**
-     * 一次无线调试端口发现(NSD, Shizuku 同款): 持续发现直到超时, 每个解析出的
-     * 服务用"本机端口占用"验证后收集; 每次调用独立状态, 可与别的发现并行。
-     */
-    private inner class AdbDiscovery(
-        private val nsd: NsdManager,
-        private val service: String,
-        timeoutMs: Long,
-        private val result: MethodChannel.Result,
-    ) : NsdManager.DiscoveryListener {
-        private val found = mutableListOf<Map<String, Any?>>()
-        private val seen = HashSet<String>()
-        private val queue = ArrayDeque<NsdServiceInfo>()
-        private var resolving = false
-        private var replied = false
-        private val timeout = Runnable { finish() }
-
-        init {
-            mainHandler.postDelayed(timeout, timeoutMs)
-        }
-
-        fun start() {
-            runCatching { nsd.discoverServices(service, NsdManager.PROTOCOL_DNS_SD, this) }
-                .onFailure { finish() }
-        }
-
-        /** 只回复一次; 停止发现与回复都回主线程(Result 只能在主线程用) */
-        fun finish() {
-            synchronized(this) {
-                if (replied) return
-                replied = true
-            }
-            mainHandler.post {
-                mainHandler.removeCallbacks(timeout)
-                runCatching { nsd.stopServiceDiscovery(this) }
-                synchronized(discoveries) { discoveries -= this }
-                runCatching { result.success(synchronized(found) { found.toList() }) }
-            }
-        }
-
-        override fun onServiceFound(info: NsdServiceInfo) {
-            // Android 12 之前同一时刻只能有一个 resolve, 并发会 FAILURE_ALREADY_ACTIVE
-            // 直接丢掉服务(多台设备在同一网段时会漏掉本机): 排队串行解析
-            synchronized(queue) { queue.addLast(info) }
-            resolveNext()
-        }
-
-        private fun resolveNext() {
-            val next = synchronized(queue) {
-                if (resolving) return
-                val info = queue.removeFirstOrNull() ?: return
-                resolving = true
-                info
-            }
-            runCatching {
-                nsd.resolveService(next, object : NsdManager.ResolveListener {
-                    override fun onServiceResolved(resolved: NsdServiceInfo) {
-                        accept(resolved)
-                        resolveDone()
-                    }
-
-                    override fun onResolveFailed(info: NsdServiceInfo, errorCode: Int) = resolveDone()
-                })
-            }.onFailure { resolveDone() }
-        }
-
-        private fun resolveDone() {
-            synchronized(queue) { resolving = false }
-            resolveNext()
-        }
-
-        private fun accept(resolved: NsdServiceInfo) {
-            val host = resolved.host?.hostAddress ?: return
-            val port = resolved.port
-            if (!listeningLocally(port)) return
-            synchronized(seen) { if (!seen.add("$host:$port")) return }
-            synchronized(found) { found += mapOf("host" to host, "port" to port) }
-        }
-
-        override fun onServiceLost(info: NsdServiceInfo) {}
-        override fun onDiscoveryStarted(serviceType: String) {}
-        override fun onDiscoveryStopped(serviceType: String) {}
-        override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) = finish()
-        override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {}
-    }
 }

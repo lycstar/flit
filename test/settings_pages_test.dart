@@ -272,7 +272,7 @@ void main() {
         },
       ];
     final pages = <String, Widget>{
-      'device': const DeviceConnectPage(),
+      'device': const DeviceConnectPage(autoConnectOnOpen: false),
       'create': const CreateProjectPage(projectRoot: '/home/projects'),
       'settings': const SettingsPage(),
       'editor-settings': const EditorSettingsPage(),
