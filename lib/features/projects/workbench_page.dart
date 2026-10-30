@@ -76,15 +76,19 @@ class _WorkbenchPageState extends State<WorkbenchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final env = context.watch<EnvironmentController>();
+    final changingTools = env.installing || env.pipelineRunning;
     return ProjectsPage(
-      environmentReady: _bootstrapped == true,
-      environmentChecking: _bootstrapped == null,
+      environmentReady:
+          (env.home == null ? _bootstrapped == true : env.allDone) &&
+          !changingTools,
+      environmentChecking: _bootstrapped == null || changingTools,
       onOpenProject: (path) async {
         try {
-          if (context.read<EnvironmentController>().installing) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('工具链正在安装，请完成后再打开项目')));
+          if (context.read<EnvironmentController>().busy) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('工具链任务正在进行，请完成后再打开项目')),
+            );
             return;
           }
           final project = await context.read<ProjectWorkspace>().open(path);

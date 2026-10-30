@@ -101,7 +101,7 @@ object FlitEnv {
         val env = mutableMapOf<String, String>()
         env["HOME"] = home.absolutePath
         env["PREFIX"] = prefix.absolutePath
-        env["PATH"] = "${prefix.absolutePath}/bin:${prefix.absolutePath}/bin/applets:${home.absolutePath}/android-sdk/platform-tools:/system/bin:/system/xbin"
+        env["PATH"] = "${prefix.absolutePath}/bin:${prefix.absolutePath}/bin/applets:${home.absolutePath}/toolchains/android-sdk/platform-tools:/system/bin:/system/xbin"
         env["ANDROID_ROOT"] = "/system"
         env["ANDROID_DATA"] = "/data"
         env["EXTERNAL_STORAGE"] = "/sdcard"
@@ -120,14 +120,13 @@ object FlitEnv {
 
         // 工具链(JDK/Android SDK)就绪后注入构建环境, JAVA_HOME 提到 PATH 前。
         // 与 assets/scripts 的 env.sh 布局一致, 差异只在"此刻是否已装"。
-        val flutterBin = File(prefix, "opt/flutter/current/bin")
+        val flutterBin = File(home, "toolchains/flutter/current/bin")
         if (File(flutterBin, "flutter").exists()) {
-            env["FLUTTER_ROOT"] = File(prefix, "opt/flutter/current").absolutePath
+            env["FLUTTER_ROOT"] = File(home, "toolchains/flutter/current").absolutePath
             env["PATH"] = "${flutterBin.absolutePath}:${env["PATH"]}"
         }
         val jdk = File(prefix, "lib/jvm/java-17-openjdk")
-        val sdk = File(home, "android-sdk")
-        val ndk = File(sdk, "ndk/28.2.13676358")
+        val sdk = File(home, "toolchains/android-sdk")
         if (File(jdk, "bin/java").exists()) {
             env["JAVA_HOME"] = jdk.absolutePath
             env["PATH"] = "${jdk.absolutePath}/bin:${env["PATH"]}"
@@ -139,7 +138,7 @@ object FlitEnv {
             env["JDK_JAVA_OPTIONS"] = "-Djava.io.tmpdir=${prefix.absolutePath}/tmp"
         }
         if (File(sdk, "build-tools").exists()) env["ANDROID_HOME"] = sdk.absolutePath
-        if (File(ndk, "source.properties").exists()) env["ANDROID_NDK_HOME"] = ndk.absolutePath
+        env["FLIT_TOOLCHAINS"] = File(home, "toolchains").absolutePath
         env["GRADLE_USER_HOME"] = File(home, ".gradle").absolutePath
         if (File(prefix, "libexec/git-core/git").exists()) {
             env["GIT_EXEC_PATH"] = File(prefix, "libexec/git-core").absolutePath

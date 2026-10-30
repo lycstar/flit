@@ -21,6 +21,7 @@ class SetupRunner {
 
   static const _scriptNames = [
     'lib.sh',
+    'toolchain_manager.sh',
     'check.sh',
     'android_jdk.sh',
     'android_sdk.sh',
@@ -68,7 +69,8 @@ class SetupRunner {
     final flt = p('flutter-sdk');
     return '''
 # 由 flit 从 toolchain_manifest.json 生成, 每次初始化覆盖; 勿手改
-export ANDROID_HOME="\$HOME/android-sdk"
+export FLIT_TOOLCHAINS="\$HOME/toolchains"
+export ANDROID_HOME="\$HOME/toolchains/android-sdk"
 export JAVA_HOME="\$PREFIX/lib/jvm/java-17-openjdk"
 # termux 版 JDK 把 java.io.tmpdir 烧死成 com.termux 前缀, 必须覆盖
 export JDK_JAVA_OPTIONS="-Djava.io.tmpdir=\$PREFIX/tmp"
@@ -89,7 +91,7 @@ export GRADLE_USER_HOME="\$HOME/.gradle"
 # PATH 必须在 JAVA_HOME 之后(flutter 需要它); platform-tools 提供 SDK 内 adb
 _flit_prepend PATH "\$ANDROID_HOME/platform-tools"
 _flit_prepend PATH "\$JAVA_HOME/bin"
-export FLUTTER_ROOT="\$PREFIX/opt/flutter/current"
+export FLUTTER_ROOT="\$HOME/toolchains/flutter/current"
 _flit_prepend PATH "\$FLUTTER_ROOT/bin"
 unset -f _flit_prepend
 export TMPDIR="\$PREFIX/tmp"

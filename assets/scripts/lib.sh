@@ -11,14 +11,15 @@ if [ -f "$HOME/.flit/env.sh" ]; then
   }
 fi
 : "${PREFIX:=/data/data/cc.lycstar.flit/files/usr}"
-: "${ANDROID_HOME:=$HOME/android-sdk}"
+: "${FLIT_TOOLCHAINS:=$HOME/toolchains}"
+: "${ANDROID_HOME:=$FLIT_TOOLCHAINS/android-sdk}"
 : "${JAVA_HOME:=$PREFIX/lib/jvm/java-17-openjdk}"
 : "${GRADLE_USER_HOME:=$HOME/.gradle}"
 : "${NDK_VERSION:=28.2.13676358}"
 : "${CMAKE_VERSION:=3.22.1}"
 : "${TMPDIR:=$PREFIX/tmp}"
 : "${FLIT_APT_SOURCE:=}"
-# 阶段变量兜底(旧版 env.sh 缺字段时防 set -u 中断; 正常由 app 生成完整 env.sh)
+# 独立执行脚本时的默认阶段变量；应用会生成完整 env.sh。
 : "${SDK_SHA256:=}"; : "${NDK_SHA256:=}"
 : "${CMAKE_SHA256:=}"
 : "${FLUTTER_SHA256:=}"
@@ -79,6 +80,7 @@ stage_main() {
       [ "$#" -ge 3 ] || die '安装版本需要下载地址和 SHA-256'
       case "$STAGE" in
         android_sdk) SDK_URLS=("$2"); SDK_SHA256=$3 ;;
+        android_ndk) NDK_URLS=("$2"); NDK_SHA256=$3 ;;
         android_cmake) CMAKE_URLS=("$2"); CMAKE_SHA256=$3; CMAKE_VERSION=${4:?缺少版本号} ;;
         flutter_sdk) FLUTTER_URLS=("$2"); FLUTTER_SHA256=$3; FLUTTER_VERSION=${4:?缺少版本号} ;;
         *) die '该组件不支持版本切换' ;;
@@ -111,6 +113,11 @@ dl() {
   _dl_sha=$1; _dl_dest=$2
   shift 2
   mkdir -p "$(dirname "$_dl_dest")"
+  if [ -f "$_dl_dest" ] && echo "$_dl_sha  $_dl_dest" | sha256sum -c -; then
+    ok '[dl] 已找到通过校验的安装包，跳过下载'
+    return 0
+  fi
+  rm -f "$_dl_dest"
 
   # 单行进度: 每秒采样 .part 实际体积, \r 原地刷新。
   # 不用 curl 的进度条——它在 PTY 里对终端宽度探测和 \r 重绘都不可靠,
@@ -168,4 +175,38 @@ dl() {
   printf '\n'
   bad "[dl] ✗ 所有下载源均失败，请检查下载地址、网络和校验信息后重试"
   return 1
+}
+
+# 所有版本均存放在同一根目录，SDK 仅暴露标准发现路径。
+link_android_tools() {
+  mkdir -p "$FLIT_TOOLCHAINS/ndk" "$FLIT_TOOLCHAINS/cmake" "$ANDROID_HOME"
+  ln -sfn ../ndk "$ANDROID_HOME/ndk"
+  ln -sfn ../cmake "$ANDROID_HOME/cmake"
+}
+
+archive_path() { echo "$TMPDIR/toolchain-downloads/$1.tar.xz"; }
+
+# 只在暂存目录已校验后替换损坏目录；完整的同版本由调用方复用。
+publish_directory() {
+  local source=$1 target=$2
+  mkdir -p "$(dirname "$target")"
+  rm -rf "$target.replaced"
+  if [ -e "$target" ]; then mv "$target" "$target.replaced"; fi
+  if mv "$source" "$target"; then
+    rm -rf "$target.replaced"
+  else
+    if [ -e "$target.replaced" ]; then mv "$target.replaced" "$target"; fi
+    die '[install] 版本落位失败，已保留原有安装'
+  fi
+}
+
+flutter_complete() {
+  installed_ok "$1" && [ -x "$1/bin/flutter" ] &&
+    [ -x "$1/bin/cache/dart-sdk/bin/dart" ]
+}
+
+select_flutter() {
+  flutter_complete "$FLIT_TOOLCHAINS/flutter/$1" || die '[flutter] 版本不完整，请重新安装'
+  ln -sfn "$1" "$FLIT_TOOLCHAINS/flutter/.current-next"
+  mv -Tf "$FLIT_TOOLCHAINS/flutter/.current-next" "$FLIT_TOOLCHAINS/flutter/current"
 }

@@ -30,7 +30,7 @@ first_lib=$LD_LIBRARY_PATH
 [ "$PATH" = "$first_path" ]
 [ "$LD_LIBRARY_PATH" = "$first_lib" ]
 [ "$FLUTTER_VERSION" = "3.47.8" ]
-[ "${PATH%%:*}" = "$PREFIX/opt/flutter/current/bin" ]
+[ "${PATH%%:*}" = "$HOME/toolchains/flutter/current/bin" ]
 case ":$PATH:" in *":$ANDROID_HOME/platform-tools:$PREFIX/bin:"*) ;; *) exit 2 ;; esac
 printf '%s\n' "$PATH" "$LD_LIBRARY_PATH"
 ''',
@@ -39,7 +39,7 @@ printf '%s\n' "$PATH" "$LD_LIBRARY_PATH"
           'HOME': home.path,
           'PREFIX': prefix.path,
           'PATH':
-              '${prefix.path}/bin:${home.path}/android-sdk/platform-tools:/usr/bin:/bin',
+              '${prefix.path}/bin:${home.path}/toolchains/android-sdk/platform-tools:/usr/bin:/bin',
           'LD_LIBRARY_PATH': '${prefix.path}/lib',
         },
       );

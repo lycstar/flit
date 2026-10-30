@@ -8,6 +8,7 @@ import 'setup_runner.dart';
 import '../../services/shell.dart';
 import '../terminal/console_session.dart';
 import 'toolchain_catalog.dart';
+import 'installed_toolchain.dart';
 
 /// 安装步骤定义(展示顺序, 3 个可见阶段); OpenJDK 归入 Android 阶段作子项。
 /// 各阶段实体仍是 assets/scripts/ 下的 .sh, 与组件 id 的映射见 stageScripts。
@@ -74,26 +75,19 @@ const partNames = <String, String>{
 /// 过程性步骤不上卡片(下载解压/预热是内部动作, 不是"装了什么组件")
 const hiddenParts = {'bootstrap', 'flutter_warmup'};
 
-/// 各子任务安装体积(du), 口径互斥不重叠:
-/// bootstrap = PREFIX 扣掉 jdk/flutter(它们装在前缀里, 直接 du 会重复计数);
-/// SDK 扣掉 NDK(NDK 装在 SDK 目录内); Gradle 名下记构建缓存(随构建增长);
-/// Flutter SDK 名下记 pub 包缓存(随 pub get 增长)。行上只显示 名称+版本+体积。
+/// 各组件体积；du 不跟随 SDK 中的 NDK/CMake 链接，避免重复计数。
 const _sizeProbeCmd = r'''
 P=$(du -sk "$PREFIX" 2>/dev/null | cut -f1)
 J=$(du -sk "$PREFIX/lib/jvm/java-17-openjdk" 2>/dev/null | cut -f1)
-F=$(du -sk "$PREFIX/opt/flutter" 2>/dev/null | cut -f1)
+F=$(du -sk "$HOME/toolchains/flutter" 2>/dev/null | cut -f1)
 U=$(du -sk "$HOME/.pub-cache" 2>/dev/null | cut -f1)
-S=$(du -sk "$HOME/android-sdk" 2>/dev/null | cut -f1)
+S=$(du -sk "$HOME/toolchains/android-sdk" 2>/dev/null | cut -f1)
 G=$(du -sk "$HOME/.gradle" 2>/dev/null | cut -f1)
-N=$(du -sk "$HOME/android-sdk/ndk" 2>/dev/null | cut -f1)
-M=$(du -sk "$HOME/android-sdk/cmake" 2>/dev/null | cut -f1)
-B=$(du -sk "$PREFIX/bin" 2>/dev/null | cut -f1)
-L=$(du -sk "$PREFIX/lib" 2>/dev/null | cut -f1)
-D=$(du -sk "$PREFIX/var/lib/dpkg" 2>/dev/null | cut -f1)
-K=$(dpkg -l 2>/dev/null | grep -c '^ii')
-echo bootstrap:$(( ${P:-0} - ${J:-0} - ${F:-0} ))
+N=$(du -sk "$HOME/toolchains/ndk" 2>/dev/null | cut -f1)
+M=$(du -sk "$HOME/toolchains/cmake" 2>/dev/null | cut -f1)
+echo bootstrap:$(( ${P:-0} - ${J:-0} ))
 echo android_jdk:${J:-0}
-echo android_sdk:$(( ${S:-0} - ${N:-0} - ${M:-0} ))
+echo android_sdk:${S:-0}
 echo android_ndk:${N:-0}
 echo android_cmake:${M:-0}
 echo android_gradle:${G:-0}
@@ -159,7 +153,8 @@ class EnvironmentController extends ChangeNotifier {
 
   /// 版本目录的安装进行中(临时会话流式输出)
   bool installing = false;
-  bool get busy => pipelineRunning || checking;
+  bool get busy => pipelineRunning || checking || installing;
+  List<InstalledToolchain> installed = [];
   // 状态按子任务维护(bootstrap + 7 个脚本), 展示层按 stageParts 聚合成 3 行
   final Map<String, StageState> stages = {
     for (final parts in stageParts.values)
@@ -181,7 +176,7 @@ class EnvironmentController extends ChangeNotifier {
   /// ndk 安装到 ndk/`<Pkg.Revision>`(AGP 按 ndkVersion 检索); sdk 合并进
   /// 单棵树; flutter 按版本并存，通过 current 切换。
   Future<void> installFromCatalog(CatalogEntry entry) async {
-    if (busy || installing || _runner == null) {
+    if (busy || _runner == null) {
       _term('当前有任务进行中，请等待完成后再安装版本', color: _cWarn);
       return;
     }
@@ -204,10 +199,10 @@ class EnvironmentController extends ChangeNotifier {
       );
       if (code == 0) {
         _line(c, '✓ ${entry.name} 安装完成', _cOk);
-        await refreshStatus();
       } else {
         _line(c, '安装失败，退出码 $code（详细输出见上）', _cErr);
       }
+      await _refreshStatus(c);
     } finally {
       installing = false;
       notifyListeners();
@@ -221,46 +216,38 @@ class EnvironmentController extends ChangeNotifier {
       'android-sdk' => 'android_sdk.sh',
       'flutter-sdk' => 'flutter_sdk.sh',
       'cmake' => 'android_cmake.sh',
-      _ => null,
-    };
-    if (script != null) {
-      final version = entry.tag.replaceFirst(RegExp(r'^(flutter|cmake)-'), '');
-      return 'bash "\$HOME/.flit/scripts/$script" --release '
-          '${shQuote(entry.url)} ${shQuote(sha)}'
-          '${{'flutter-sdk', 'cmake'}.contains(entry.component) ? ' ${shQuote(version)}' : ''}'
-          '${entry.component == 'android-sdk' ? ' && bash "\$HOME/.flit/scripts/android_gradle.sh"' : ''}';
-    }
-    final url = shQuote(entry.url);
-    final shaCheck =
-        'echo ${shQuote('$sha  ')}"\$tmp/pkg" '
-        '| sha256sum -c - || { rm -rf "\$tmp"; exit 1; }\n';
-    final body = switch (entry.component) {
-      'ndk' =>
-        'tar -xJf "\$tmp/pkg" -C "\$tmp" '
-            "--exclude='*/shader-tools/linux-x86_64*' "
-            "--exclude='*/toolchains/llvm/prebuilt/linux-x86_64*'\n"
-            'set -- "\$tmp"/android-ndk-*; ndk=\$1\n'
-            '[ -d "\$ndk" ] || exit 1\n'
-            'rev=\$(sed -n \'s/^Pkg\\.Revision[[:space:]]*=[[:space:]]*//p\' "\$ndk/source.properties" '
-            '| head -n1 | tr -d \' \\r\')\n'
-            '[ -n "\$rev" ] || { echo \'无法读取 Pkg.Revision\'; rm -rf "\$tmp"; exit 1; }\n'
-            'mkdir -p "\$HOME/android-sdk/ndk"\n'
-            'ln -sfn linux-arm64 "\$ndk/shader-tools/linux-x86_64"\n'
-            'ln -sfn linux-arm64 "\$ndk/toolchains/llvm/prebuilt/linux-x86_64"\n'
-            'test -x "\$ndk/toolchains/llvm/prebuilt/linux-arm64/bin/clang" || exit 1\n'
-            'rm -rf "\$HOME/android-sdk/ndk/\$rev"\n'
-            'mv "\$ndk" "\$HOME/android-sdk/ndk/\$rev"\n'
-            'printf "%s\\n" ${shQuote(sha)} > "\$HOME/android-sdk/ndk/\$rev/.flit-complete"\n'
-            'rm -rf "\$tmp"\n'
-            'echo "已安装 NDK \$rev"',
+      'ndk' => 'android_ndk.sh',
       _ => throw StateError('组件不支持版本安装: ${entry.component}'),
     };
-    return 'set -e\n'
-        'tmp=\$(mktemp -d) || exit 1\n'
-        "trap 'rm -rf \"\$tmp\"' EXIT\n"
-        'curl -fL --retry 3 -o "\$tmp/pkg" $url || { rm -rf "\$tmp"; exit 1; }\n'
-        '$shaCheck'
-        '$body';
+    final version = entry.tag.replaceFirst(RegExp(r'^(flutter|cmake)-'), '');
+    return 'bash "\$HOME/.flit/scripts/$script" --release '
+        '${shQuote(entry.url)} ${shQuote(sha)}'
+        '${{'flutter-sdk', 'cmake'}.contains(entry.component) ? ' ${shQuote(version)}' : ''}'
+        '${entry.component == 'android-sdk' ? ' && bash "\$HOME/.flit/scripts/android_gradle.sh"' : ''}';
+  }
+
+  Future<void> changeInstalled(
+    InstalledToolchain tool, {
+    bool delete = false,
+  }) async {
+    if (busy || _runner == null) return;
+    installing = true;
+    notifyListeners();
+    final c = _openConsole(
+      '${delete ? '删除' : '切换'} ${tool.title}',
+      SessionKind.temp,
+    );
+    try {
+      final command =
+          'bash "\$HOME/.flit/scripts/toolchain_manager.sh" '
+          '${delete ? '--delete ${shQuote(tool.path)}' : '--select ${shQuote(tool.version)}'}';
+      final code = await _runInTerminal(c, command);
+      if (code != 0) _line(c, '操作失败，退出码 $code（详细输出见上）', _cErr);
+      await _refreshStatus(c);
+    } finally {
+      installing = false;
+      notifyListeners();
+    }
   }
 
   Future<void> probeNetwork() async {
@@ -390,27 +377,51 @@ class EnvironmentController extends ChangeNotifier {
     checking = true;
     notifyListeners();
     try {
-      final bootstrapped =
-          (await Shell.instance.bootstrapStatus())['bootstrapped'] == true;
-      stages['bootstrap']!.state = bootstrapped ? 'DONE' : 'PENDING';
-      for (final id in stages.keys.where((k) => k != 'bootstrap')) {
-        stages[id]!.state = 'PENDING';
-        stages[id]!.version = null;
-      }
-      if (bootstrapped && _runner != null) {
-        final c = _openConsole('环境检测', SessionKind.temp);
-        final code = await _runInTerminal(
-          c,
-          'bash ${shQuote('${_runner!.scriptsDir}/check.sh')}',
-          timeout: const Duration(minutes: 2),
-        );
-        if (code != 0) _line(c, '环境检查未完成，退出码 $code', _cErr);
-        await _loadSizes();
-      }
-      _updateAllDone();
+      await _refreshStatus();
     } finally {
       checking = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _refreshStatus([ConsoleSession? existing]) async {
+    final bootstrapped =
+        (await Shell.instance.bootstrapStatus())['bootstrapped'] == true;
+    stages['bootstrap']!.state = bootstrapped ? 'DONE' : 'PENDING';
+    for (final id in stages.keys.where((k) => k != 'bootstrap')) {
+      stages[id]!.state = 'PENDING';
+      stages[id]!.version = null;
+    }
+    if (bootstrapped && _runner != null) {
+      final c = existing ?? _openConsole('环境检测', SessionKind.temp);
+      final code = await _runInTerminal(
+        c,
+        'bash ${shQuote('${_runner!.scriptsDir}/check.sh')}',
+        timeout: const Duration(minutes: 2),
+      );
+      if (code != 0) _line(c, '环境检查未完成，退出码 $code', _cErr);
+      await _loadSizes();
+      await _loadInstalled();
+    }
+    _updateAllDone();
+    notifyListeners();
+  }
+
+  Future<void> _loadInstalled() async {
+    try {
+      final result = await Shell.instance.exec(
+        'bash "\$HOME/.flit/scripts/toolchain_manager.sh" --list',
+        timeoutMs: 60000,
+      );
+      installed =
+          (result['output'] as String? ?? '')
+              .split('\n')
+              .map(InstalledToolchain.parse)
+              .whereType<InstalledToolchain>()
+              .toList()
+            ..sort((a, b) => a.path.compareTo(b.path));
+    } catch (_) {
+      installed = [];
     }
   }
 
@@ -512,6 +523,7 @@ class EnvironmentController extends ChangeNotifier {
       _line(c, '✓ 安装完成，开发环境已就绪', _cOk);
     } finally {
       await _loadSizes();
+      await _loadInstalled();
       pipelineRunning = false;
       for (final stage in stages.values) {
         if (stage.state == 'RUNNING') {

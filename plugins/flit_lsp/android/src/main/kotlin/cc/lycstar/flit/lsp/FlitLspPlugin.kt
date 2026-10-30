@@ -55,8 +55,8 @@ class FlitLspPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, EventChann
                 val session = call.argument<Int>("session") ?: 0
                 Thread {
                     val dartBin = File(
-                        FlitEnv.prefix,
-                        "opt/flutter/current/bin/cache/dart-sdk/bin/dart",
+                        FlitEnv.home,
+                        "toolchains/flutter/current/bin/cache/dart-sdk/bin/dart",
                     ).absolutePath
                     val ok = runCatching { LspServer.start(dartBin, root, session) }
                         .getOrElse { false }

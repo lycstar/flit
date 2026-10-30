@@ -9,6 +9,7 @@ import '../environment/environment_controller.dart';
 import '../environment/widgets/stage_timeline.dart';
 import '../environment/toolchain_catalog.dart';
 import '../environment/widgets/toolchain_versions_section.dart';
+import 'widgets/installed_toolchains_section.dart';
 import '../settings/settings_page.dart';
 import '../terminal/terminal_host.dart';
 import '../terminal/terminal_side_pane.dart';
@@ -88,13 +89,23 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
                 StageTimeline(stages: env.stages, busy: env.busy),
                 if (env.stages['bootstrap']?.state == 'DONE') ...[
                   const SizedBox(height: 12),
+                  InstalledToolchainsSection(
+                    tools: env.installed,
+                    root: '${env.home}/toolchains',
+                    busy: env.busy,
+                    onChange: (tool, {bool delete = false}) async {
+                      if (!await _prepareToolchainChange(context)) return;
+                      await env.changeInstalled(tool, delete: delete);
+                    },
+                  ),
+                  const SizedBox(height: 12),
                   ToolchainVersionsSection(
                     catalog: context.read<ToolchainCatalog>(),
                     onInstall: (entry) async {
                       if (!await _prepareToolchainChange(context)) return;
                       await env.installFromCatalog(entry);
                     },
-                    installing: env.installing,
+                    installing: env.busy,
                   ),
                 ],
               ],
@@ -104,10 +115,7 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
               return Row(
                 children: [
                   Expanded(child: checklist),
-                  TerminalSidePane(
-                    session: env.console,
-                    running: env.pipelineRunning,
-                  ),
+                  TerminalSidePane(session: env.console, running: env.busy),
                 ],
               );
             }
@@ -115,7 +123,7 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
               session: env.console,
               expanded: !_termCollapsed,
               onToggle: () => setState(() => _termCollapsed = !_termCollapsed),
-              running: env.pipelineRunning,
+              running: env.busy,
               preferredHeight: 340,
               hideContentWithKeyboard: true,
               child: checklist,
@@ -140,14 +148,18 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
       (s) => s.state == 'RUNNING',
       orElse: () => StageState(),
     );
-    final title = env.allDone
+    final title = env.installing
+        ? '正在管理工具链'
+        : env.allDone
         ? '环境已就绪'
         : env.pipelineRunning
         ? '正在安装组件'
         : failed > 0
         ? '安装失败'
         : '环境未就绪';
-    final subtitle = env.allDone
+    final subtitle = env.installing
+        ? '详细输出见终端'
+        : env.allDone
         ? '组件已就绪，可以创建项目和构建 APK'
         : running.state == 'RUNNING'
         ? '详细输出见终端'

@@ -71,7 +71,7 @@ class _EnvVarsPageState extends State<EnvVarsPage> {
       'JAVA_HOME',
       'ANDROID_HOME',
       'ANDROID_SDK_ROOT',
-      'ANDROID_NDK_HOME',
+      'FLIT_TOOLCHAINS',
       'FLUTTER_ROOT',
       'GRADLE_USER_HOME',
     };

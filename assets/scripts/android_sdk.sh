@@ -1,85 +1,105 @@
 #!/data/data/cc.lycstar.flit/files/usr/bin/bash
-# SDK 使用标准目录；按版本合并，保留已安装的其他工具链版本。
+# 固定 SDK 根目录，平台和 Build Tools 按版本累加；NDK/CMake 独立管理。
 . "$(dirname "$0")/lib.sh"
 init_stage android_sdk
 
-_latest_build_tools() {
-  ls -1 "$ANDROID_HOME/build-tools" 2>/dev/null | sort -V | tail -1 || true
+component_complete() {
+  local path=$1
+  installed_ok "$ANDROID_HOME/$path" || return 1
+  case "$path" in
+    platforms/*) [ -s "$ANDROID_HOME/$path/android.jar" ] ;;
+    build-tools/*) [ -x "$ANDROID_HOME/$path/aapt2" ] ;;
+    platform-tools) [ -x "$ANDROID_HOME/$path/adb" ] ;;
+    cmdline-tools/*) [ -f "$ANDROID_HOME/$path/bin/sdkmanager" ] ;;
+    *) return 1 ;;
+  esac
 }
-
-# 显示已安装的最高 Android API
 version() {
-  __api=$(ls -1 "$ANDROID_HOME/platforms" 2>/dev/null | grep -oE '[0-9]+$' | sort -n | tail -1 || true)
-  if [ -n "$__api" ]; then echo "API $__api"; fi
+  ls -1 "$ANDROID_HOME/platforms" 2>/dev/null | sort -V | tail -1 || true
 }
-
 probe() {
-  if installed_ok "$ANDROID_HOME"; then
+  local platform=0 tools=0
+  for dir in "$ANDROID_HOME"/platforms/*; do
+    if component_complete "platforms/$(basename "$dir")"; then platform=1; fi
+  done
+  for dir in "$ANDROID_HOME"/build-tools/*; do
+    if component_complete "build-tools/$(basename "$dir")"; then tools=1; fi
+  done
+  if [ "$platform$tools" = 11 ] && [ "$(readlink "$ANDROID_HOME/ndk")" = ../ndk ] &&
+     [ "$(readlink "$ANDROID_HOME/cmake")" = ../cmake ]; then
     st "$STAGE" DONE
     echo "__VER__$STAGE:$(version)"
   else
     st "$STAGE" PENDING
   fi
 }
-
 install() {
-  if installed_ok "$ANDROID_HOME" "$SDK_SHA256"; then
-    ok "[sdk] 已安装，跳过"
-    return 0
+  link_android_tools
+  _receipt="$ANDROID_HOME/.flit-bundles/$SDK_SHA256"
+  if [ -s "$_receipt" ]; then
+    _complete=1
+    while IFS= read -r _path; do
+      component_complete "$_path" || _complete=0
+    done < "$_receipt"
+    if [ "$_complete" = 1 ]; then ok '[sdk] 该发行包的组件已安装，跳过'; return; fi
   fi
-  mkdir -p "$TMPDIR"
-  T="$TMPDIR/android-sdk.tar.xz"
-  dl "$SDK_SHA256" "$T" ${SDK_URLS[@]+"${SDK_URLS[@]}"}
-
-  info "[sdk] 解压（$(du -m "$T" | cut -f1) MB，需 1–2 分钟）…"
-  _stage="$TMPDIR/android-sdk.extract"
+  T=$(archive_path "$SDK_SHA256")
+  dl "$SDK_SHA256" "$T" "${SDK_URLS[@]}"
+  _stage="$FLIT_TOOLCHAINS/.staging/android-sdk"
   rm -rf "$_stage"
   mkdir -p "$_stage"
-  tar -xJvf "$T" -C "$_stage" || {
-    rm -rf "$_stage"
-    die "[sdk] ✗ 解压失败，请查看上方 tar 错误"
-  }
-
-  # 落位前执行安装包中的工具，避免错误架构覆盖当前可用版本。
-  for _tool in "$_stage"/*/build-tools/*/aapt2; do
-    [ -x "$_tool" ] && timeout 10 "$_tool" version >/dev/null 2>&1 ||
-      die "[sdk] ✗ 安装包缺少可运行的 AAPT2，保留当前 SDK"
+  info "[sdk] 解压（$(du -m "$T" | cut -f1) MB）…"
+  tar -xJvf "$T" -C "$_stage" || die '[sdk] 解压失败，已保留当前 SDK'
+  _sdk="$_stage/android-sdk"
+  [ -d "$_sdk/platforms" ] && [ -d "$_sdk/build-tools" ] || die '[sdk] 安装包缺少 platforms 或 build-tools'
+  # 先验证全部组件，再写入正式目录。
+  for dir in "$_sdk"/build-tools/*; do
+    timeout 10 "$dir/aapt2" version || die '[sdk] 安装包缺少可运行的 AAPT2，保留当前 SDK'
   done
-
-  # platforms/build-tools/ndk/cmake/cmdline-tools 按子版本替换，其余目录整体替换。
-  mkdir -p "$ANDROID_HOME"
-  _found=0
-  for _top in "$_stage"/*/; do
-    [ -d "$_top" ] || continue
-    _found=1
-    for _entry in "$_top"* "$_top".[!.]*; do
-      [ -e "$_entry" ] || continue
-      _name=$(basename "$_entry")
-      case "$_name" in
-        platforms|build-tools|ndk|cmake|cmdline-tools)
-          mkdir -p "$ANDROID_HOME/$_name"
-          for _version in "$_entry"/*; do
-            [ -e "$_version" ] || continue
-            _dest="$ANDROID_HOME/$_name/$(basename "$_version")"
-            rm -rf "$_dest"
-            mv "$_version" "$_dest"
-          done
-          ;;
-        *)
-          rm -rf "${ANDROID_HOME:?}/$_name"
-          mv "$_entry" "$ANDROID_HOME/$_name"
-          ;;
-      esac
+  for dir in "$_sdk"/platforms/*; do
+    [ -s "$dir/android.jar" ] || die '[sdk] 安装包缺少 android.jar'
+  done
+  if [ -d "$_sdk/platform-tools" ]; then
+    timeout 10 "$_sdk/platform-tools/adb" version || die '[sdk] ADB 无法执行，保留当前 SDK'
+  fi
+  # 自建归档的扁平 cmdline-tools 规范化为官方的 cmdline-tools/latest。
+  if [ -d "$_sdk/cmdline-tools/bin" ]; then
+    mv "$_sdk/cmdline-tools" "$_stage/command-line"
+    mkdir -p "$_sdk/cmdline-tools"
+    mv "$_stage/command-line" "$_sdk/cmdline-tools/latest"
+  fi
+  for dir in "$_sdk"/cmdline-tools/*; do
+    [ ! -d "$dir" ] || [ -f "$dir/bin/sdkmanager" ] || die '[sdk] Command-line Tools 不完整'
+  done
+  : > "$_stage/receipt"
+  for category in platforms build-tools cmdline-tools; do
+    for dir in "$_sdk/$category"/*; do
+      [ -d "$dir" ] || continue
+      _path="$category/$(basename "$dir")"
+      if component_complete "$_path"; then
+        ok "[sdk] 保留已安装组件 $_path"
+      else
+        mark_installed "$dir" "$SDK_SHA256"
+        publish_directory "$dir" "$ANDROID_HOME/$_path"
+      fi
+      echo "$_path" >> "$_stage/receipt"
     done
   done
+  if [ -d "$_sdk/platform-tools" ]; then
+    if ! component_complete platform-tools; then
+      mark_installed "$_sdk/platform-tools" "$SDK_SHA256"
+      publish_directory "$_sdk/platform-tools" "$ANDROID_HOME/platform-tools"
+    fi
+    echo platform-tools >> "$_stage/receipt"
+  fi
+  # licenses 不参与版本选择；SDK 包中的 ndk/cmake 不得覆盖统一链接。
+  if [ -d "$_sdk/licenses" ]; then
+    mkdir -p "$ANDROID_HOME/licenses"
+    cp -a "$_sdk/licenses/." "$ANDROID_HOME/licenses/"
+  fi
+  mkdir -p "$(dirname "$_receipt")"
+  mv "$_stage/receipt" "$_receipt"
   rm -rf "$_stage"
-  [ "$_found" = 1 ] || die "[sdk] ✗ 安装包顶层目录不符合预期"
-  [ -d "$ANDROID_HOME/build-tools" ] || die "[sdk] ✗ 解压后缺少 build-tools"
-  _bt=$(_latest_build_tools)
-  [ -n "$_bt" ] && [ -x "$ANDROID_HOME/build-tools/$_bt/aapt2" ] ||
-    die "[sdk] ✗ 解压后缺少可执行的 aapt2"
-
-  mark_installed "$ANDROID_HOME" "$SDK_SHA256"
   rm -f "$T"
   echo "__VER__$STAGE:$(version)"
   ok "[sdk] ✓ $ANDROID_HOME"

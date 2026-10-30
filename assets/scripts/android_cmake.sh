@@ -3,11 +3,11 @@
 # AGP 对 externalNativeBuild 默认请求 cmake;3.22.1(flutter_pty 等原生插件);
 # 缺包时 AGP 会自动下载官方 Linux x86_64 版(设备上 Exec format error),
 # 这里预置正确架构, AGP 检测到已安装即不再下载。
-# 中断与重试: 下载 .part 断点续传; 解压中断无标记则整目录清掉重解压。
+# 中断与重试：下载缓存按摘要区分，暂存解压并验证后才落位，保留其他版本。
 . "$(dirname "$0")/lib.sh"
 init_stage android_cmake
 
-CMAKE_DIR="$ANDROID_HOME/cmake/$CMAKE_VERSION"
+CMAKE_DIR="$FLIT_TOOLCHAINS/cmake/$CMAKE_VERSION"
 
 version() {
   [ -x "$CMAKE_DIR/bin/cmake" ] &&
@@ -44,7 +44,7 @@ verify_tools() {
 }
 
 probe() {
-  if installed_ok "$CMAKE_DIR" "$CMAKE_SHA256" && [ -s "$CMAKE_DIR/source.properties" ] && tools_work; then
+  if installed_ok "$CMAKE_DIR" && [ -s "$CMAKE_DIR/source.properties" ] && tools_work && [ "$(readlink "$ANDROID_HOME/cmake")" = ../cmake ]; then
     st "$STAGE" DONE
     echo "__VER__$STAGE:$(version)"
   else
@@ -54,31 +54,35 @@ probe() {
 
 install() {
   [[ "$CMAKE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die '[cmake] ✗ 无效的版本号'
-  CMAKE_DIR="$ANDROID_HOME/cmake/$CMAKE_VERSION"
-  if installed_ok "$CMAKE_DIR" "$CMAKE_SHA256" && tools_work; then
+  CMAKE_DIR="$FLIT_TOOLCHAINS/cmake/$CMAKE_VERSION"
+  link_android_tools
+  if installed_ok "$CMAKE_DIR" && tools_work; then
     printf 'Pkg.Revision=%s\n' "$CMAKE_VERSION" > "$CMAKE_DIR/source.properties"
     ok "[cmake] 已安装，跳过"
     return 0
   fi
-  mkdir -p "$TMPDIR" "$ANDROID_HOME/cmake"
-  T="$TMPDIR/cmake.tar.xz"
+  T=$(archive_path "$CMAKE_SHA256")
   dl "$CMAKE_SHA256" "$T" ${CMAKE_URLS[@]+"${CMAKE_URLS[@]}"}
 
   info "[cmake] 解压（$(du -m "$T" | cut -f1) MB）…"
-  rm -rf "$CMAKE_DIR"
-  # 包内顶层就是 <version>/, 解到 cmake/ 下即成标准 SDK 布局
-  tar -xJf "$T" -C "$ANDROID_HOME/cmake" || {
-    rm -rf "$CMAKE_DIR"
+  _target="$CMAKE_DIR"
+  _stage="$FLIT_TOOLCHAINS/.staging/cmake"
+  rm -rf "$_stage"
+  mkdir -p "$_stage"
+  CMAKE_DIR="$_stage/$CMAKE_VERSION"
+  tar -xJvf "$T" -C "$_stage" || {
     die "[cmake] ✗ 解压失败，请查看上方 tar 错误"
   }
   [ -x "$CMAKE_DIR/bin/cmake" ] || die "[cmake] ✗ 解压后缺少 cmake"
   [ -x "$CMAKE_DIR/bin/ninja" ] || die "[cmake] ✗ 解压后缺少 ninja"
   verify_tools
   # 自家构建包没有 source.properties, 补一份供 AGP 按 Pkg.Revision 识别
-  [ -f "$CMAKE_DIR/source.properties" ] ||
-    printf 'Pkg.Revision=%s\n' "$CMAKE_VERSION" > "$CMAKE_DIR/source.properties"
+  printf 'Pkg.Revision=%s\n' "$CMAKE_VERSION" > "$CMAKE_DIR/source.properties"
 
   mark_installed "$CMAKE_DIR" "$CMAKE_SHA256"
+  publish_directory "$CMAKE_DIR" "$_target"
+  CMAKE_DIR="$_target"
+  rm -rf "$_stage"
   rm -f "$T"
   echo "__VER__$STAGE:$(version)"
   ok "[cmake] ✓ $CMAKE_DIR"

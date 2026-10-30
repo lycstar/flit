@@ -53,6 +53,7 @@ flutter:
 
   assets:
     - assets/toolchain_manifest.json
+    - assets/scripts/toolchain_manager.sh
     - assets/scripts/lib.sh
     - assets/scripts/check.sh
     - assets/scripts/android_jdk.sh

@@ -5,10 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme.dart';
 import '../toolchain_catalog.dart';
 
-/// 环境页的"版本目录"区块: 列出各构建仓 Releases 里的可下载版本,
-/// 点版本即经 EnvironmentController 在临时会话里安装(输出实时回显终端)。
-/// bootstrap 不提供(整包重装属于初始化管线, 走安装时间线);
-/// 已安装的本地版本也不在此展示, 避免与目录安装动作混淆。
+/// 从 GitHub Releases 获取可下载的工具链版本。
 class ToolchainVersionsSection extends StatefulWidget {
   const ToolchainVersionsSection({
     super.key,
@@ -37,8 +34,6 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
   Map<String, List<CatalogEntry>>? _versions;
   bool _loading = false;
 
-  Timer? _debounce;
-
   @override
   void initState() {
     super.initState();
@@ -59,28 +54,6 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
     });
   }
 
-  void _refreshSoon() {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(seconds: 2), () {
-      if (mounted) unawaited(_refresh());
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant ToolchainVersionsSection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.installing && !widget.installing) {
-      // 一次安装结束: 稍候刷新列表(发布时间排序可能变化)
-      _refreshSoon();
-    }
-  }
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final versions = _versions;
@@ -95,7 +68,7 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
               children: [
                 const Expanded(
                   child: Text(
-                    '版本目录',
+                    '下载版本',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -144,13 +117,15 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
-        '${entries.length} 个版本 · 最新 ${entries.first.name}',
+        '${entries.length} 个版本 · 最近发布 ${entries.first.tag}',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
       ),
       trailing: const Icon(Icons.expand_more, size: 18),
-      onTap: widget.installing ? null : () => _pickAndInstall(id, entries),
+      onTap: !widget.enabled || widget.installing
+          ? null
+          : () => _pickAndInstall(id, entries),
     );
   }
 
@@ -164,9 +139,9 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
             for (final entry in entries)
               ListTile(
                 dense: true,
-                title: Text(entry.name, style: const TextStyle(fontSize: 13)),
+                title: Text(entry.tag, style: const TextStyle(fontSize: 13)),
                 subtitle: Text(
-                  '${_formatSize(entry.size)} · ${entry.tag}',
+                  '${_formatSize(entry.size)} · ${entry.name}',
                   style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.textSecondary,

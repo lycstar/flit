@@ -26,7 +26,7 @@ class ToolchainCatalog {
         defaultValue: 'lycstar/android-sdk-custom',
       ),
       asset: 'android-sdk-aarch64-linux-android.tar.xz',
-      install: r'$HOME/android-sdk',
+      install: r'$HOME/toolchains/android-sdk',
     ),
     'ndk': CatalogSource(
       repo: String.fromEnvironment(
@@ -34,7 +34,7 @@ class ToolchainCatalog {
         defaultValue: 'lycstar/android-ndk-custom',
       ),
       asset: 'android-ndk-*-aarch64-linux-android.tar.xz',
-      install: r'$HOME/android-sdk/ndk/<Pkg.Revision>',
+      install: r'$HOME/toolchains/ndk/<Pkg.Revision>',
     ),
     'cmake': CatalogSource(
       repo: String.fromEnvironment(
@@ -42,7 +42,7 @@ class ToolchainCatalog {
         defaultValue: 'lycstar/cmake-custom',
       ),
       asset: 'cmake-aarch64-linux-android.tar.xz',
-      install: r'$HOME/android-sdk/cmake/<version>',
+      install: r'$HOME/toolchains/cmake/<version>',
     ),
     'flutter-sdk': CatalogSource(
       repo: String.fromEnvironment(
@@ -50,7 +50,7 @@ class ToolchainCatalog {
         defaultValue: 'lycstar/flutter-sdk-custom',
       ),
       asset: 'flutter-*-aarch64-linux-android.tar.xz',
-      install: r'$PREFIX/opt/flutter/<version>',
+      install: r'$HOME/toolchains/flutter/<version>',
     ),
   };
 

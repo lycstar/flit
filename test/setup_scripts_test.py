@@ -1,7 +1,7 @@
 """Run setup sub-task scripts with local archives and fake downloads, never real APT.
 
 每个用例对应一类中断/重试场景: 断点续传、半截解压重装、合并落位不误删 NDK、
-旧安装认领、清单升级重装、只补缺的工具、check 零副作用。
+多版本共存、安全删除、只补缺的工具、check 零副作用。
 """
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -34,7 +34,7 @@ class SetupScriptsTests(unittest.TestCase):
         self.config.write_text('true\n')
         self.env = {**os.environ, 'HOME': str(self.root), 'PREFIX': str(self.prefix),
                     'FLIT_APT_SOURCE': 'https://example.invalid/apt ./',
-                    'TMPDIR': str(self.tmp), 'ANDROID_HOME': str(self.root / 'android-sdk'),
+                    'TMPDIR': str(self.tmp), 'ANDROID_HOME': str(self.root / 'toolchains/android-sdk'),
                     'JAVA_HOME': str(self.root / 'jdk'), 'GRADLE_USER_HOME': str(self.root / '.gradle'),
                     'PATH': str(self.tools) + ':' + os.environ['PATH']}
         if shutil.which('gsed'):
@@ -47,8 +47,8 @@ class SetupScriptsTests(unittest.TestCase):
             gnu = shutil.which('g' + command)
             if gnu:
                 (self.tools / command).symlink_to(gnu)
-        (self.prefix / 'opt/flutter/3.47.8').mkdir(parents=True)
-        (self.prefix / 'opt/flutter/current').symlink_to('3.47.8')
+        (self.root / 'toolchains/flutter/3.47.8').mkdir(parents=True)
+        (self.root / 'toolchains/flutter/current').symlink_to('3.47.8')
 
     def write_exec(self, path, body):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -119,7 +119,7 @@ echo 'Downloading Dart SDK...' >&2
 echo 'Flutter 3.47.8 • channel stable'
 echo 'engine diagnostic detail' >&2
 exit %d
-''' % exit_code, 0o755)])
+''' % exit_code, 0o755), ('flutter/bin/cache/dart-sdk/bin/dart', '#!/bin/sh\nexit 0\n', 0o755)])
         self.config.write_text(f"FLUTTER_URLS=('https://test/missing' 'https://test/sdk')\nFLUTTER_SHA256='{sha}'\n")
         self.install_fake_curl('missing')
 
@@ -130,7 +130,7 @@ exit %d
         for text in ('https://test/missing', 'curl: HTTP 404',
                      '__STAGE__flutter_sdk:RUNNING', '__STAGE__flutter_sdk:DONE'):
             self.assertIn(text, result.stdout)
-        self.assertEqual(self.marker(self.prefix / 'opt/flutter/current').read_text().strip(),
+        self.assertEqual(self.marker(self.root / 'toolchains/flutter/current').read_text().strip(),
                          hashlib.sha256(Path(self.env['TEST_ARCHIVE']).read_bytes()).hexdigest())
         # 安装包在标记落盘后删除
         self.assertFalse((self.tmp / 'flutter-sdk.tar.xz').exists())
@@ -139,10 +139,13 @@ exit %d
         self.flutter_archive()
         sha = hashlib.sha256(Path(self.env['TEST_ARCHIVE']).read_bytes()).hexdigest()
         # 半截解压现场: 目录在(bin/ 早于 packages/ 出现在归档序), 无标记; 缓存包在
-        flutter = self.prefix / 'opt/flutter/current'
+        flutter = self.root / 'toolchains/flutter/current'
         (flutter / 'bin').mkdir(parents=True)
         self.write_exec(flutter / 'bin/flutter', '#!/bin/sh\nexit 0\n')
-        shutil.copyfile(self.env['TEST_ARCHIVE'], self.tmp / 'flutter-sdk.tar.xz')
+        self.write_exec(flutter / 'bin/cache/dart-sdk/bin/dart', '#!/bin/sh\nexit 0\n')
+        cache = self.tmp / f'toolchain-downloads/{sha}.tar.xz'
+        cache.parent.mkdir()
+        shutil.copyfile(self.env['TEST_ARCHIVE'], cache)
         result = self.run_script('flutter_sdk.sh')
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertNotIn('curl ', (self.root / 'curl-calls').read_text(), '有缓存包时不应重新下载')
@@ -151,9 +154,10 @@ exit %d
 
     def test_flutter_sdk_skips_when_marker_matches(self):
         self.flutter_archive()
-        flutter = self.prefix / 'opt/flutter/current'
+        flutter = self.root / 'toolchains/flutter/current'
         (flutter / 'bin').mkdir(parents=True)
         self.write_exec(flutter / 'bin/flutter', '#!/bin/sh\nexit 0\n')
+        self.write_exec(flutter / 'bin/cache/dart-sdk/bin/dart', '#!/bin/sh\nexit 0\n')
         self.marker(flutter).write_text(
             hashlib.sha256(Path(self.env['TEST_ARCHIVE']).read_bytes()).hexdigest() + '\n')
         result = self.run_script('flutter_sdk.sh')
@@ -163,8 +167,9 @@ exit %d
 
     def test_flutter_sdk_default_keeps_selected_version_when_manifest_changes(self):
         self.flutter_archive()
-        flutter = self.prefix / 'opt/flutter/current'
+        flutter = self.root / 'toolchains/flutter/current'
         self.write_exec(flutter / 'bin/flutter', '#!/bin/sh\nexit 0\n')
+        self.write_exec(flutter / 'bin/cache/dart-sdk/bin/dart', '#!/bin/sh\nexit 0\n')
         self.marker(flutter).write_text('0' * 64 + '\n')
         result = self.run_script('flutter_sdk.sh')
         self.assertEqual(result.returncode, 0, result.stdout)
@@ -177,41 +182,29 @@ exit %d
         for version in ('3.47.8', '3.48.0'):
             result = self.run_script('flutter_sdk.sh', '--release', 'https://test/sdk', sha, version)
             self.assertEqual(result.returncode, 0, result.stdout)
-            self.assertTrue(self.marker(self.prefix / f'opt/flutter/{version}').exists())
+            self.assertTrue(self.marker(self.root / f'toolchains/flutter/{version}').exists())
         calls = (self.root / 'curl-calls').read_text()
         result = self.run_script('flutter_sdk.sh', '--release', 'https://test/sdk', sha, '3.47.8')
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertEqual((self.prefix / 'opt/flutter/current').readlink(), Path('3.47.8'))
+        self.assertEqual((self.root / 'toolchains/flutter/current').readlink(), Path('3.47.8'))
         self.assertEqual((self.root / 'curl-calls').read_text(), calls)
-
-    def test_legacy_flutter_install_is_moved_without_downloading(self):
-        self.flutter_archive()
-        base = self.prefix / 'opt/flutter'
-        shutil.rmtree(base)
-        self.write_exec(base / 'bin/flutter', '#!/bin/sh\nexit 0\n')
-        (base / 'version').write_text('3.47.6\n')
-        self.marker(base).write_text('a' * 64 + '\n')
-        result = self.run_script('flutter_sdk.sh')
-        self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertEqual((base / 'current').readlink(), Path('3.47.6'))
-        self.assertTrue((base / '3.47.6/bin/flutter').exists())
-        self.assertEqual((self.root / 'curl-calls').read_text(), '')
 
     def test_failed_flutter_install_preserves_current_sdk(self):
         self.flutter_archive()
         result = self.run_script('flutter_sdk.sh')
         self.assertEqual(result.returncode, 0, result.stdout)
-        marker = self.marker(self.prefix / 'opt/flutter/current').read_text()
+        marker = self.marker(self.root / 'toolchains/flutter/current').read_text()
         result = self.run_script('flutter_sdk.sh', '--release', 'https://test/sdk', '0' * 64, '3.48.0')
         self.assertNotEqual(result.returncode, 0)
-        self.assertEqual((self.prefix / 'opt/flutter/current').readlink(), Path('3.47.8'))
-        self.assertEqual(self.marker(self.prefix / 'opt/flutter/current').read_text(), marker)
+        self.assertEqual((self.root / 'toolchains/flutter/current').readlink(), Path('3.47.8'))
+        self.assertEqual(self.marker(self.root / 'toolchains/flutter/current').read_text(), marker)
 
     def test_download_resumes_from_partial_part(self):
         """断点续传: .part 前半截 + stub 从既有偏移补齐 → 完整文件过校验, 不重下整包"""
         self.flutter_archive()
         sha = hashlib.sha256(Path(self.env['TEST_ARCHIVE']).read_bytes()).hexdigest()
-        part = self.tmp / 'flutter-sdk.tar.xz.part'
+        part = self.tmp / f'toolchain-downloads/{sha}.tar.xz.part'
+        part.parent.mkdir()
         data = Path(self.env['TEST_ARCHIVE']).read_bytes()
         part.write_bytes(data[:len(data) // 2])  # 半截真字节(同源前缀)
         result = self.run_script('flutter_sdk.sh')
@@ -237,7 +230,7 @@ exit %d
         result = self.run_script('flutter_sdk.sh')
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('FAILED', result.stdout)
-        self.assertFalse(self.marker(self.prefix / 'opt/flutter/current').exists())
+        self.assertFalse(self.marker(self.root / 'toolchains/flutter/current').exists())
         self.assertFalse((self.tmp / 'flutter-sdk.tar.xz.part').exists())
 
     def test_real_curl_follows_release_redirect_before_checksum(self):
@@ -302,7 +295,7 @@ assert not pathlib.Path(out).exists(), 'corrupt partial must be removed'
 
     def installed_flutter_stub(self, exit_code=0):
         """3-1 的产物: 已落位的 SDK(与 flutter_archive 同一份桩)。"""
-        self.write_exec(self.prefix / 'opt/flutter/current/bin/flutter', '''#!/bin/sh
+        self.write_exec(self.root / 'toolchains/flutter/current/bin/flutter', '''#!/bin/sh
 echo call >> "$HOME/flutter-calls"
 echo 'Downloading Dart SDK...' >&2
 echo 'Flutter 3.47.8 • channel stable'
@@ -347,17 +340,17 @@ exit %d
         sha = self.sdk_archive()
         self.config.write_text(f"SDK_URLS=('https://test/sdk')\nSDK_SHA256='{sha}'\n")
         self.install_fake_curl()
-        ndk_dir = self.root / 'android-sdk/ndk/28.2.13676358'
+        ndk_dir = self.root / 'toolchains/ndk/28.2.13676358'
         (ndk_dir).mkdir(parents=True)
         (ndk_dir / 'clang').write_text('ndk\n')
         result = self.run_script('android_sdk.sh')
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertTrue((self.root / 'android-sdk/build-tools/36.1.0/aapt2').exists())
+        self.assertTrue((self.root / 'toolchains/android-sdk/build-tools/36.1.0/aapt2').exists())
         self.assertTrue((ndk_dir / 'clang').exists(), '重装 SDK 不得连带删掉 NDK')
-        self.assertTrue(self.marker(self.root / 'android-sdk').exists())
+        self.assertTrue(self.marker(self.root / 'toolchains/android-sdk/build-tools/36.1.0').exists())
 
     def test_sdk_rejects_unusable_tools_before_replacing_installed_version(self):
-        sdk = self.root / 'android-sdk'
+        sdk = self.root / 'toolchains/android-sdk'
         aapt2 = sdk / 'build-tools/36.1.0/aapt2'
         original = '#!/bin/sh\nexit 0\n'
         self.write_exec(aapt2, original)
@@ -377,7 +370,7 @@ exit %d
         self.install_fake_curl()
         result = self.run_script('android_sdk.sh', '--release', 'https://test/selected', sha)
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertEqual(self.marker(self.root / 'android-sdk').read_text().strip(), sha)
+        self.assertEqual(self.marker(self.root / 'toolchains/android-sdk/build-tools/36.1.0').read_text().strip(), sha)
         self.assertEqual(self.config.read_text(), original)
         result = self.run_script('android_sdk.sh', '--check')
         self.assertEqual(result.returncode, 0, result.stdout)
@@ -391,7 +384,7 @@ exit %d
         self.config.write_text(original)
         result = self.run_script('flutter_sdk.sh', '--release', 'https://test/selected', sha, '3.47.8')
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertEqual(self.marker(self.prefix / 'opt/flutter/current').read_text().strip(), sha)
+        self.assertEqual(self.marker(self.root / 'toolchains/flutter/current').read_text().strip(), sha)
         self.assertEqual(self.config.read_text(), original)
         result = self.run_script('flutter_sdk.sh', '--check')
         self.assertIn('__STAGE__flutter_sdk:DONE', result.stdout)
@@ -399,7 +392,7 @@ exit %d
     def test_sdk_versions_coexist_and_refresh_gradle_config(self):
         sha = self.sdk_archive()
         self.install_fake_curl()
-        sdk = self.root / 'android-sdk'
+        sdk = self.root / 'toolchains/android-sdk'
         self.write_exec(sdk / 'build-tools/35.0.0/aapt2', '#!/bin/sh\nexit 0\n')
         (sdk / 'platforms/android-35').mkdir(parents=True)
         (sdk / 'platforms/android-35/android.jar').write_text('older API')
@@ -418,15 +411,15 @@ exit %d
         self.config.write_text(f"SDK_URLS=('https://test/sdk')\nSDK_SHA256='{sha}'\n")
         self.install_fake_curl()
         # 半截解压现场: 新脚本解压在暂存目录, 中断只留暂存残留, $ANDROID_HOME 不受污染
-        residue = self.tmp / 'android-sdk.extract/android-sdk/build-tools/36.1.0'
+        residue = self.root / 'toolchains/.staging/android-sdk/android-sdk/build-tools/36.1.0'
         self.write_exec(residue / 'aapt2', '#!/bin/sh\nexit 0\n')
-        sdk = self.root / 'android-sdk'
+        sdk = self.root / 'toolchains/android-sdk'
         result = self.run_script('android_sdk.sh')
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn('curl ', (self.root / 'curl-calls').read_text())
-        self.assertFalse((self.tmp / 'android-sdk.extract').exists(), '暂存残留应被清理')
+        self.assertFalse((self.root / 'toolchains/.staging/android-sdk').exists(), '暂存残留应被清理')
         self.assertTrue((sdk / 'platforms/android-36/android.jar').exists())
-        self.assertTrue(self.marker(sdk).exists())
+        self.assertTrue(self.marker(sdk / 'platforms/android-36').exists())
 
     # ---- 2-3 NDK ----
 
@@ -443,7 +436,7 @@ exit %d
         sha = self.ndk_fixture()
         self.config.write_text(f"NDK_URLS=('https://test/ndk')\nNDK_SHA256='{sha}'\n")
         self.install_fake_curl()
-        ndk = self.root / 'android-sdk/ndk/28.2.13676358'
+        ndk = self.root / 'toolchains/android-sdk/ndk/28.2.13676358'
         result = self.run_script('android_ndk.sh')
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertTrue((ndk / 'shader-tools/linux-x86_64/glslc').is_file())
@@ -468,7 +461,7 @@ exit %d
 
         result = self.run_script('android_cmake.sh')
         self.assertEqual(result.returncode, 0, result.stdout)
-        cmake = self.root / 'android-sdk/cmake/3.22.1'
+        cmake = self.root / 'toolchains/android-sdk/cmake/3.22.1'
         self.assertTrue((cmake / 'bin/cmake').exists())
         self.assertTrue((cmake / 'bin/ninja').exists())
         self.assertTrue(self.marker(cmake).exists())
@@ -492,7 +485,7 @@ exit %d
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn('cmake version 3.22.1-dirty', result.stdout)
         self.assertIn('1.12.1', result.stdout)
-        directory = self.root / 'android-sdk/cmake/3.22.1'
+        directory = self.root / 'toolchains/android-sdk/cmake/3.22.1'
         self.assertEqual((directory / 'source.properties').read_text(), 'Pkg.Revision=3.22.1\n')
         self.config.write_text(f"CMAKE_SHA256='{sha}'\n")
         result = self.run_script('android_cmake.sh', '--check')
@@ -514,7 +507,7 @@ exit %d
                 result = self.run_script('android_cmake.sh', '--release', 'https://test/cmake', sha, '3.22.1')
                 self.assertNotEqual(result.returncode, 0, result.stdout)
                 self.assertIn(error, result.stdout)
-                self.assertFalse(self.marker(self.root / 'android-sdk/cmake/3.22.1').exists())
+                self.assertFalse(self.marker(self.root / 'toolchains/android-sdk/cmake/3.22.1').exists())
 
     def test_cmake_catalog_versions_coexist_with_real_revision_metadata(self):
         self.install_fake_curl()
@@ -525,17 +518,17 @@ exit %d
             ])
             result = self.run_script('android_cmake.sh', '--release', 'https://test/cmake', sha, version)
             self.assertEqual(result.returncode, 0, result.stdout)
-            directory = self.root / f'android-sdk/cmake/{version}'
+            directory = self.root / f'toolchains/android-sdk/cmake/{version}'
             self.assertEqual((directory / 'source.properties').read_text(), f'Pkg.Revision={version}\n')
-        self.assertTrue((self.root / 'android-sdk/cmake/3.22.1/bin/cmake').exists())
-        self.assertTrue((self.root / 'android-sdk/cmake/3.31.6/bin/cmake').exists())
+        self.assertTrue((self.root / 'toolchains/android-sdk/cmake/3.22.1/bin/cmake').exists())
+        self.assertTrue((self.root / 'toolchains/android-sdk/cmake/3.31.6/bin/cmake').exists())
 
     def test_ndk_tar_failure_stops_installation(self):
         sha = self.ndk_fixture()
         self.config.write_text(f"NDK_URLS=('https://test/ndk')\nNDK_SHA256='{sha}'\n")
         self.install_fake_curl()
         self.write_exec(self.tools / 'tar', '#!/bin/sh\necho "tar: No space left on device" >&2\nexit 2\n')
-        ndk = self.root / 'android-sdk/ndk/28.2.13676358'
+        ndk = self.root / 'toolchains/android-sdk/ndk/28.2.13676358'
         result = self.run_script('android_ndk.sh')
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('No space left on device', result.stdout)
@@ -543,11 +536,139 @@ exit %d
         self.assertIn('__STAGE__android_ndk:FAILED', result.stdout)
         self.assertNotIn('__STAGE__android_ndk:DONE', result.stdout)
 
+    def test_toolchain_manager_lists_switches_and_deletes_offline(self):
+        self.flutter_archive()
+        sha = hashlib.sha256(Path(self.env['TEST_ARCHIVE']).read_bytes()).hexdigest()
+        for version in ('3.47.8', '3.48.0'):
+            result = self.run_script('flutter_sdk.sh', '--release', 'https://test/sdk', sha, version)
+            self.assertEqual(result.returncode, 0, result.stdout)
+        calls = (self.root / 'curl-calls').read_text()
+        result = self.run_script('toolchain_manager.sh', '--list')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn('__TOOL__flutter/3.48.0|', result.stdout)
+        self.assertNotIn('__TOOL__flutter/current|', result.stdout)
+        active = self.run_script('toolchain_manager.sh', '--delete', 'flutter/3.48.0')
+        self.assertNotEqual(active.returncode, 0, active.stdout)
+        switched = self.run_script('toolchain_manager.sh', '--select', '3.47.8')
+        self.assertEqual(switched.returncode, 0, switched.stdout)
+        removed = self.run_script('toolchain_manager.sh', '--delete', 'flutter/3.48.0')
+        self.assertEqual(removed.returncode, 0, removed.stdout)
+        self.assertFalse((self.root / 'toolchains/flutter/3.48.0').exists())
+        self.assertEqual((self.root / 'toolchains/flutter/current').readlink(), Path('3.47.8'))
+        self.assertEqual((self.root / 'curl-calls').read_text(), calls)
+        missing = self.run_script('toolchain_manager.sh', '--select', '3.48.0')
+        self.assertNotEqual(missing.returncode, 0)
+        escaped = self.run_script('toolchain_manager.sh', '--delete', 'flutter/../../3.47.8')
+        self.assertNotEqual(escaped.returncode, 0)
+
+    def test_sdk_receipt_reuses_bundle_and_reinstalls_deleted_component(self):
+        sha = self.sdk_archive()
+        self.config.write_text(f"SDK_URLS=('https://test/sdk')\nSDK_SHA256='{sha}'\n")
+        self.install_fake_curl()
+        result = self.run_script('android_sdk.sh')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        calls = (self.root / 'curl-calls').read_text()
+        second = self.run_script('android_sdk.sh')
+        self.assertEqual(second.returncode, 0, second.stdout)
+        self.assertEqual((self.root / 'curl-calls').read_text(), calls)
+        deleted = self.run_script('toolchain_manager.sh', '--delete', 'android-sdk/platforms/android-36')
+        self.assertEqual(deleted.returncode, 0, deleted.stdout)
+        check = self.run_script('android_sdk.sh', '--check')
+        self.assertIn('__STAGE__android_sdk:PENDING', check.stdout)
+        retried = self.run_script('android_sdk.sh')
+        self.assertEqual(retried.returncode, 0, retried.stdout)
+        self.assertTrue((self.root / 'toolchains/android-sdk/platforms/android-36/android.jar').exists())
+        self.assertNotEqual((self.root / 'curl-calls').read_text(), calls)
+
+    def test_sdk_bundle_cannot_replace_managed_ndk_and_cmake_links(self):
+        sha = self.archive([
+            ('android-sdk/build-tools/36.1.0/aapt2', '#!/bin/sh\nexit 0\n', 0o755),
+            ('android-sdk/platforms/android-36/android.jar', 'jar', 0o644),
+            ('android-sdk/ndk/99/tool', 'unwanted', 0o644),
+            ('android-sdk/cmake/99/tool', 'unwanted', 0o644),
+            ('android-sdk/cmdline-tools/bin/sdkmanager', '#!/bin/sh\nexit 0\n', 0o755),
+        ])
+        self.install_fake_curl()
+        result = self.run_script('android_sdk.sh', '--release', 'https://test/sdk', sha)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        sdk = self.root / 'toolchains/android-sdk'
+        self.assertEqual((sdk / 'ndk').readlink(), Path('../ndk'))
+        self.assertEqual((sdk / 'cmake').readlink(), Path('../cmake'))
+        self.assertFalse((sdk / 'ndk/99').exists())
+        self.assertFalse((sdk / 'cmake/99').exists())
+        self.assertTrue((sdk / 'cmdline-tools/latest/bin/sdkmanager').exists())
+
+    def test_valid_same_version_is_never_implicitly_overwritten(self):
+        sha = self.archive([
+            ('3.22.1/bin/cmake', '#!/bin/sh\necho "cmake version 3.22.1"\n', 0o755),
+            ('3.22.1/bin/ninja', '#!/bin/sh\necho 1.12.1\n', 0o755),
+        ])
+        self.install_fake_curl()
+        result = self.run_script('android_cmake.sh', '--release', 'https://test/cmake', sha, '3.22.1')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        calls = (self.root / 'curl-calls').read_text()
+        # A new digest for the same version must not silently replace it.
+        second = self.run_script('android_cmake.sh', '--release', 'https://test/broken', '0' * 64, '3.22.1')
+        self.assertEqual(second.returncode, 0, second.stdout)
+        self.assertEqual((self.root / 'curl-calls').read_text(), calls)
+        self.assertEqual(self.marker(self.root / 'toolchains/cmake/3.22.1').read_text().strip(), sha)
+
+    def test_failed_ndk_and_cmake_archives_preserve_previous_versions(self):
+        self.install_fake_curl()
+        for stage, directory, version in [('android_ndk', 'ndk', '28.2.13676358'),
+                                           ('android_cmake', 'cmake', '3.22.1')]:
+            with self.subTest(stage=stage):
+                if directory == 'ndk':
+                    sha = self.ndk_fixture()
+                    args = []
+                else:
+                    sha = self.archive([
+                        ('3.22.1/bin/cmake', '#!/bin/sh\necho "cmake version 3.22.1"\n', 0o755),
+                        ('3.22.1/bin/ninja', '#!/bin/sh\necho 1.12.1\n', 0o755),
+                    ])
+                    args = [version]
+                installed = self.run_script(stage + '.sh', '--release', 'https://test/sdk', sha, *args)
+                self.assertEqual(installed.returncode, 0, installed.stdout)
+                target = self.root / f'toolchains/{directory}/{version}'
+                marker = self.marker(target).read_text()
+                # A broken different version must leave the installed version untouched.
+                broken = self.archive([('bad/README', 'incomplete', 0o644)])
+                failed = self.run_script(stage + '.sh', '--release', 'https://test/sdk', broken,
+                                         *(['3.31.6'] if directory == 'cmake' else []))
+                self.assertNotEqual(failed.returncode, 0, failed.stdout)
+                self.assertEqual(self.marker(target).read_text(), marker)
+
+    def test_delete_build_tools_reconfigures_aapt2_without_enabling_download(self):
+        sdk = self.root / 'toolchains/android-sdk'
+        for version in ('35.0.0', '36.0.0'):
+            self.write_exec(sdk / f'build-tools/{version}/aapt2', '#!/bin/sh\nexit 0\n')
+        initial = self.run_script('android_gradle.sh')
+        self.assertEqual(initial.returncode, 0, initial.stdout)
+        result = self.run_script('toolchain_manager.sh', '--delete', 'android-sdk/build-tools/36.0.0')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        props = self.root / '.gradle/gradle.properties'
+        self.assertIn('build-tools/35.0.0/aapt2', props.read_text())
+        self.assertIn('android.builder.sdkDownload=false', props.read_text())
+        result = self.run_script('toolchain_manager.sh', '--delete', 'android-sdk/build-tools/35.0.0')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertNotIn('android.aapt2FromMavenOverride=', props.read_text())
+        self.assertIn('android.builder.sdkDownload=false', props.read_text())
+
+    def test_flutter_marker_without_launcher_does_not_skip_repair(self):
+        self.flutter_archive()
+        self.marker(self.root / 'toolchains/flutter/current').write_text('a' * 64)
+        check = self.run_script('flutter_sdk.sh', '--check')
+        self.assertIn('__STAGE__flutter_sdk:PENDING', check.stdout)
+        repaired = self.run_script('flutter_sdk.sh')
+        self.assertEqual(repaired.returncode, 0, repaired.stdout)
+        check = self.run_script('flutter_sdk.sh', '--check')
+        self.assertIn('__STAGE__flutter_sdk:DONE', check.stdout)
+
     # ---- 2-4 Gradle 配置 ----
 
     def test_gradle_config_preserves_existing_settings_and_is_idempotent(self):
         self.sdk_archive()
-        sdk = self.root / 'android-sdk'
+        sdk = self.root / 'toolchains/android-sdk'
         self.write_exec(sdk / 'build-tools/36.1.0/aapt2', '#!/bin/sh\nexit 0\n')
         gradle = self.root / '.gradle'
         gradle.mkdir()
@@ -562,7 +683,7 @@ exit %d
         self.assertIn('build-tools/36.1.0/aapt2', props)
 
     def test_gradle_rejects_broken_aapt2_and_keeps_working_version(self):
-        sdk = self.root / 'android-sdk'
+        sdk = self.root / 'toolchains/android-sdk'
         self.write_exec(sdk / 'build-tools/35.0.0/aapt2', '#!/bin/sh\nexit 0\n')
         self.write_exec(sdk / 'build-tools/36.0.0/aapt2', '#!/bin/sh\nexit 126\n')
         result = self.run_script('android_gradle.sh')
@@ -577,7 +698,7 @@ exit %d
 
     @unittest.skipUnless(os.environ.get('FLIT_TEST_GRADLE'), 'requires local Gradle')
     def test_gradle_guard_rejects_unsafe_overrides_before_loading_project(self):
-        self.write_exec(self.root / 'android-sdk/build-tools/36.1.0/aapt2',
+        self.write_exec(self.root / 'toolchains/android-sdk/build-tools/36.1.0/aapt2',
                         '#!/bin/sh\nexit 0\n')
         result = self.run_script('android_gradle.sh')
         self.assertEqual(result.returncode, 0, result.stdout)
@@ -692,7 +813,7 @@ sys.exit(0)
         # check 零副作用: 没有下载、没有安装动作、SDK 目录不被创建
         self.assertEqual((self.root / 'curl-calls').read_text(), '')
         self.assertEqual((self.root / 'apt-calls').read_text(), '')
-        self.assertFalse((self.root / 'android-sdk/build-tools').exists())
+        self.assertFalse((self.root / 'toolchains/android-sdk/build-tools').exists())
 
 
 if __name__ == '__main__':

@@ -1,66 +1,67 @@
 #!/data/data/cc.lycstar.flit/files/usr/bin/bash
-# 子任务 2-3: NDK r28(aarch64 包用 arm64 工具冒充 x86_64 查找路径, 解压后重建两处软链)。
-# 中断与重试:
-#   下载中断 → .part 断点续传;
-#   解压/建链中断 → 无标记 → 整个 $NDK_DIR 清掉重解压(它是自己的目录, 可以整删);
-#   安装包留到标记落盘才删, 后处理被打断时重试直接解压不重下。
+# Pkg.Revision 是安装目录名；SDK 通过软链接发现全部 ARM64 版本。
 . "$(dirname "$0")/lib.sh"
 init_stage android_ndk
+NDK_DIR="$FLIT_TOOLCHAINS/ndk/$NDK_VERSION"
 
-NDK_DIR="$ANDROID_HOME/ndk/$NDK_VERSION"
-
-version() {
-  # 展示 AGP 语义的完整 Pkg.Revision(28.2.13676358), 不是发行代号 r28c:
-  # gradle 的 ndkVersion 按 source.properties 的这个值与目录名匹配
-  sed -n 's/^Pkg.Revision[[:space:]]*=[[:space:]]*//p' "$NDK_DIR/source.properties" 2>/dev/null | head -1
+version() { sed -n 's/^Pkg\.Revision[[:space:]]*=[[:space:]]*//p' "$1/source.properties" | head -1 | tr -d ' \r'; }
+complete() {
+  installed_ok "$1" && [ -f "$1/source.properties" ] &&
+    [ "$(version "$1")" = "$(basename "$1")" ] &&
+    [ -x "$1/toolchains/llvm/prebuilt/linux-arm64/bin/clang" ] &&
+    [ "$(readlink "$1/toolchains/llvm/prebuilt/linux-x86_64")" = linux-arm64 ]
 }
-
 probe() {
-  if installed_ok "$NDK_DIR" "$NDK_SHA256"; then
+  if complete "$NDK_DIR" && [ "$(readlink "$ANDROID_HOME/ndk")" = ../ndk ]; then
     st "$STAGE" DONE
-    echo "__VER__$STAGE:$(version)"
+    echo "__VER__$STAGE:$(version "$NDK_DIR")"
   else
     st "$STAGE" PENDING
   fi
 }
-
 install() {
-  if installed_ok "$NDK_DIR" "$NDK_SHA256"; then
-    ok "[ndk] 已安装，跳过"
-    return 0
+  link_android_tools
+  if [ "${1:-}" != --release ] && complete "$NDK_DIR"; then
+    ok '[ndk] 已安装，跳过'
+    return
   fi
-  if [ ! -f "$NDK_DIR/.flit-complete" ] && [ -f "$NDK_DIR/source.properties" ] &&
-     [ -x "$NDK_DIR/toolchains/llvm/prebuilt/linux-arm64/bin/clang" ]; then
-    # 只限"没有标记"; 标记在但 sha 不一致 = 清单升级, 走重装
-    ok "[ndk] 旧安装补记完整性标记"
-    mark_installed "$NDK_DIR" "$NDK_SHA256"
-    return 0
+  if [ "${1:-}" = --release ]; then
+    for dir in "$FLIT_TOOLCHAINS"/ndk/*; do
+      if installed_ok "$dir" "$NDK_SHA256" && complete "$dir"; then
+        ok "[ndk] $(basename "$dir") 已安装，跳过下载与解压"
+        return
+      fi
+    done
   fi
-
-  mkdir -p "$TMPDIR"
-  T="$TMPDIR/ndk.tar.xz"
-  dl "$NDK_SHA256" "$T" ${NDK_URLS[@]+"${NDK_URLS[@]}"}
-
+  # 目录版本以包内 source.properties 为准，而不是 r28c 等发行标签。
+  T=$(archive_path "$NDK_SHA256")
+  dl "$NDK_SHA256" "$T" "${NDK_URLS[@]}"
+  _stage="$FLIT_TOOLCHAINS/.staging/ndk"
+  rm -rf "$_stage"
+  mkdir -p "$_stage"
   info "[ndk] 解压（$(du -m "$T" | cut -f1) MB）…"
-  rm -rf "$NDK_DIR"
-  mkdir -p "$NDK_DIR"
-  # 包内 x86_64→arm64 的兼容软链与解压顺序冲突, 排除掉两处后统一重建;
-  # 其它任何 tar 错误都视为失败, 不让半截安装冒充成功。
-  tar -xJvf "$T" -C "$NDK_DIR" --strip-components=1 \
+  tar -xJvf "$T" -C "$_stage" --strip-components=1 \
     --exclude='*/shader-tools/linux-x86_64*' \
-    --exclude='*/toolchains/llvm/prebuilt/linux-x86_64*' || {
-    rm -rf "$NDK_DIR"
-    die "[ndk] ✗ 解压失败，请查看上方 tar 错误"
-  }
-  ln -sfn linux-arm64 "$NDK_DIR/shader-tools/linux-x86_64"
-  ln -sfn linux-arm64 "$NDK_DIR/toolchains/llvm/prebuilt/linux-x86_64"
-  [ -f "$NDK_DIR/source.properties" ] || die "[ndk] ✗ 解压后缺少 source.properties"
-  [ -x "$NDK_DIR/toolchains/llvm/prebuilt/linux-arm64/bin/clang" ] ||
-    die "[ndk] ✗ 解压后缺少 LLVM Clang"
-
-  mark_installed "$NDK_DIR" "$NDK_SHA256"
+    --exclude='*/toolchains/llvm/prebuilt/linux-x86_64*' || die '[ndk] 解压失败'
+  [ -f "$_stage/source.properties" ] || die '[ndk] 缺少 source.properties'
+  _revision=$(version "$_stage")
+  [[ "$_revision" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die '[ndk] 无效的 Pkg.Revision'
+  [ "${1:-}" = --release ] || [ "$_revision" = "$NDK_VERSION" ] || die '[ndk] 默认包版本与清单不一致'
+  info '[ndk] 检查 LLVM Clang…'
+  timeout 10 "$_stage/toolchains/llvm/prebuilt/linux-arm64/bin/clang" --version || die '[ndk] LLVM Clang 无法执行'
+  mkdir -p "$_stage/shader-tools" "$_stage/toolchains/llvm/prebuilt"
+  ln -sfn linux-arm64 "$_stage/shader-tools/linux-x86_64"
+  ln -sfn linux-arm64 "$_stage/toolchains/llvm/prebuilt/linux-x86_64"
+  NDK_DIR="$FLIT_TOOLCHAINS/ndk/$_revision"
+  if complete "$NDK_DIR"; then
+    ok "[ndk] $_revision 已安装，保留现有版本"
+    rm -rf "$_stage"
+  else
+    mark_installed "$_stage" "$NDK_SHA256"
+    publish_directory "$_stage" "$NDK_DIR"
+  fi
   rm -f "$T"
-  echo "__VER__$STAGE:$(version)"
+  echo "__VER__$STAGE:$_revision"
   ok "[ndk] ✓ $NDK_DIR"
 }
 

@@ -10,8 +10,9 @@ Map<String, String> sessionEnvironment(
   final env = <String, String>{
     'HOME': home,
     'PREFIX': prefix,
+    'FLIT_TOOLCHAINS': '$home/toolchains',
     'PATH':
-        '$prefix/bin:$prefix/bin/applets:$home/android-sdk/platform-tools:/system/bin:/system/xbin',
+        '$prefix/bin:$prefix/bin/applets:$home/toolchains/android-sdk/platform-tools:/system/bin:/system/xbin',
     'ANDROID_ROOT': '/system',
     'ANDROID_DATA': '/data',
     'EXTERNAL_STORAGE': '/sdcard',
@@ -32,9 +33,9 @@ Map<String, String> sessionEnvironment(
     }
   }
   // 工具链就绪的组件才注入(与安装阶段检测一致)
-  if (File('$prefix/opt/flutter/current/bin/flutter').existsSync()) {
-    env['FLUTTER_ROOT'] = '$prefix/opt/flutter/current';
-    env['PATH'] = '$prefix/opt/flutter/current/bin:${env['PATH']}';
+  if (File('$home/toolchains/flutter/current/bin/flutter').existsSync()) {
+    env['FLUTTER_ROOT'] = '$home/toolchains/flutter/current';
+    env['PATH'] = '$home/toolchains/flutter/current/bin:${env['PATH']}';
   }
   final jdk = '$prefix/lib/jvm/java-17-openjdk';
   if (File('$jdk/bin/java').existsSync()) {
@@ -46,12 +47,8 @@ Map<String, String> sessionEnvironment(
     // 必须显式覆盖, 否则 gradle 起不来("tmpdir is set to a directory that doesn't exist")
     env['JDK_JAVA_OPTIONS'] = '-Djava.io.tmpdir=$prefix/tmp';
   }
-  final sdk = '$home/android-sdk';
+  final sdk = '$home/toolchains/android-sdk';
   if (Directory('$sdk/build-tools').existsSync()) env['ANDROID_HOME'] = sdk;
-  const ndkVer = '28.2.13676358';
-  if (File('$sdk/ndk/$ndkVer/source.properties').existsSync()) {
-    env['ANDROID_NDK_HOME'] = '$sdk/ndk/$ndkVer';
-  }
   env['GRADLE_USER_HOME'] = '$home/.gradle';
   if (File('$prefix/libexec/git-core/git').existsSync()) {
     env['GIT_EXEC_PATH'] = '$prefix/libexec/git-core';
