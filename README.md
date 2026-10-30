@@ -84,7 +84,7 @@ flowchart TD
 
 ## Build from source
 
-Use Flutter **3.47.7**, JDK **17**, Android SDK and NDK **28.2.13676358**. Gradle Wrapper is included. `flutter pub get` resolves the local native plugins as well as hosted dependencies.
+Use Flutter **3.47.8**, JDK **17**, Android SDK and NDK **28.2.13676358**. Gradle Wrapper is included. `flutter pub get` resolves the local native plugins as well as hosted dependencies.
 
 ```sh
 flutter pub get

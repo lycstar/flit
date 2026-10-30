@@ -84,7 +84,7 @@ flowchart TD
 
 ## 从源码构建
 
-使用 Flutter **3.47.7**、JDK **17**、Android SDK 和 NDK **28.2.13676358**。仓库包含 Gradle Wrapper。`flutter pub get` 会解析本地原生插件及托管依赖。
+使用 Flutter **3.47.8**、JDK **17**、Android SDK 和 NDK **28.2.13676358**。仓库包含 Gradle Wrapper。`flutter pub get` 会解析本地原生插件及托管依赖。
 
 ```sh
 flutter pub get

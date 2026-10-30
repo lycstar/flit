@@ -47,8 +47,8 @@ class SetupScriptsTests(unittest.TestCase):
             gnu = shutil.which('g' + command)
             if gnu:
                 (self.tools / command).symlink_to(gnu)
-        (self.prefix / 'opt/flutter/3.47.7').mkdir(parents=True)
-        (self.prefix / 'opt/flutter/current').symlink_to('3.47.7')
+        (self.prefix / 'opt/flutter/3.47.8').mkdir(parents=True)
+        (self.prefix / 'opt/flutter/current').symlink_to('3.47.8')
 
     def write_exec(self, path, body):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -116,7 +116,7 @@ with open(out, 'r+b' if existing else 'wb') as f:
         sha = self.archive([('flutter/bin/flutter', '''#!/bin/sh
 echo call >> "$HOME/flutter-calls"
 echo 'Downloading Dart SDK...' >&2
-echo 'Flutter 3.47.7 • channel stable'
+echo 'Flutter 3.47.8 • channel stable'
 echo 'engine diagnostic detail' >&2
 exit %d
 ''' % exit_code, 0o755)])
@@ -174,14 +174,14 @@ exit %d
     def test_flutter_versions_coexist_and_switch_without_redownload(self):
         self.flutter_archive()
         sha = hashlib.sha256(Path(self.env['TEST_ARCHIVE']).read_bytes()).hexdigest()
-        for version in ('3.47.7', '3.48.0'):
+        for version in ('3.47.8', '3.48.0'):
             result = self.run_script('flutter_sdk.sh', '--release', 'https://test/sdk', sha, version)
             self.assertEqual(result.returncode, 0, result.stdout)
             self.assertTrue(self.marker(self.prefix / f'opt/flutter/{version}').exists())
         calls = (self.root / 'curl-calls').read_text()
-        result = self.run_script('flutter_sdk.sh', '--release', 'https://test/sdk', sha, '3.47.7')
+        result = self.run_script('flutter_sdk.sh', '--release', 'https://test/sdk', sha, '3.47.8')
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertEqual((self.prefix / 'opt/flutter/current').readlink(), Path('3.47.7'))
+        self.assertEqual((self.prefix / 'opt/flutter/current').readlink(), Path('3.47.8'))
         self.assertEqual((self.root / 'curl-calls').read_text(), calls)
 
     def test_legacy_flutter_install_is_moved_without_downloading(self):
@@ -204,7 +204,7 @@ exit %d
         marker = self.marker(self.prefix / 'opt/flutter/current').read_text()
         result = self.run_script('flutter_sdk.sh', '--release', 'https://test/sdk', '0' * 64, '3.48.0')
         self.assertNotEqual(result.returncode, 0)
-        self.assertEqual((self.prefix / 'opt/flutter/current').readlink(), Path('3.47.7'))
+        self.assertEqual((self.prefix / 'opt/flutter/current').readlink(), Path('3.47.8'))
         self.assertEqual(self.marker(self.prefix / 'opt/flutter/current').read_text(), marker)
 
     def test_download_resumes_from_partial_part(self):
@@ -305,7 +305,7 @@ assert not pathlib.Path(out).exists(), 'corrupt partial must be removed'
         self.write_exec(self.prefix / 'opt/flutter/current/bin/flutter', '''#!/bin/sh
 echo call >> "$HOME/flutter-calls"
 echo 'Downloading Dart SDK...' >&2
-echo 'Flutter 3.47.7 • channel stable'
+echo 'Flutter 3.47.8 • channel stable'
 echo 'engine diagnostic detail' >&2
 exit %d
 ''' % exit_code)
@@ -315,7 +315,7 @@ exit %d
         result = self.run_script('flutter_warmup.sh')
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn('engine diagnostic detail', result.stdout)
-        self.assertIn('__VER__flutter_warmup:3.47.7', result.stdout)
+        self.assertIn('__VER__flutter_warmup:3.47.8', result.stdout)
         self.assertIn('__STAGE__flutter_warmup:DONE', result.stdout)
         self.assertEqual((self.root / 'flutter-calls').read_text(), 'call\n')
 
@@ -389,7 +389,7 @@ exit %d
         sha = hashlib.sha256(Path(self.env['TEST_ARCHIVE']).read_bytes()).hexdigest()
         original = "FLUTTER_URLS=('https://test/default')\nFLUTTER_SHA256='default-hash'\n"
         self.config.write_text(original)
-        result = self.run_script('flutter_sdk.sh', '--release', 'https://test/selected', sha, '3.47.7')
+        result = self.run_script('flutter_sdk.sh', '--release', 'https://test/selected', sha, '3.47.8')
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertEqual(self.marker(self.prefix / 'opt/flutter/current').read_text().strip(), sha)
         self.assertEqual(self.config.read_text(), original)

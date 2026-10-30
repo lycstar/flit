@@ -22,7 +22,7 @@ fi
 : "${SDK_SHA256:=}"; : "${NDK_SHA256:=}"
 : "${CMAKE_SHA256:=}"
 : "${FLUTTER_SHA256:=}"
-: "${FLUTTER_VERSION:=3.47.7}"
+: "${FLUTTER_VERSION:=3.47.8}"
 
 # curl 的证书查找路径编译期烧死外部前缀, 重定向到本环境证书(HTTPS 必需)
 if [ -f "$PREFIX/etc/tls/cert.pem" ]; then

@@ -29,6 +29,7 @@ first_lib=$LD_LIBRARY_PATH
 . "$HOME/.flit/env.sh"
 [ "$PATH" = "$first_path" ]
 [ "$LD_LIBRARY_PATH" = "$first_lib" ]
+[ "$FLUTTER_VERSION" = "3.47.8" ]
 [ "${PATH%%:*}" = "$PREFIX/opt/flutter/current/bin" ]
 case ":$PATH:" in *":$ANDROID_HOME/platform-tools:$PREFIX/bin:"*) ;; *) exit 2 ;; esac
 printf '%s\n' "$PATH" "$LD_LIBRARY_PATH"
