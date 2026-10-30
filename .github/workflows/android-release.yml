@@ -77,7 +77,7 @@ jobs:
           "$APKSIGNER" verify build/app/outputs/flutter-apk/app-release.apk
       - name: Prepare artifact
         run: |
-          APK_NAME="flit-${RELEASE_VERSION}.apk"
+          APK_NAME="flit-${RELEASE_VERSION}-${BUILD_COMMIT:0:7}.apk"
           cp build/app/outputs/flutter-apk/app-release.apk "$APK_NAME"
           echo "APK_NAME=$APK_NAME" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v4
