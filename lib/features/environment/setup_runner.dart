@@ -1,26 +1,35 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart' show rootBundle;
+
+import '../../services/shell.dart' show shQuote;
+import 'toolchain_catalog.dart';
 
 /// 脚本驱动的一键初始化编排。
 /// bootstrap 由原生全量解压(MainActivity.deployBootstrap); 其后各阶段脚本
 /// 由环境页写入环境专用终端执行, 输出实时可见、可 Ctrl+C。
 class SetupRunner {
-  SetupRunner({required this.home, required this.prefix});
+  SetupRunner({
+    required this.home,
+    required this.prefix,
+    ToolchainCatalog? catalog,
+  }) : catalog = catalog ?? ToolchainCatalog();
+
+  final ToolchainCatalog catalog;
 
   final String home;
   final String prefix;
 
   /// 与 flutter.ndkVersion 对齐(AGP 按目录名匹配); 同见 lib.sh 默认值
-  static const ndkVersion = '28.2.13676358';
+  static const ndkVersion = ToolchainCatalog.ndkVersion;
 
   /// AGP 对 externalNativeBuild 的默认请求版本(flutter_pty 等原生插件依赖);
-  /// 见 manifest 的 cmake 组件
-  static const cmakeVersion = '3.22.1';
+  /// 与默认 CMake release 一致
+  static const cmakeVersion = ToolchainCatalog.cmakeVersion;
 
   static const _scriptNames = [
     'lib.sh',
+    'component_checks.sh',
     'toolchain_manager.sh',
     'check.sh',
     'android_jdk.sh',
@@ -28,6 +37,9 @@ class SetupRunner {
     'android_ndk.sh',
     'android_cmake.sh',
     'android_gradle.sh',
+    'android_build.sh',
+    'android_components.sh',
+    'android_platform.sh',
     'flutter_sdk.sh',
     'flutter_tools.sh',
     'flutter_warmup.sh',
@@ -41,34 +53,28 @@ class SetupRunner {
   Future<void> installScripts() async {
     final dir = Directory(scriptsDir);
     if (!dir.existsSync()) dir.createSync(recursive: true);
-    for (final name in _scriptNames) {
-      final text = await rootBundle.loadString('assets/scripts/$name');
-      File('$scriptsDir/$name').writeAsStringSync(text);
+    // 原子替换单个文件，避免首页检测与正在运行的脚本相遇时截断脚本内容。
+    final staging = dir.createTempSync('.deploy-');
+    try {
+      for (final name in _scriptNames) {
+        final text = await rootBundle.loadString('assets/scripts/$name');
+        File('${staging.path}/$name').writeAsStringSync(text);
+      }
+      File('${staging.path}/env.sh').writeAsStringSync(await _renderEnvSh());
+      for (final name in _scriptNames) {
+        File('${staging.path}/$name').renameSync('$scriptsDir/$name');
+      }
+      // env.sh 在 .flit/ 根目录；脚本通过 lib.sh 加载它。
+      File('${staging.path}/env.sh').renameSync('$home/.flit/env.sh');
+    } finally {
+      staging.deleteSync(recursive: true);
     }
-    // env.sh 必须在 .flit/ 根下 —— lib.sh 按此路径 source(放 scripts/ 里找不到)
-    File('$home/.flit/env.sh').writeAsStringSync(await _renderEnvSh());
   }
 
-  /// 从 manifest 生成 env.sh(URL/sha256 唯一事实源)。
+  // Offline environment generation: only installation resolves release assets.
   Future<String> _renderEnvSh() async {
-    final root =
-        jsonDecode(
-              await rootBundle.loadString('assets/toolchain_manifest.json'),
-            )
-            as Map<String, dynamic>;
-    final pkg = (root['packages'] as Map).cast<String, dynamic>();
-    Map<String, dynamic> p(String id) =>
-        (pkg[id] as Map).cast<String, dynamic>();
-    String urls(Map<String, dynamic> p) =>
-        (p['urls'] as List? ?? const []).map((u) => "'$u'").join(' ');
-    String sha(Map<String, dynamic> p, String key) => (p[key] as String?) ?? '';
-
-    final sdk = p('android-sdk');
-    final ndk = p('ndk');
-    final cmake = p('cmake');
-    final flt = p('flutter-sdk');
     return '''
-# 由 flit 从 toolchain_manifest.json 生成, 每次初始化覆盖; 勿手改
+# 由 Flit 生成的运行环境；下载资产仅在安装时通过 GitHub API 解析
 export FLIT_TOOLCHAINS="\$HOME/toolchains"
 export ANDROID_HOME="\$HOME/toolchains/android-sdk"
 export JAVA_HOME="\$PREFIX/lib/jvm/java-17-openjdk"
@@ -105,34 +111,66 @@ done
 unset __f
 export NDK_VERSION="$ndkVersion"
 export CMAKE_VERSION="$cmakeVersion"
-SDK_URLS=(${urls(sdk)})
-SDK_SHA256="${sha(sdk, 'sha256')}"
-NDK_URLS=(${urls(ndk)})
-NDK_SHA256="${sha(ndk, 'sha256')}"
-CMAKE_URLS=(${urls(cmake)})
-CMAKE_SHA256="${sha(cmake, 'sha256')}"
-FLUTTER_URLS=(${urls(flt)})
-FLUTTER_SHA256="${sha(flt, 'sha256')}"
-FLUTTER_VERSION="${flt['sdkVersion']}"
-# APT 源由需要安装软件包的阶段脚本在安装动作开始时配置。
-# source env.sh 只注入环境变量，避免打开终端、查看状态或运行 ADB 时改写系统配置。
-export FLIT_APT_SOURCE='${(root['aptSource'] as String? ?? '').replaceAll("'", "'\\''")}'
+export SDK_VERSION="${ToolchainCatalog.sdkVersion}"
+export SDK_PLATFORM_VERSION="${ToolchainCatalog.platformVersion}"
+export FLUTTER_VERSION="${ToolchainCatalog.flutterVersion}"
+export FLIT_APT_SOURCE=${shQuote('https://github.com/${ToolchainCatalog.packagesRepo}/releases/download/pool ./')}
 ''';
   }
 
-  /// bootstrap 产物规格(manifest 唯一事实源; url/sha 来自 GitHub Release)
   Future<({String url, String sha256})> bootstrapSpec() async {
-    final root =
-        jsonDecode(
-              await rootBundle.loadString('assets/toolchain_manifest.json'),
-            )
-            as Map<String, dynamic>;
-    final b = ((root['packages'] as Map)['bootstrap'] as Map)
-        .cast<String, dynamic>();
-    // 下载地址和校验值由清单统一提供。
-    return (
-      url: (b['url'] as String?) ?? '',
-      sha256: (b['sha256'] as String?) ?? '',
+    final entry = await catalog.resolve('bootstrap');
+    return (url: entry.url, sha256: entry.sha256!);
+  }
+
+  Future<String> stageCommand(String stage) async {
+    final component = const {
+      'android_sdk': 'android-sdk',
+      'android_ndk': 'ndk',
+      'android_cmake': 'cmake',
+      'flutter_sdk': 'flutter-sdk',
+    }[stage];
+    if (component == null) return 'bash ${shQuote('$scriptsDir/$stage.sh')}';
+    return installCommand(await catalog.resolve(component), initialize: true);
+  }
+
+  static String installCommand(CatalogEntry entry, {bool initialize = false}) {
+    if (ToolchainCatalog.parseSha256('sha256:${entry.sha256}') == null) {
+      throw StateError('该产物缺少 SHA-256');
+    }
+    final sdkPart = const {
+      'android-sdk',
+      'build-tools',
+      'platforms',
+      'platform-tools',
+      'cmdline-tools',
+    }.contains(entry.component);
+    final script = sdkPart
+        ? 'android_sdk.sh'
+        : switch (entry.component) {
+            'ndk' => 'android_ndk.sh',
+            'cmake' => 'android_cmake.sh',
+            'flutter-sdk' => 'flutter_sdk.sh',
+            _ => throw StateError('不支持的组件：${entry.component}'),
+          };
+    final version = entry.tag.replaceFirst(
+      RegExp(r'^(sdk|platform|flutter|cmake)-'),
+      '',
     );
+    final arguments = [
+      entry.url,
+      entry.sha256!,
+      if (sdkPart) ...[
+        entry.component,
+        version,
+      ] else if (entry.component == 'cmake' || entry.component == 'flutter-sdk')
+        version,
+    ];
+    final refreshGradle =
+        !initialize &&
+        (entry.component == 'android-sdk' || entry.component == 'build-tools');
+    return 'bash "\$HOME/.flit/scripts/$script" ${initialize ? '--install' : '--release'} '
+        '${arguments.map(shQuote).join(' ')}'
+        '${refreshGradle ? ' && bash "\$HOME/.flit/scripts/android_gradle.sh"' : ''}';
   }
 }

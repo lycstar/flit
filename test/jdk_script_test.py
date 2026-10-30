@@ -14,7 +14,7 @@ class JdkSetupTests(unittest.TestCase):
             scripts = root / "scripts"
             scripts.mkdir()
             source = Path(__file__).resolve().parents[1] / "assets/scripts"
-            for name in ("android_jdk.sh", "lib.sh"):
+            for name in ("android_jdk.sh", "lib.sh", "component_checks.sh"):
                 shutil.copyfile(source / name, scripts / name)
             tools = root / "bin"
             tools.mkdir()

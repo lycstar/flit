@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flit/features/editor/widgets/editor_run_controls.dart';
+import 'package:flit/features/environment/android_build_wrapper.dart';
+import 'package:flit/features/environment/toolchain_catalog.dart';
 import 'package:flit/features/terminal/console_session.dart';
 import 'package:flit/features/workspace/project_actions.dart';
 import 'package:flit/features/workspace/project_session.dart';
@@ -17,9 +19,13 @@ void main() {
   late ProjectSession project;
   final processes = <FakeProcess>[];
   Completer<SessionProcess>? pendingLaunch;
+  var missing = '';
+  final commands = <String?>[];
 
   setUp(() {
     processes.clear();
+    commands.clear();
+    missing = '';
     pendingLaunch = null;
     // 工程关闭要 dispose 语言服务(flit/lsp), 会话启动要保活(flit/work)
     mockFlitPlugins(binding.defaultBinaryMessenger);
@@ -48,6 +54,27 @@ void main() {
     );
     project = ProjectSession(
       '/project',
+      androidWrapper: (executions) => AndroidBuildWrapper(
+        executions: executions,
+        requirements: () async => [],
+        probe: (_) async {
+          final output = missing;
+          missing = '';
+          return {'exitCode': 0, 'output': output};
+        },
+        catalog: ToolchainCatalog()
+          ..fetchJson = (_) async => {
+            'tag_name': 'sdk-36.0.0',
+            'assets': [
+              {
+                'name': 'platform-tools.tar.xz',
+                'browser_download_url':
+                    'https://example.test/platform-tools.tar.xz',
+                'digest': 'sha256:${'a' * 64}',
+              },
+            ],
+          },
+      ),
       launcher:
           ({
             required command,
@@ -55,6 +82,7 @@ void main() {
             required rows,
             required columns,
           }) async {
+            commands.add(command);
             final process = FakeProcess();
             processes.add(process);
             return pendingLaunch?.future ?? process;
@@ -68,9 +96,7 @@ void main() {
       scopedProject(
         session: project,
         child: MaterialApp(
-          home: Scaffold(
-            appBar: AppBar(actions: const [EditorRunControls()]),
-          ),
+          home: Scaffold(appBar: AppBar(actions: const [EditorRunControls()])),
         ),
       ),
     );
@@ -196,6 +222,94 @@ void main() {
     await tester.pumpAndSettle();
     await expectLater(project.git.stageAll(), throwsStateError);
     expect(processes, hasLength(2));
+    await close(tester);
+  });
+  testWidgets(
+    'missing component dialog cancels without launching an installer',
+    (tester) async {
+      missing = '__MISSING__platform-tools:\n';
+      await open(tester);
+      await tester.tap(find.byTooltip('运行'));
+      await tester.pumpAndSettle();
+      expect(find.text('补齐 Android 构建组件？'), findsOneWidget);
+      expect(find.textContaining('Platform Tools'), findsOneWidget);
+      expect(processes, isEmpty);
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(processes, isEmpty);
+      await close(tester);
+    },
+  );
+
+  testWidgets(
+    'confirming component dialog installs before starting device run',
+    (tester) async {
+      missing = '__MISSING__platform-tools:\n';
+      await open(tester);
+      await tester.tap(find.byTooltip('运行'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('安装并继续'));
+      await tester.pumpAndSettle();
+      expect(commands.single, contains('android_sdk.sh'));
+      await processes.single.finish();
+      await tester.pumpAndSettle();
+      expect(commands.last, contains('flutter run'));
+      expect(project.executions.active!.configuration.hotReload, true);
+      await close(tester);
+    },
+  );
+  testWidgets(
+    'task menu builds beside a running device and restores reload afterwards',
+    (tester) async {
+      await open(tester);
+      await tester.tap(find.byTooltip('运行'));
+      await tester.pumpAndSettle();
+      final run = project.executions.activeRun!;
+      await tester.tap(find.byTooltip('任务'));
+      await tester.pumpAndSettle();
+      expect(task(tester, '构建 APK（调试版）').onTap, isNotNull);
+      expect(task(tester, '清理构建产物').onTap, isNull);
+      expect(task(tester, '静态分析').onTap, isNotNull);
+      task(tester, '构建 APK（调试版）').onTap!();
+      await tester.pumpAndSettle();
+      final build = project.executions.forConfiguration('build-apk')!;
+      expect(run.alive, true);
+      expect(build.alive, true);
+      expect(processes, hasLength(2));
+      expect(project.runTarget, 'phone');
+      expect(button(tester, '热重载').onPressed, isNull);
+      expect(button(tester, '停止运行').onPressed, isNotNull);
+      await tester.tap(find.byTooltip('任务'));
+      await tester.pumpAndSettle();
+      expect(task(tester, '构建 APK（发布版）').onTap, isNull);
+      expect(task(tester, '静态分析').onTap, isNotNull);
+      Navigator.of(tester.element(find.text('任务').last)).pop();
+      await processes.last.finish();
+      await tester.pumpAndSettle();
+      expect(run.alive, true);
+      expect(button(tester, '热重载').onPressed, isNotNull);
+      await close(tester);
+    },
+  );
+
+  testWidgets('component installation explains why a concurrent run must end', (
+    tester,
+  ) async {
+    await open(tester);
+    await tester.tap(find.byTooltip('运行'));
+    await tester.pumpAndSettle();
+    final run = project.executions.activeRun!;
+    missing = '__MISSING__platform-tools:\n';
+    await tester.tap(find.byTooltip('任务'));
+    await tester.pumpAndSettle();
+    task(tester, '构建 APK（调试版）').onTap!();
+    await tester.pumpAndSettle();
+    expect(find.text('组件暂时无法安装'), findsOneWidget);
+    expect(find.textContaining('请先结束正在运行的任务'), findsOneWidget);
+    expect(run.alive, true);
+    expect(processes, hasLength(1));
+    await tester.tap(find.text('知道了'));
+    await tester.pumpAndSettle();
     await close(tester);
   });
 }

@@ -6,6 +6,7 @@ import '../../services/shell.dart';
 import '../editor/lsp/lsp_client.dart';
 import '../git/project_git.dart';
 import '../run/web_runner.dart';
+import '../environment/android_build_wrapper.dart';
 import '../terminal/run_sessions.dart';
 import '../terminal/console_session.dart' show ProcessLauncher;
 import 'editor_tabs.dart';
@@ -20,9 +21,13 @@ enum ProjectKind { flutter, dart }
 /// Listens as a ChangeNotifier so the tree can watch project facts
 /// (kind / run target / closed) without reaching into the ValueNotifiers.
 class ProjectSession extends ChangeNotifier {
-  ProjectSession(this.path, {required ProcessLauncher launcher})
-    : documents = ProjectDocuments(path),
-      executions = RunSessions(projectPath: path, launcher: launcher);
+  ProjectSession(
+    this.path, {
+    required ProcessLauncher launcher,
+    AndroidBuildWrapper Function(RunSessions)? androidWrapper,
+  }) : _androidWrapper = androidWrapper,
+       documents = ProjectDocuments(path),
+       executions = RunSessions(projectPath: path, launcher: launcher);
   final String path;
   String get name => path.split('/').last;
   final language = LspClient();
@@ -32,6 +37,7 @@ class ProjectSession extends ChangeNotifier {
   /// 编辑器打开项(tab): 代码项引用 documents 的缓冲, 文件卡项只记路径
   late final tabs = EditorTabs(documents);
   final RunSessions executions;
+  final AndroidBuildWrapper Function(RunSessions)? _androidWrapper;
 
   /// 默认按 Flutter 呈现(避免闪变), 识别为 Dart 后收窄平台列表
   ProjectKind _kind = ProjectKind.flutter;
@@ -42,6 +48,9 @@ class ProjectSession extends ChangeNotifier {
     documents: documents,
     executions: executions,
     web: web,
+    android:
+        _androidWrapper?.call(executions) ??
+        AndroidBuildWrapper(executions: executions),
     gitBusy: () => git.busy,
   );
   late final ProjectGit git = ProjectGit(

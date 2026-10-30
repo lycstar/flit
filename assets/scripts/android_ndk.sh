@@ -6,10 +6,7 @@ NDK_DIR="$FLIT_TOOLCHAINS/ndk/$NDK_VERSION"
 
 version() { sed -n 's/^Pkg\.Revision[[:space:]]*=[[:space:]]*//p' "$1/source.properties" | head -1 | tr -d ' \r'; }
 complete() {
-  installed_ok "$1" && [ -f "$1/source.properties" ] &&
-    [ "$(version "$1")" = "$(basename "$1")" ] &&
-    [ -x "$1/toolchains/llvm/prebuilt/linux-arm64/bin/clang" ] &&
-    [ "$(readlink "$1/toolchains/llvm/prebuilt/linux-x86_64")" = linux-arm64 ]
+  installed_ok "$1" && component_usable ndk "$1" "$(basename "$1")"
 }
 probe() {
   if complete "$NDK_DIR" && [ "$(readlink "$ANDROID_HOME/ndk")" = ../ndk ]; then
@@ -27,7 +24,8 @@ install() {
   fi
   if [ "${1:-}" = --release ]; then
     for dir in "$FLIT_TOOLCHAINS"/ndk/*; do
-      if installed_ok "$dir" "$NDK_SHA256" && complete "$dir"; then
+      if installed_ok "$dir" "$NDK_SHA256" && complete "$dir" &&
+         { [ -z "${NDK_REQUIRED_REVISION:-}" ] || [ "$(version "$dir")" = "$NDK_REQUIRED_REVISION" ]; }; then
         ok "[ndk] $(basename "$dir") 已安装，跳过下载与解压"
         return
       fi
@@ -46,7 +44,10 @@ install() {
   [ -f "$_stage/source.properties" ] || die '[ndk] 缺少 source.properties'
   _revision=$(version "$_stage")
   [[ "$_revision" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die '[ndk] 无效的 Pkg.Revision'
-  [ "${1:-}" = --release ] || [ "$_revision" = "$NDK_VERSION" ] || die '[ndk] 默认包版本与清单不一致'
+  [ "${1:-}" = --release ] || [ "$_revision" = "$NDK_VERSION" ] || die '[ndk] 默认包版本与配置不一致'
+  # 自动修复必须满足项目的完整版本，r 标签相同也不能发布不匹配的包。
+  [ -z "${NDK_REQUIRED_REVISION:-}" ] || [ "$_revision" = "$NDK_REQUIRED_REVISION" ] ||
+    die "[ndk] 项目需要 ${NDK_REQUIRED_REVISION}，产物实际为 ${_revision}；未安装"
   info '[ndk] 检查 LLVM Clang…'
   timeout 10 "$_stage/toolchains/llvm/prebuilt/linux-arm64/bin/clang" --version || die '[ndk] LLVM Clang 无法执行'
   mkdir -p "$_stage/shader-tools" "$_stage/toolchains/llvm/prebuilt"

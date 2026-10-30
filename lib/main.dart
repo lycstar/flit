@@ -22,15 +22,32 @@ Future<AppServices> composeApp() async {
   final launcher = PtyLauncher(proxy: proxy).call;
   final preferences = AppearancePreferences();
   await preferences.load();
+  final workspace = ProjectWorkspace(launcher: launcher);
   return AppServices(
     launcher: launcher,
     proxy: proxy,
     preferences: preferences,
-    environment: EnvironmentController(launcher: launcher),
+    environment: EnvironmentController(
+      launcher: launcher,
+      projectBusy: () {
+        final project = workspace.active;
+        return project != null &&
+            (project.executions.active != null ||
+                project.executions.starting ||
+                project.actions.starting.value != null ||
+                project.git.busy);
+      },
+      onFlutterChanged: () async {
+        final project = workspace.active;
+        if (project == null || project.closed) return;
+        await project.language.stop();
+        if (!project.closed) await project.language.ensureStarted(project.path);
+      },
+    ),
     github: GithubAccount(launcher: launcher),
     catalog: ToolchainCatalog(),
     workbenchShell: PtySession(launcher: launcher),
-    workspace: ProjectWorkspace(launcher: launcher),
+    workspace: workspace,
     routeObserver: RouteObserver<PageRoute<dynamic>>(),
   );
 }

@@ -43,7 +43,7 @@ class EnvironmentStatus {
   }
 
   static Future<EnvironmentStatus> inspect() => _inspect().timeout(
-    const Duration(seconds: 12),
+    const Duration(seconds: 130),
     onTimeout: () =>
         const EnvironmentStatus(bootstrapped: false, checkFailed: true),
   );
@@ -65,7 +65,7 @@ class EnvironmentStatus {
       await SetupRunner(home: home, prefix: prefix).installScripts();
       final result = await Shell.instance.exec(
         'bash ${shQuote('$home/.flit/scripts/check.sh')}',
-        timeoutMs: 10000,
+        timeoutMs: 120000,
       );
       return EnvironmentStatus.fromCheck(
         exitCode: result['exitCode'] as int? ?? -1,

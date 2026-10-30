@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../../services/adb_ops.dart';
 import '../../services/shell.dart';
 import '../run/web_runner.dart';
+import '../environment/android_build_wrapper.dart';
 import '../terminal/run_sessions.dart';
 import 'project_documents.dart';
 
@@ -13,18 +14,18 @@ enum ProjectBuild {
     RunConfiguration(
       id: 'build-apk',
       title: '构建 APK（调试版）',
-      command: 'flutter build apk --debug --target-platform android-arm64 2>&1',
+      command:
+          'bash "\$HOME/.flit/scripts/android_build.sh" flutter build apk --debug --target-platform android-arm64 2>&1',
       artifactPath: 'build/app/outputs/flutter-apk/app-debug.apk',
-      exclusive: true,
     ),
   ),
   releaseApk(
     RunConfiguration(
       id: 'build-apk-release',
       title: '构建 APK（发布版）',
-      command: 'flutter build apk --release --target-platform android-arm64 2>&1',
+      command:
+          'bash "\$HOME/.flit/scripts/android_build.sh" flutter build apk --release --target-platform android-arm64 2>&1',
       artifactPath: 'build/app/outputs/flutter-apk/app-release.apk',
-      exclusive: true,
     ),
   ),
   web(
@@ -32,7 +33,6 @@ enum ProjectBuild {
       id: 'build-web',
       title: '构建 Web（发布版）',
       command: 'flutter build web --release 2>&1',
-      exclusive: true,
     ),
   );
 
@@ -57,6 +57,27 @@ enum ProjectTool {
 
   /// clean 删除正在使用的 build/ 目录, 与一切互斥
   final bool exclusive;
+
+  /// UI 与执行共用配置；analyze 禁止隐式 pub get，才可与打包并行。
+  RunConfiguration configuration({required bool flutter}) {
+    final cli = flutter ? 'flutter' : 'dart';
+    final command = switch (this) {
+      pubGet => '$cli pub get',
+      pubUpgrade => '$cli pub upgrade',
+      pubOutdated => '$cli pub outdated',
+      clean => 'flutter clean',
+      analyze => '$cli analyze${flutter ? ' --no-pub' : ''}',
+      test => '$cli test',
+      doctor => 'flutter doctor -v',
+    };
+    return RunConfiguration(
+      id: id,
+      title: title,
+      command: '$command 2>&1',
+      exclusive: exclusive,
+      readOnly: this == analyze || this == doctor || this == pubOutdated,
+    );
+  }
 }
 
 /// Project commands own save/preflight/launch/completion; views only present them.
@@ -69,6 +90,7 @@ class ProjectActions extends ChangeNotifier {
     required this.web,
     Future<List<AdbDevice>> Function()? devices,
     bool Function()? gitBusy,
+    this.android,
   }) : _devices = devices ?? AdbOps.devices,
        _gitBusy = gitBusy ?? _notBusy {
     starting.addListener(notifyListeners);
@@ -80,6 +102,7 @@ class ProjectActions extends ChangeNotifier {
   final ProjectDocuments documents;
   final RunSessions executions;
   final WebRunController web;
+  final AndroidBuildWrapper? android;
   final Future<List<AdbDevice>> Function() _devices;
   final bool Function() _gitBusy;
 
@@ -100,6 +123,7 @@ class ProjectActions extends ChangeNotifier {
 
   Future<void> _save() async {
     _ensureOpen();
+    if (AndroidBuildWrapper.installing) throw StateError('开发环境正在安装或切换，请等待完成');
     if (_gitBusy()) throw StateError('Git 操作正在进行，请等待完成');
     if (!await documents.saveAll()) throw StateError('保存失败，请重试');
     _ensureOpen();
@@ -110,6 +134,7 @@ class ProjectActions extends ChangeNotifier {
     void Function(String)? onText,
   }) {
     _ensureOpen();
+    if (!configuration.readOnly) android?.cancelPending();
     final existing = executions.forConfiguration(configuration.id);
     if (configuration.kind == SessionKind.temp && existing?.alive == true) {
       executions.select(existing!.id);
@@ -159,8 +184,9 @@ class ProjectActions extends ChangeNotifier {
     return session;
   }
 
-  Future<void> run(String target) async {
+  Future<void> run(String target, {ConfirmAndroidRepair? confirmRepair}) async {
     _ensureOpen();
+    android?.cancelPending();
     await _withStarting('run:$target', () async {
       if (target == 'web') {
         await _save();
@@ -173,16 +199,26 @@ class ProjectActions extends ChangeNotifier {
       final matches = devices.where((device) => device.$1 == target);
       if (matches.isEmpty) throw StateError('目标 $target 未连接');
       final device = matches.first;
-      await start(
-        RunConfiguration(
-          id: 'run:$target',
-          title: device.$2.isEmpty ? target : device.$2,
-          command: 'flutter run -d ${shQuote(target)} 2>&1',
-          kind: SessionKind.run,
-          hotReload: true,
-          target: target,
-        ),
+      final configuration = RunConfiguration(
+        id: 'run:$target',
+        title: device.$2.isEmpty ? target : device.$2,
+        command:
+            'bash "\$HOME/.flit/scripts/android_build.sh" flutter run -d ${shQuote(target)} 2>&1',
+        kind: SessionKind.run,
+        hotReload: true,
+        target: target,
       );
+      if (android != null && confirmRepair != null) {
+        await android!.start(
+          configuration,
+          launch: _start,
+          confirm: confirmRepair,
+          save: _save,
+          device: true,
+        );
+      } else {
+        await start(configuration);
+      }
     });
   }
 
@@ -199,47 +235,34 @@ class ProjectActions extends ChangeNotifier {
 
   /// 纯 Dart 工程的构建 = dart compile exe(原生可执行)。
   /// console 模板入口固定为 bin/<包名>.dart, 包名 = 工程目录名; 产物放 build/。
-  Future<RunSession> buildDartExe() {
+  RunConfiguration get dartExeConfiguration {
     final name = path.split('/').last;
-    return start(
-      RunConfiguration(
-        id: 'build-dart-exe',
-        title: '编译可执行文件',
-        command:
-            'mkdir -p build && dart compile exe ${shQuote('bin/$name.dart')} '
-            '-o ${shQuote('build/$name')} 2>&1',
-        kind: SessionKind.temp,
-      ),
+    return RunConfiguration(
+      id: 'build-dart-exe',
+      title: '编译可执行文件',
+      command:
+          'mkdir -p build && dart compile exe ${shQuote('bin/$name.dart')} '
+          '-o ${shQuote('build/$name')} 2>&1',
     );
   }
 
+  Future<RunSession> buildDartExe() => start(dartExeConfiguration);
+
   /// 内置命令都是临时会话: 只读输出, 只能关。pub/analyze/test 按工程类型
   /// 走 flutter 或 dart 前缀(flutter 工程的 pub 必须用 flutter pub)。
-  Future<RunSession> tool(ProjectTool tool, {required bool flutter}) {
-    final cli = flutter ? 'flutter' : 'dart';
-    final command = switch (tool) {
-      ProjectTool.pubGet => '$cli pub get',
-      ProjectTool.pubUpgrade => '$cli pub upgrade',
-      ProjectTool.pubOutdated => '$cli pub outdated',
-      ProjectTool.clean => 'flutter clean',
-      ProjectTool.analyze => '$cli analyze',
-      ProjectTool.test => '$cli test',
-      ProjectTool.doctor => 'flutter doctor -v',
-    };
-    return start(
-      RunConfiguration(
-        id: tool.id,
-        title: tool.title,
-        command: '$command 2>&1',
-        kind: SessionKind.temp,
-      ),
-    );
-  }
+  Future<RunSession> tool(ProjectTool tool, {required bool flutter}) =>
+      start(tool.configuration(flutter: flutter));
 
   Future<void> reload(String target, {required bool fullRestart}) async {
     final run = executions.forConfiguration('run:$target');
     if (run == null) return;
+    if (executions.hasWritingTask || starting.value != null) {
+      throw StateError('请等待构建或依赖更新完成后再热重载');
+    }
     await _save();
+    if (executions.hasWritingTask || starting.value != null) {
+      throw StateError('请等待构建或依赖更新完成后再热重载');
+    }
     // A rerun during save must not receive an action intended for the old process.
     if (!identical(run, executions.forConfiguration('run:$target'))) return;
     if (target == 'web') {
@@ -251,12 +274,35 @@ class ProjectActions extends ChangeNotifier {
     }
   }
 
-  Future<RunSession> build(ProjectBuild kind) => start(kind.configuration);
+  Future<RunSession> build(
+    ProjectBuild kind, {
+    ConfirmAndroidRepair? confirmRepair,
+  }) {
+    if (kind == ProjectBuild.web || android == null || confirmRepair == null) {
+      return start(kind.configuration);
+    }
+    final configuration = kind.configuration;
+    final existing = executions.forConfiguration(configuration.id);
+    if (existing?.alive == true) {
+      executions.select(existing!.id);
+      return Future.value(existing);
+    }
+    return _starting[configuration.id] ??= _withStarting(
+      configuration.id,
+      () => android!.start(
+        configuration,
+        launch: _start,
+        confirm: confirmRepair,
+        save: _save,
+      ),
+    ).whenComplete(() => _starting.remove(configuration.id));
+  }
 
   @override
   void dispose() {
     if (_closed) return;
     _closed = true;
+    android?.dispose();
     starting.removeListener(notifyListeners);
     starting.dispose();
     _artifacts.close();

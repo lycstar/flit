@@ -5,6 +5,7 @@ import '../../../core/theme.dart';
 import '../../../core/workbench_controls.dart';
 import '../../../services/adb_ops.dart';
 import '../../device/device_connect_page.dart';
+import '../../environment/android_build_wrapper.dart';
 import '../../git/project_git.dart';
 import '../../run/web_runner.dart';
 import '../../terminal/run_sessions.dart';
@@ -49,25 +50,68 @@ class _EditorRunControlsState extends State<EditorRunControls> {
     }
   }
 
+  Future<bool> _confirmRepair(AndroidRepairRequest request) async {
+    if (!mounted || _project.closed) return false;
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(
+              request.error == null ? '补齐 Android 构建组件？' : '组件暂时无法安装',
+            ),
+            content: SingleChildScrollView(
+              child: Text(
+                [
+                  request.afterFailure
+                      ? '本次构建缺少或无法使用以下组件：'
+                      : '构建前检查发现以下组件缺失或不可用：',
+                  '',
+                  ...request.components.map((c) => '• ${c.title}'),
+                  '',
+                  request.error ??
+                      '安装完成后${request.afterFailure ? '重新尝试一次' : '继续'}构建。下载进度会显示在控制台中。',
+                ].join('\n'),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(request.error == null ? '取消' : '知道了'),
+              ),
+              if (request.error == null)
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text(request.afterFailure ? '安装并重试' : '安装并继续'),
+                ),
+            ],
+          ),
+        ) ==
+        true;
+  }
+
   List<Widget> _runControls() {
     final target = _target;
     final run = _executions.forConfiguration('run:$target');
     final web = _project.web;
     final alive = run?.alive == true;
-    final active = _executions.active;
-    final activeOtherRun =
-        active != null &&
-        active.configuration.kind == SessionKind.run &&
-        active.id != run?.id;
+    final active = _executions.activeRun;
+    final activeOtherRun = active != null && active.id != run?.id;
     final starting =
         _project.actions.starting.value == 'run:$target' ||
         _executions.isStarting('run:$target') ||
         (target == 'web' && web.starting);
-    // 只被"独占型"任务(构建/clean)挡住; pub get/analyze 等与 run 并存
+    // 已有设备连接可以与临时任务并存；有写入任务时不再启动/重启一次编译。
     final blocked =
         _project.actions.starting.value != null ||
         _project.git.busy ||
-        active?.configuration.exclusive == true ||
+        _executions.conflictFor(
+              RunConfiguration(
+                id: 'run:$target',
+                title: target,
+                command: '',
+                kind: SessionKind.run,
+              ),
+            ) !=
+            null ||
         active?.state == ExecutionState.stopping;
     final canReload = target == 'web'
         ? web.canReload
@@ -91,7 +135,7 @@ class _EditorRunControlsState extends State<EditorRunControls> {
         WorkbenchButton(
           tooltip: '热重载',
           icon: Icons.bolt,
-          onPressed: canReload && !blocked
+          onPressed: canReload && !blocked && !_executions.hasWritingTask
               ? () => _reloadRun(target, fullRestart: false)
               : null,
         ),
@@ -99,9 +143,9 @@ class _EditorRunControlsState extends State<EditorRunControls> {
         WorkbenchButton(
           tooltip: '停止运行',
           icon: Icons.stop_circle_outlined,
-          onPressed: (run ?? active)!.stopRequested
+          onPressed: (alive ? run! : active!).stopRequested
               ? null
-              : () => (run ?? active)!.stop(),
+              : () => (alive ? run! : active!).stop(),
         ),
     ];
   }
@@ -126,13 +170,15 @@ class _EditorRunControlsState extends State<EditorRunControls> {
       return;
     }
     _layout.showOutput();
-    await _perform(() => _project.actions.run(target));
+    await _perform(
+      () => _project.actions.run(target, confirmRepair: _confirmRepair),
+    );
   }
 
   Future<void> _selectTarget(String target) async {
     if (target == _target) return;
-    final active = _executions.active;
-    if (active?.configuration.kind == SessionKind.run) {
+    final active = _executions.activeRun;
+    if (active != null) {
       final accepted = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -153,7 +199,9 @@ class _EditorRunControlsState extends State<EditorRunControls> {
       if (accepted != true || !mounted) return;
       _applyTarget(target);
       _layout.showOutput();
-      await _perform(() => _project.actions.run(target));
+      await _perform(
+        () => _project.actions.run(target, confirmRepair: _confirmRepair),
+      );
     } else {
       _applyTarget(target);
     }
@@ -184,6 +232,10 @@ class _EditorRunControlsState extends State<EditorRunControls> {
           _project.git,
         ]),
         builder: (_, _) {
+          final runningTitles = _executions.all
+              .where((s) => s.alive)
+              .map((s) => s.title)
+              .join('、');
           return SafeArea(
             child: SingleChildScrollView(
               child: Column(
@@ -219,9 +271,9 @@ class _EditorRunControlsState extends State<EditorRunControls> {
                     ListTile(
                       dense: true,
                       title: Text(
-                        '当前任务：${_executions.active?.title ?? (_project.git.busy ? 'Git' : '正在启动…')}',
+                        '当前任务：${runningTitles.isNotEmpty ? runningTitles : (_project.git.busy ? 'Git' : '正在启动…')}',
                       ),
-                      subtitle: const Text('请先结束当前任务，再执行其他任务。'),
+                      subtitle: const Text('各任务使用独立终端，冲突操作暂不可用。'),
                     ),
                   _section('依赖', [
                     _toolItem(
@@ -238,26 +290,29 @@ class _EditorRunControlsState extends State<EditorRunControls> {
                         ? [
                             _buildItem(
                               ctx,
-                              ProjectBuild.debugApk.configuration.id,
+                              ProjectBuild.debugApk.configuration,
                               Icons.android_outlined,
                               '构建 APK（调试版）',
                               '构建完成后通过 ADB 安装到选中的 Android 设备',
-                              () =>
-                                  _project.actions.build(ProjectBuild.debugApk),
+                              () => _project.actions.build(
+                                ProjectBuild.debugApk,
+                                confirmRepair: _confirmRepair,
+                              ),
                             ),
                             _buildItem(
                               ctx,
-                              ProjectBuild.releaseApk.configuration.id,
+                              ProjectBuild.releaseApk.configuration,
                               Icons.android_outlined,
                               '构建 APK（发布版）',
                               '生成发布 APK；之后可选 ADB 设备或系统安装器',
                               () => _project.actions.build(
                                 ProjectBuild.releaseApk,
+                                confirmRepair: _confirmRepair,
                               ),
                             ),
                             _buildItem(
                               ctx,
-                              ProjectBuild.web.configuration.id,
+                              ProjectBuild.web.configuration,
                               Icons.web,
                               '构建 Web（发布版）',
                               '输出目录：build/web',
@@ -267,7 +322,7 @@ class _EditorRunControlsState extends State<EditorRunControls> {
                         : [
                             _buildItem(
                               ctx,
-                              'build-dart-exe',
+                              _project.actions.dartExeConfiguration,
                               Icons.memory_outlined,
                               '编译可执行文件',
                               'dart compile exe，输出 build/<包名>；完成后可在终端直接运行',
@@ -333,7 +388,7 @@ class _EditorRunControlsState extends State<EditorRunControls> {
           subtitle,
           style: const TextStyle(fontSize: 11, color: AppColors.textFaint),
         ),
-        onTap: _taskAction(ctx, tool.id, () {
+        onTap: _taskAction(ctx, tool.configuration(flutter: !_isDart), () {
           Navigator.pop(ctx);
           _layout.showOutput();
           _perform(
@@ -347,10 +402,10 @@ class _EditorRunControlsState extends State<EditorRunControls> {
 
   VoidCallback? _taskAction(
     BuildContext context,
-    String id,
+    RunConfiguration configuration,
     VoidCallback action,
   ) {
-    final existing = _executions.forConfiguration(id);
+    final existing = _executions.forConfiguration(configuration.id);
     if (existing?.alive == true) {
       return () {
         Navigator.pop(context);
@@ -358,9 +413,8 @@ class _EditorRunControlsState extends State<EditorRunControls> {
         _layout.showOutput();
       };
     }
-    final active = _executions.active;
     if (_project.git.busy ||
-        active != null ||
+        _executions.conflictFor(configuration) != null ||
         _executions.starting ||
         _project.actions.starting.value != null) {
       return null;
@@ -370,7 +424,7 @@ class _EditorRunControlsState extends State<EditorRunControls> {
 
   Widget _buildItem(
     BuildContext ctx,
-    String id,
+    RunConfiguration configuration,
     IconData icon,
     String title,
     String subtitle,
@@ -383,7 +437,7 @@ class _EditorRunControlsState extends State<EditorRunControls> {
       subtitle,
       style: const TextStyle(fontSize: 11, color: AppColors.textFaint),
     ),
-    onTap: _taskAction(ctx, id, () {
+    onTap: _taskAction(ctx, configuration, () {
       Navigator.pop(ctx);
       _layout.showOutput();
       _perform(action);

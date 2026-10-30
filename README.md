@@ -98,7 +98,7 @@ The release workflow runs manually. Configure `KEYSTORE_BASE64`, `ANDROID_STORE_
 
 ## Runtime distributions
 
-The application’s default downloads and SHA-256 digests are defined in [`assets/toolchain_manifest.json`](assets/toolchain_manifest.json). Bootstrap and APT packages must be compiled for `/data/data/cc.lycstar.flit/files/usr`. Changing a URL or application ID does not relocate another application’s binaries.
+The application keeps only repository and default-version rules; installation resolves download assets and SHA-256 digests from GitHub Releases by tag. No download manifest is bundled. Bootstrap and APT packages must be compiled for `/data/data/cc.lycstar.flit/files/usr`. Changing a URL or application ID does not relocate another application’s binaries.
 
 | Companion repository | Responsibility |
 | --- | --- |
@@ -109,11 +109,11 @@ The application’s default downloads and SHA-256 digests are defined in [`asset
 | [cmake-custom](https://github.com/lycstar/cmake-custom) | CMake and Ninja for Android ARM64 hosts |
 | [flutter-sdk-custom](https://github.com/lycstar/flutter-sdk-custom) | Flutter and Dart SDK distribution |
 
-Toolchain build recipes belong in those repositories. This repository contains only the application’s installation scripts and distribution manifest. See [runtime configuration](docs/runtime-environment.md) for version catalogs and validation requirements.
+Toolchain build recipes belong in those repositories. This repository contains only the application’s installation scripts and version-selection rules. See [runtime configuration](docs/runtime-environment.md) for version catalogs and validation requirements.
 
 Distribution tags use component prefixes and complete versions: `sdk-36.0.0` (Build Tools), `ndk-r27d`, `llvm-r27d`, `cmake-3.22.1` and `flutter-3.47.8`. NDK revisions such as r27 and r27d are separate releases.
 
-The SDK build matrix targets Build Tools **30.0.3, 33.0.1, 34.0.0, 35.0.0 and 36.0.0**. The 36.0.0 bundle also includes Android Platforms **API 30–36**. Additional NDK builds target **r25b (25.1.8937393), r26b (26.1.10909125) and r27 (27.0.12077973)** alongside the existing r28c and newer distributions. Versions become available in the catalog after their builds publish successfully. CMake **3.22.1** and **3.31.6** are selectable in the same catalog.
+SDK releases use `sdk-<Build Tools version>` tags and contain one matching Platform. Independent Platforms use `platform-<API>` tags. Build Tools **34.0.0, 35.0.0, 36.0.0 and 37.0.0** are available; the application initializes 36.0.0 by default. Additional NDK builds target **r25b (25.1.8937393), r26b (26.1.10909125) and r27 (27.0.12077973)** alongside the existing r28c and newer distributions. Versions become available in the catalog after their builds publish successfully. CMake **3.22.1** and **3.31.6** are selectable in the same catalog.
 
 ## Structure
 
@@ -124,7 +124,7 @@ The SDK build matrix targets Build Tools **30.0.3, 33.0.1, 34.0.0, 35.0.0 and 36
 | `lib/features/` | Projects, workspace, editor, terminal, environment, device, Git and settings |
 | `lib/services/` | Stateless process/file boundaries and system integration |
 | `plugins/` | Five focused Android native plugins |
-| `assets/` | Installation scripts, download manifest, icons and fonts |
+| `assets/` | Installation scripts, icons and fonts |
 | `test/` | Controller, widget, protocol and installation-script tests |
 | `docs/` | Architecture, runtime configuration and interaction rules |
 | `third_party/` | Vendored sources and their licenses |

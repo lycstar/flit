@@ -16,17 +16,64 @@ class ToolchainCatalog {
 
   final _cache = <String, List<CatalogEntry>>{};
 
-  /// 每个组件的构建仓与资产匹配模式(组件注册表)。
-  /// bootstrap 不入目录: 它是初始化管线一次性铺满 $PREFIX 的整包,
-  /// 在活动环境上覆写没有"升级"语义且会砸掉运行中的会话, 只走初始化安装。
+  // Only repository names, release tags and asset naming rules are bundled.
+  // URLs, hashes and sizes always come from GitHub at installation time.
+  static const sdkRepo = String.fromEnvironment(
+    'FLIT_ANDROID_SDK_REPO',
+    defaultValue: 'lycstar/android-sdk-custom',
+  );
+  static const packagesRepo = String.fromEnvironment(
+    'FLIT_PACKAGES_REPO',
+    defaultValue: 'lycstar/flit-termux-packages',
+  );
+  static const sdkVersion = '36.0.0';
+  static const platformVersion = '36';
+  static const ndkVersion = '28.2.13676358';
+  static const cmakeVersion = '3.22.1';
+  static const flutterVersion = '3.47.8';
+  static const bootstrap = CatalogSource(
+    repo: packagesRepo,
+    asset: 'bootstrap-aarch64.zip',
+    install: r'$PREFIX',
+    tagPattern: r'^bootstrap-flit-aarch64-[0-9]+$',
+    defaultTag: 'bootstrap-flit-aarch64-40801524107',
+  );
+
   static const components = <String, CatalogSource>{
     'android-sdk': CatalogSource(
-      repo: String.fromEnvironment(
-        'FLIT_ANDROID_SDK_REPO',
-        defaultValue: 'lycstar/android-sdk-custom',
-      ),
-      asset: 'android-sdk-aarch64-linux-android.tar.xz',
+      repo: sdkRepo,
+      asset: 'android-sdk.tar.xz',
       install: r'$HOME/toolchains/android-sdk',
+      tagPattern: r'^sdk-[0-9]+\.[0-9]+\.[0-9]+$',
+      defaultTag: 'sdk-$sdkVersion',
+    ),
+    'build-tools': CatalogSource(
+      repo: sdkRepo,
+      asset: 'build-tools.tar.xz',
+      install: r'$HOME/toolchains/android-sdk/build-tools/<version>',
+      tagPattern: r'^sdk-[0-9]+\.[0-9]+\.[0-9]+$',
+      defaultTag: 'sdk-$sdkVersion',
+    ),
+    'platforms': CatalogSource(
+      repo: sdkRepo,
+      asset: 'platforms.tar.xz',
+      install: r'$HOME/toolchains/android-sdk/platforms/android-<API>',
+      tagPattern: r'^platform-[0-9]+(?:\.[0-9]+)?$',
+      defaultTag: 'platform-$platformVersion',
+    ),
+    'platform-tools': CatalogSource(
+      repo: sdkRepo,
+      asset: 'platform-tools.tar.xz',
+      install: r'$HOME/toolchains/android-sdk/platform-tools',
+      tagPattern: r'^sdk-[0-9]+\.[0-9]+\.[0-9]+$',
+      defaultTag: 'sdk-$sdkVersion',
+    ),
+    'cmdline-tools': CatalogSource(
+      repo: sdkRepo,
+      asset: 'cmdline-tools.tar.xz',
+      install: r'$HOME/toolchains/android-sdk/cmdline-tools/latest',
+      tagPattern: r'^sdk-[0-9]+\.[0-9]+\.[0-9]+$',
+      defaultTag: 'sdk-$sdkVersion',
     ),
     'ndk': CatalogSource(
       repo: String.fromEnvironment(
@@ -35,6 +82,8 @@ class ToolchainCatalog {
       ),
       asset: 'android-ndk-*-aarch64-linux-android.tar.xz',
       install: r'$HOME/toolchains/ndk/<Pkg.Revision>',
+      tagPattern: r'^ndk-r[0-9]+[a-z]?$',
+      defaultTag: 'ndk-r28c',
     ),
     'cmake': CatalogSource(
       repo: String.fromEnvironment(
@@ -43,6 +92,8 @@ class ToolchainCatalog {
       ),
       asset: 'cmake-aarch64-linux-android.tar.xz',
       install: r'$HOME/toolchains/cmake/<version>',
+      tagPattern: r'^cmake-[0-9]+\.[0-9]+\.[0-9]+$',
+      defaultTag: 'cmake-$cmakeVersion',
     ),
     'flutter-sdk': CatalogSource(
       repo: String.fromEnvironment(
@@ -51,69 +102,111 @@ class ToolchainCatalog {
       ),
       asset: 'flutter-*-aarch64-linux-android.tar.xz',
       install: r'$HOME/toolchains/flutter/<version>',
+      tagPattern: r'^flutter-[0-9]+\.[0-9]+\.[0-9]+$',
+      defaultTag: 'flutter-$flutterVersion',
     ),
   };
 
-  /// 上次成功拉取的结果(API 不可达时的离线兜底)
   Map<String, List<CatalogEntry>> get lastGood => Map.unmodifiable(_cache);
 
-  /// 拉取全部组件的可选版本。单个组件失败不影响其他组件,
-  /// 失败的组件从 [lastGood] 回退, 全都失败时该组件返回空列表。
+  CatalogSource sourceFor(String component) => component == 'bootstrap'
+      ? bootstrap
+      : sources[component] ?? (throw StateError('未知组件：$component'));
+
+  /// Exact-tag lookup avoids depending on /latest or release ordering.
+  Future<CatalogEntry> resolve(String component, {String? tag}) async {
+    final source = sourceFor(component);
+    final selected = tag ?? source.defaultTag;
+    if (source.repo.isEmpty || !source.acceptsTag(selected)) {
+      throw StateError('未配置有效的 $component 发行版本：$selected');
+    }
+    final data = await fetchJson(
+      'https://api.github.com/repos/${source.repo}/releases/tags/${Uri.encodeComponent(selected)}',
+    );
+    if (data is! Map || data['tag_name'] != selected || data['draft'] == true) {
+      throw StateError('发行版本不可用：$selected');
+    }
+    final matches = _entries(component, source, data).toList();
+    if (matches.length != 1) {
+      throw StateError('$selected 中未找到唯一的 ${source.asset}');
+    }
+    final entry = matches.single;
+    if (entry.sha256 == null || Uri.tryParse(entry.url)?.scheme != 'https') {
+      throw StateError('$selected / ${entry.name} 缺少有效的下载地址或 SHA-256');
+    }
+    return entry;
+  }
+
+  Iterable<CatalogEntry> _entries(
+    String id,
+    CatalogSource source,
+    Map release,
+  ) sync* {
+    final tag = release['tag_name'] as String? ?? '';
+    if (release['draft'] == true ||
+        release['prerelease'] == true ||
+        !source.acceptsTag(tag)) {
+      return;
+    }
+    for (final asset in release['assets'] as List? ?? const []) {
+      final name = asset['name'] as String? ?? '';
+      if (!matchesAsset(name, source.asset)) continue;
+      yield CatalogEntry(
+        component: id,
+        repo: source.repo,
+        tag: tag,
+        name: name,
+        url: asset['browser_download_url'] as String? ?? '',
+        size: asset['size'] as int? ?? 0,
+        sha256: parseSha256(asset['digest'] as String?),
+        publishedAt: DateTime.tryParse(
+          release['published_at'] as String? ?? '',
+        ),
+      );
+    }
+  }
+
+  Future<List<dynamic>> _releases(String repo) async {
+    final all = <dynamic>[];
+    for (var page = 1; ; page++) {
+      final data = await fetchJson(
+        'https://api.github.com/repos/$repo/releases?per_page=100&page=$page',
+      );
+      if (data is! List) throw const FormatException('GitHub Releases 响应无效');
+      all.addAll(data);
+      if (data.length < 100) return all;
+    }
+  }
+
+  /// SDK parts share one paginated repository request, including older Platforms.
   Future<Map<String, List<CatalogEntry>>> collect() async {
     final result = <String, List<CatalogEntry>>{};
+    final repositories = <String, Future<List<dynamic>>>{};
     errors.clear();
-    for (final entry in sources.entries) {
-      final id = entry.key;
-      final cached = _cache[id] ?? const [];
-      if (entry.value.repo.isEmpty) {
+    for (final source in sources.entries) {
+      final id = source.key;
+      if (source.value.repo.isEmpty) {
         result[id] = const [];
         continue;
       }
       try {
-        final releases =
-            await fetchJson(
-                  'https://api.github.com/repos/${entry.value.repo}/releases?per_page=30',
-                )
-                as List? ??
-            const [];
-        final found = <CatalogEntry>[];
-        for (final release in releases) {
-          final tag = release['tag_name'] as String? ?? '';
-          final assets = release['assets'] as List? ?? const [];
-          for (final asset in assets) {
-            final name = asset['name'] as String? ?? '';
-            if (!matchesAsset(name, entry.value.asset)) continue;
-            found.add(
-              CatalogEntry(
-                component: id,
-                repo: entry.value.repo,
-                tag: tag,
-                name: name,
-                url: asset['browser_download_url'] as String? ?? '',
-                size: asset['size'] as int? ?? 0,
-                sha256: parseSha256(asset['digest'] as String?),
-                publishedAt: DateTime.tryParse(
-                  release['published_at'] as String? ?? '',
-                ),
+        final releases = await (repositories[source.value.repo] ??= _releases(
+          source.value.repo,
+        ));
+        final found =
+            [
+              for (final release in releases)
+                ..._entries(id, source.value, release as Map),
+            ]..sort(
+              (a, b) => (b.publishedAt ?? DateTime(0)).compareTo(
+                a.publishedAt ?? DateTime(0),
               ),
             );
-          }
-        }
-        if (found.isEmpty && cached.isNotEmpty) {
-          result[id] = cached;
-          continue;
-        }
-        found.sort(
-          (a, b) => (b.publishedAt ?? DateTime(0)).compareTo(
-            a.publishedAt ?? DateTime(0),
-          ),
-        );
         result[id] = found;
         _cache[id] = found;
       } on Exception catch (error) {
         errors[id] = error.toString();
-        result[id] = cached;
-        if (cached.isEmpty) _cache.remove(id);
+        result[id] = _cache[id] ?? const [];
       }
     }
     return result;
@@ -156,11 +249,18 @@ class ToolchainCatalog {
       final request = await client.getUrl(Uri.parse(url));
       request.headers.set('User-Agent', 'Flit');
       request.headers.set('Accept', 'application/vnd.github+json');
-      final response = await request.close();
+      final response = await request.close().timeout(
+        const Duration(seconds: 20),
+      );
       if (response.statusCode != 200) {
         throw HttpException('HTTP ${response.statusCode}', uri: Uri.parse(url));
       }
-      return jsonDecode(await response.transform(utf8.decoder).join());
+      return jsonDecode(
+        await response
+            .transform(utf8.decoder)
+            .join()
+            .timeout(const Duration(seconds: 20)),
+      );
     } finally {
       client.close();
     }
@@ -200,8 +300,14 @@ class CatalogSource {
     required this.repo,
     required this.asset,
     required this.install,
+    this.tagPattern = r'.+',
+    this.defaultTag = '',
   });
   final String repo;
   final String asset;
   final String install;
+  final String tagPattern;
+  final String defaultTag;
+  bool acceptsTag(String tag) =>
+      tag.isNotEmpty && RegExp(tagPattern).hasMatch(tag);
 }

@@ -90,7 +90,7 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: Text(
                 !widget.catalog.configured
-                    ? '未配置版本目录仓库，当前使用内置发行清单。'
+                    ? '未配置工具链仓库。'
                     : widget.catalog.errors.isNotEmpty
                     ? '版本目录请求失败：${widget.catalog.errors.values.join('；')}'
                     : '仓库暂无匹配的工具链版本。',
@@ -158,7 +158,11 @@ class _ToolchainVersionsSectionState extends State<ToolchainVersionsSection> {
   }
 
   static String _label(String id) => switch (id) {
-    'android-sdk' => 'Android SDK',
+    'android-sdk' => 'Android SDK 整包',
+    'build-tools' => 'Build Tools',
+    'platforms' => 'Android Platforms',
+    'platform-tools' => 'Platform Tools',
+    'cmdline-tools' => 'Command-line Tools',
     'ndk' => 'Android NDK',
     'cmake' => 'CMake',
     'flutter-sdk' => 'Flutter SDK',

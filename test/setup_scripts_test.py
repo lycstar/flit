@@ -34,6 +34,7 @@ class SetupScriptsTests(unittest.TestCase):
         self.config.write_text('true\n')
         self.env = {**os.environ, 'HOME': str(self.root), 'PREFIX': str(self.prefix),
                     'FLIT_APT_SOURCE': 'https://example.invalid/apt ./',
+                    'SDK_VERSION': '36.1.0', 'SDK_PLATFORM_VERSION': '36',
                     'TMPDIR': str(self.tmp), 'ANDROID_HOME': str(self.root / 'toolchains/android-sdk'),
                     'JAVA_HOME': str(self.root / 'jdk'), 'GRADLE_USER_HOME': str(self.root / '.gradle'),
                     'PATH': str(self.tools) + ':' + os.environ['PATH']}
@@ -331,10 +332,18 @@ exit %d
     # ---- 2-2 SDK 合并落位 ----
 
     def sdk_archive(self):
-        return self.archive([
-            ('android-sdk/build-tools/36.1.0/aapt2', '#!/bin/sh\nexit 0\n', 0o755),
-            ('android-sdk/platforms/android-36/android.jar', 'jar\n', 0o644),
-        ])
+        files = [
+            ('android-sdk/platform-tools/adb', '#!/bin/sh\nexit 0\n', 0o755),
+            ('android-sdk/cmdline-tools/latest/bin/sdkmanager', '#!/bin/sh\nexit 0\n', 0o755),
+            ('android-sdk/cmdline-tools/latest/lib/tool.jar', 'jar', 0o644),
+            ('android-sdk/build-tools/36.1.0/source.properties', 'Pkg.Revision=36.1.0', 0o644),
+            ('android-sdk/build-tools/36.1.0/lib/d8.jar', 'jar', 0o644),
+            ('android-sdk/platforms/android-36/android.jar', 'jar', 0o644),
+            ('android-sdk/platforms/android-36/source.properties', 'Pkg.Revision=1', 0o644),
+        ]
+        files += [(f'android-sdk/build-tools/36.1.0/{name}', '#!/bin/sh\nexit 0\n', 0o755)
+                  for name in ('aapt', 'aapt2', 'aidl', 'zipalign', 'd8', 'apksigner')]
+        return self.archive(files)
 
     def test_sdk_merge_install_preserves_ndk_directory(self):
         sha = self.sdk_archive()
@@ -420,6 +429,245 @@ exit %d
         self.assertFalse((self.root / 'toolchains/.staging/android-sdk').exists(), '暂存残留应被清理')
         self.assertTrue((sdk / 'platforms/android-36/android.jar').exists())
         self.assertTrue(self.marker(sdk / 'platforms/android-36').exists())
+
+    def test_platform_part_installs_without_build_tools_and_keeps_other_platforms(self):
+        sdk = self.root / 'toolchains/android-sdk'
+        (sdk / 'platforms/android-35').mkdir(parents=True)
+        (sdk / 'platforms/android-35/android.jar').write_text('old API')
+        sha = self.archive([
+            ('android-sdk/platforms/android-36.1/android.jar', 'new API', 0o644),
+            ('android-sdk/platforms/android-36.1/source.properties', 'Pkg.Revision=1', 0o644),
+        ])
+        self.install_fake_curl()
+        result = self.run_script('android_sdk.sh', '--release', 'https://test/platform', sha, 'platforms', '36.1')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertTrue(self.marker(sdk / 'platforms/android-36.1').exists())
+        self.assertEqual((sdk / 'platforms/android-35/android.jar').read_text(), 'old API')
+        removed = self.run_script('toolchain_manager.sh', '--delete', 'android-sdk/platforms/android-36.1')
+        self.assertEqual(removed.returncode, 0, removed.stdout)
+
+    def test_build_tools_part_installs_without_platform_and_rejects_wrong_version(self):
+        files = [('android-sdk/build-tools/35.0.0/source.properties', 'Pkg.Revision=35.0.0', 0o644), ('android-sdk/build-tools/35.0.0/lib/d8.jar', 'jar', 0o644)]
+        files += [(f'android-sdk/build-tools/35.0.0/{name}', '#!/bin/sh\nexit 0\n', 0o755)
+                  for name in ('aapt', 'aapt2', 'aidl', 'zipalign', 'd8', 'apksigner')]
+        sha = self.archive(files)
+        self.install_fake_curl()
+        wrong = self.run_script('android_sdk.sh', '--release', 'https://test/tools', sha, 'build-tools', '36.0.0')
+        self.assertNotEqual(wrong.returncode, 0, wrong.stdout)
+        sdk = self.root / 'toolchains/android-sdk'
+        self.assertFalse((sdk / 'build-tools/35.0.0').exists())
+        result = self.run_script('android_sdk.sh', '--release', 'https://test/tools', sha, 'build-tools', '35.0.0')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertTrue(self.marker(sdk / 'build-tools/35.0.0').exists())
+        self.assertFalse((sdk / 'platforms').exists())
+
+    def test_shared_tool_parts_can_explicitly_replace_and_restore_versions(self):
+        for component, executable in [('platform-tools', 'adb'), ('cmdline-tools', 'latest/bin/sdkmanager')]:
+            with self.subTest(component=component):
+                archive_path = f'android-sdk/{component}/{executable}'
+                libs = [('android-sdk/cmdline-tools/latest/lib/tool.jar', 'jar', 0o644)] if component == 'cmdline-tools' else []
+                first_sha = self.archive(libs + [(archive_path, '#!/bin/sh\necho first\n', 0o755)])
+                first_bytes = Path(self.env['TEST_ARCHIVE']).read_bytes()
+                self.install_fake_curl()
+                result = self.run_script('android_sdk.sh', '--release', 'https://test/first', first_sha, component, '35.0.0')
+                self.assertEqual(result.returncode, 0, result.stdout)
+                second_sha = self.archive(libs + [(archive_path, '#!/bin/sh\necho second\n', 0o755)])
+                result = self.run_script('android_sdk.sh', '--release', 'https://test/second', second_sha, component, '36.0.0')
+                self.assertEqual(result.returncode, 0, result.stdout)
+                installed = self.root / 'toolchains' / archive_path
+                self.assertIn('second', installed.read_text())
+                Path(self.env['TEST_ARCHIVE']).write_bytes(first_bytes)
+                result = self.run_script('android_sdk.sh', '--release', 'https://test/first', first_sha, component, '35.0.0')
+                self.assertEqual(result.returncode, 0, result.stdout)
+                self.assertIn('first', installed.read_text())
+
+    def test_gradle_keeps_working_aapt2_when_another_build_tools_is_added(self):
+        sdk = self.root / 'toolchains/android-sdk'
+        for version in ('35.0.0', '36.0.0'):
+            self.write_exec(sdk / f'build-tools/{version}/aapt2', '#!/bin/sh\nexit 0\n')
+        props = self.root / '.gradle/gradle.properties'
+        props.parent.mkdir()
+        props.write_text(f'android.aapt2FromMavenOverride={sdk}/build-tools/35.0.0/aapt2\n')
+        result = self.run_script('android_gradle.sh')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn('build-tools/35.0.0/aapt2', props.read_text())
+        self.assertIn('android.builder.sdkDownload=false', props.read_text())
+
+    def platform_manager_stub(self):
+        manager = self.root / 'toolchains/android-sdk/cmdline-tools/latest/bin/sdkmanager'
+        self.write_exec(manager, '''#!/bin/bash
+printf '%s\n' "$@" >> "$HOME/sdkmanager-calls"
+[ "${MANAGER_FAIL:-0}" = 0 ] || exit 9
+api=${!#}
+api=${api#platforms;android-}
+mkdir -p "$ANDROID_HOME/platforms/android-$api"
+echo jar > "$ANDROID_HOME/platforms/android-$api/android.jar"
+echo Pkg.Revision=1 > "$ANDROID_HOME/platforms/android-$api/source.properties"
+''')
+
+    def test_sdk_repair_does_not_trust_receipt_for_non_runnable_aapt2(self):
+        sha = self.sdk_archive()
+        self.config.write_text(f"SDK_URLS=('https://test/sdk')\nSDK_SHA256='{sha}'\n")
+        self.install_fake_curl()
+        result = self.run_script('android_sdk.sh')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        aapt = self.root / 'toolchains/android-sdk/build-tools/36.1.0/aapt2'
+        self.write_exec(aapt, '#!/bin/sh\nexit 126\n')
+        result = self.run_script('android_sdk.sh')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn('exit 0', aapt.read_text())
+        result = self.run_script('android_components.sh', 'build-tools:36.1.0')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertNotIn('__MISSING__', result.stdout)
+
+    def test_managed_build_keeps_exit_code_without_silent_download_or_retry(self):
+        self.platform_manager_stub()
+        self.write_exec(self.root / 'toolchains/android-sdk/build-tools/36.0.0/aapt2',
+                        '#!/bin/sh\nexit 0\n')
+        self.write_exec(self.tools / 'fake-build', """#!/bin/bash
+echo build >> "$HOME/build-calls"
+echo "Failed to find Platform SDK with path: platforms;android-34"
+exit 8
+""")
+        result = self.run_script('android_build.sh', 'fake-build')
+        self.assertEqual(result.returncode, 8, result.stdout)
+        self.assertEqual((self.root / 'build-calls').read_text(), 'build\n')
+        self.assertFalse((self.root / 'sdkmanager-calls').exists())
+        self.assertIn('android.builder.sdkDownload=false',
+                      (self.root / '.gradle/gradle.properties').read_text())
+
+    def test_managed_build_does_not_launch_without_working_aapt2(self):
+        self.write_exec(self.tools / 'fake-build', '#!/bin/sh\ntouch "$HOME/launched"\n')
+        result = self.run_script('android_build.sh', 'fake-build')
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertFalse((self.root / 'launched').exists())
+
+    def test_explicit_platform_installer_only_requests_one_platform(self):
+        self.platform_manager_stub()
+        result = self.run_script('android_platform.sh', '34')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        calls = (self.root / 'sdkmanager-calls').read_text()
+        self.assertIn('platforms;android-34', calls)
+        self.assertNotIn('build-tools;', calls)
+        self.assertTrue(self.marker(self.root / 'toolchains/android-sdk/platforms/android-34').exists())
+
+    def test_failed_platform_download_has_no_success_marker(self):
+        self.platform_manager_stub()
+        self.env['MANAGER_FAIL'] = '1'
+        result = self.run_script('android_platform.sh', '34')
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertFalse(self.marker(self.root / 'toolchains/android-sdk/platforms/android-34').exists())
+
+    def test_component_probe_is_read_only_and_covers_native_tools(self):
+        self.write_exec(self.root / 'jdk/bin/java', '#!/bin/sh\nexit 0\n')
+        result = self.run_script('android_components.sh', '--baseline', '--device',
+                                 'platforms:34', 'ndk:28.2.13676358', 'cmake:3.22.1', 'cmdline-tools:')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        for missing in ('build-tools:36.1.0', 'platform-tools:', 'platforms:34',
+                        'ndk:28.2.13676358', 'cmake:3.22.1', 'cmdline-tools:'):
+            self.assertIn('__MISSING__' + missing, result.stdout)
+        self.assertFalse((self.root / 'toolchains/android-sdk').exists())
+
+    def test_component_probe_rejects_non_runnable_binary_and_wrong_cmake_version(self):
+        sdk = self.root / 'toolchains/android-sdk'
+        self.write_exec(sdk / 'platform-tools/adb', '#!/bin/sh\nexit 126\n')
+        self.write_exec(sdk / 'cmake/3.22.1/bin/cmake', '#!/bin/sh\necho "cmake version 3.31.6"\n')
+        self.write_exec(sdk / 'cmake/3.22.1/bin/ninja', '#!/bin/sh\nexit 0\n')
+        (sdk / 'cmake/3.22.1/source.properties').write_text('Pkg.Revision=3.22.1')
+        result = self.run_script('android_components.sh', 'platform-tools:', 'cmake:3.22.1')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn('__MISSING__platform-tools:', result.stdout)
+        self.assertIn('__MISSING__cmake:3.22.1', result.stdout)
+
+    def test_ndk_requested_full_revision_is_verified_before_publish(self):
+        sha = self.ndk_fixture()
+        self.install_fake_curl()
+        result = self.run_script('android_ndk.sh', '--release', 'https://test/ndk', sha, '28.2.99999999')
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn('产物实际为 28.2.13676358', result.stdout)
+        self.assertFalse((self.root / 'toolchains/ndk/28.2.13676358').exists())
+        result = self.run_script('android_ndk.sh', '--release', 'https://test/ndk', sha, '28.2.13676358')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        # 相同摘要的快速路径也不得绕过完整版本校验。
+        result = self.run_script('android_ndk.sh', '--release', 'https://test/ndk', sha, '28.2.99999999')
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+
+    def test_sdk_install_rejects_archive_that_would_fail_the_shared_probe(self):
+        files = [('android-sdk/build-tools/35.0.0/source.properties', 'Pkg.Revision=35.0.0', 0o644)]
+        files += [(f'android-sdk/build-tools/35.0.0/{name}', '#!/bin/sh\nexit 0\n', 0o755)
+                  for name in ('aapt', 'aapt2', 'aidl', 'zipalign', 'd8', 'apksigner')]
+        sha = self.archive(files)  # 缺 d8.jar，不能先标记成功再让检测判失败。
+        self.install_fake_curl()
+        result = self.run_script('android_sdk.sh', '--release', 'https://test/tools', sha, 'build-tools', '35.0.0')
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertFalse((self.root / 'toolchains/android-sdk/build-tools/35.0.0').exists())
+
+    def test_installed_list_and_gradle_probe_reject_non_runnable_binary(self):
+        sdk = self.root / 'toolchains/android-sdk'
+        aapt = sdk / 'build-tools/36.0.0/aapt2'
+        self.write_exec(aapt, '#!/bin/sh\nexit 0\n')
+        self.marker(aapt.parent).write_text('fixture')
+        self.assertEqual(self.run_script('android_gradle.sh').returncode, 0)
+        self.write_exec(aapt, '#!/bin/sh\nexit 126\n')
+        result = self.run_script('android_gradle.sh', '--check')
+        self.assertIn('__STAGE__android_gradle:PENDING', result.stdout)
+        listed = self.run_script('toolchain_manager.sh', '--list')
+        line = next(l for l in listed.stdout.splitlines() if 'build-tools/36.0.0|' in l)
+        self.assertEqual(line.split('|')[3], '0')
+
+    def test_flutter_switch_rejects_unrunnable_dart_and_protects_absolute_current(self):
+        base = self.root / 'toolchains/flutter'
+        for version in ('3.47.8', '3.48.0'):
+            self.write_exec(base / version / 'bin/flutter', '#!/bin/sh\nexit 0\n')
+            self.write_exec(base / version / 'bin/cache/dart-sdk/bin/dart', '#!/bin/sh\nexit 0\n')
+            self.marker(base / version).write_text('fixture')
+        self.write_exec(base / '3.48.0/bin/cache/dart-sdk/bin/dart', '#!/bin/sh\nexit 126\n')
+        result = self.run_script('toolchain_manager.sh', '--select', '3.48.0')
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        (base / 'current').unlink()
+        (base / 'current').symlink_to(base / '3.47.8')
+        result = self.run_script('toolchain_manager.sh', '--delete', 'flutter/3.47.8')
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertTrue((base / '3.47.8').exists())
+        listed = self.run_script('toolchain_manager.sh', '--list')
+        line = next(l for l in listed.stdout.splitlines() if '__TOOL__flutter/3.47.8|' in l)
+        self.assertEqual(line.split('|')[2:4], ['1', '1'])
+
+    def test_nonstandard_tool_directory_is_rejected_without_migration(self):
+        old = self.root / 'toolchains/android-sdk/ndk/28.2.13676358'
+        old.mkdir(parents=True)
+        (old / 'keep').write_text('preserved')
+        result = subprocess.run(['bash', '-c', '. "$1"; link_android_tools', '_', str(SCRIPTS / 'lib.sh')],
+                                env=self.env, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertFalse((self.root / 'toolchains/android-sdk/ndk').is_symlink())
+        self.assertEqual((old / 'keep').read_text(), 'preserved')
+        self.assertFalse((self.root / 'toolchains/ndk/ndk').exists())
+
+    def test_publish_recovers_backup_when_previous_run_was_interrupted(self):
+        backup = self.root / 'target.replaced'
+        backup.mkdir()
+        (backup / 'old').write_text('keep')
+        (self.root / 'stage').mkdir()
+        result = subprocess.run(['bash', '-c',
+            '. "$1"; mv() { if [ "$1" = "$HOME/stage" ]; then return 1; fi; command mv "$@"; }; publish_directory "$HOME/stage" "$HOME/target"',
+            '_', str(SCRIPTS / 'lib.sh')], env=self.env, text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertEqual((self.root / 'target/old').read_text(), 'keep')
+
+    def test_check_propagates_probe_failure_and_overrides_stale_done(self):
+        scripts = self.root / 'scripts'
+        scripts.mkdir()
+        shutil.copyfile(SCRIPTS / 'check.sh', scripts / 'check.sh')
+        names = ('android_jdk', 'android_sdk', 'android_ndk', 'android_cmake', 'android_gradle',
+                 'flutter_tools', 'flutter_sdk', 'flutter_warmup')
+        for name in names:
+            self.write_exec(scripts / (name + '.sh'), f'#!/bin/sh\necho __STAGE__{name}:DONE\nexit {7 if name == "android_ndk" else 0}\n')
+        result = subprocess.run(['bash', str(scripts / 'check.sh')], text=True, stdout=subprocess.PIPE)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('__STAGE__android_ndk:FAILED', result.stdout)
+        self.assertIn('__STAGE__flutter_warmup:DONE', result.stdout)
 
     # ---- 2-3 NDK ----
 
@@ -581,13 +829,19 @@ exit %d
         self.assertNotEqual((self.root / 'curl-calls').read_text(), calls)
 
     def test_sdk_bundle_cannot_replace_managed_ndk_and_cmake_links(self):
-        sha = self.archive([
-            ('android-sdk/build-tools/36.1.0/aapt2', '#!/bin/sh\nexit 0\n', 0o755),
+        files = [
+            ('android-sdk/build-tools/36.1.0/source.properties', 'Pkg.Revision=36.1.0', 0o644),
+            ('android-sdk/build-tools/36.1.0/lib/d8.jar', 'jar', 0o644),
             ('android-sdk/platforms/android-36/android.jar', 'jar', 0o644),
+            ('android-sdk/platforms/android-36/source.properties', 'Pkg.Revision=1', 0o644),
             ('android-sdk/ndk/99/tool', 'unwanted', 0o644),
             ('android-sdk/cmake/99/tool', 'unwanted', 0o644),
             ('android-sdk/cmdline-tools/bin/sdkmanager', '#!/bin/sh\nexit 0\n', 0o755),
-        ])
+            ('android-sdk/cmdline-tools/lib/tool.jar', 'jar', 0o644),
+        ]
+        files += [(f'android-sdk/build-tools/36.1.0/{name}', '#!/bin/sh\nexit 0\n', 0o755)
+                  for name in ('aapt', 'aapt2', 'aidl', 'zipalign', 'd8', 'apksigner')]
+        sha = self.archive(files)
         self.install_fake_curl()
         result = self.run_script('android_sdk.sh', '--release', 'https://test/sdk', sha)
         self.assertEqual(result.returncode, 0, result.stdout)

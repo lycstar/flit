@@ -98,7 +98,7 @@ flutter build apk --debug --target-platform android-arm64
 
 ## 运行环境分发
 
-应用默认下载地址和 SHA-256 摘要定义在 [`assets/toolchain_manifest.json`](assets/toolchain_manifest.json) 中。bootstrap 和 APT 软件包必须针对 `/data/data/cc.lycstar.flit/files/usr` 编译。修改下载地址或应用 ID，不能迁移为其他应用编译的二进制文件中的路径。
+应用只保留仓库和默认版本，安装时按 tag 从 GitHub API 获取下载资产与 SHA-256，不内置下载清单。bootstrap 和 APT 软件包必须针对 `/data/data/cc.lycstar.flit/files/usr` 编译。修改下载地址或应用 ID，不能迁移为其他应用编译的二进制文件中的路径。
 
 | 配套仓库 | 职责 |
 | --- | --- |
@@ -109,11 +109,13 @@ flutter build apk --debug --target-platform android-arm64
 | [cmake-custom](https://github.com/lycstar/cmake-custom) | 面向 Android ARM64 宿主的 CMake 与 Ninja |
 | [flutter-sdk-custom](https://github.com/lycstar/flutter-sdk-custom) | Flutter 与 Dart SDK 分发 |
 
-工具链构建脚本由这些仓库维护。本仓库仅保留应用的安装脚本和发行清单。版本目录与验证要求见[运行环境配置](docs/runtime-environment.md)。
+工具链构建脚本由这些仓库维护。本仓库维护应用安装脚本和版本选择规则。版本目录与验证要求见[运行环境配置](docs/runtime-environment.md)。
 
 工具链 Tag 统一使用组件前缀与完整版本：`sdk-36.0.0`（Build Tools）、`ndk-r27d`、`llvm-r27d`、`cmake-3.22.1`、`flutter-3.47.8`。NDK 的 r27 与 r27d 属于不同修订版，独立发布。
 
-SDK 构建矩阵覆盖 Build Tools **30.0.3、33.0.1、34.0.0、35.0.0、36.0.0**，其中 36.0.0 安装包还包含 **API 30–36** 的 Android Platforms。NDK 补充构建 **r25b（25.1.8937393）、r26b（26.1.10909125）、r27（27.0.12077973）**，与已有 r28c 及更新版本并存。构建发布成功后，相应版本才会出现在版本目录中。CMake **3.22.1** 与 **3.31.6** 也可在同一目录中选择。
+SDK 使用 `sdk-<Build Tools版本>` 发布，整包只带对应的一个 Platform；`platform-<API>` 提供独立平台分包。当前提供 Build Tools **34.0.0、35.0.0、36.0.0、37.0.0**，App 默认初始化 36.0.0。NDK 补充构建 **r25b（25.1.8937393）、r26b（26.1.10909125）、r27（27.0.12077973）**，与已有 r28c 及更新版本并存。构建发布成功后，相应版本才会出现在版本目录中。CMake **3.22.1** 与 **3.31.6** 也可在同一目录中选择。
+
+应用的 APK 构建和 Android 设备运行由独立 `AndroidBuildWrapper` 检查缺失组件，确认后安装并最多重试一次；覆盖 Platform、Build Tools、NDK、CMake/Ninja 和设备运行所需的 Platform Tools。宿主工具保持 ARM64 适配包，AGP 通用自动下载保持关闭。
 
 ## 目录结构
 
@@ -124,7 +126,7 @@ SDK 构建矩阵覆盖 Build Tools **30.0.3、33.0.1、34.0.0、35.0.0、36.0.0*
 | `lib/features/` | 项目、工作区、编辑器、终端、环境、设备、Git 与设置 |
 | `lib/services/` | 无状态的进程与文件边界、系统集成 |
 | `plugins/` | 五个职责明确的 Android 原生插件 |
-| `assets/` | 安装脚本、下载清单、图标与字体 |
+| `assets/` | 安装脚本、图标与字体 |
 | `test/` | 控制器、组件、协议与安装脚本测试 |
 | `docs/` | 架构、运行环境配置与交互规则 |
 | `third_party/` | 随仓库维护的第三方源码及其许可证 |

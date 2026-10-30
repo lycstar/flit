@@ -4,7 +4,7 @@ import '../../services/shell.dart';
 
 /// bootstrap 阶段: 从 GitHub Release 下载明文 ZIP → 校验完整性 → 全量解压。
 /// 输出下载地址、进度、校验结果和原生解压错误。
-/// 基础环境必须与应用前缀一致，地址与校验值由清单提供。
+/// 基础环境必须与应用前缀一致，地址与校验值在安装时从 GitHub Release API 获取。
 class BootstrapInstaller {
   static Future<void> install({
     required String url,

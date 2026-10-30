@@ -44,7 +44,7 @@ verify_tools() {
 }
 
 probe() {
-  if installed_ok "$CMAKE_DIR" && [ -s "$CMAKE_DIR/source.properties" ] && tools_work && [ "$(readlink "$ANDROID_HOME/cmake")" = ../cmake ]; then
+  if installed_ok "$CMAKE_DIR" && component_usable cmake "$CMAKE_DIR" "$CMAKE_VERSION" && [ "$(readlink "$ANDROID_HOME/cmake")" = ../cmake ]; then
     st "$STAGE" DONE
     echo "__VER__$STAGE:$(version)"
   else

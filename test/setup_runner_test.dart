@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flit/features/environment/setup_runner.dart';
+import 'package:flit/features/environment/toolchain_catalog.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +17,18 @@ void main() {
       final source = File('${prefix.path}/etc/apt/sources.list');
       source.parent.createSync(recursive: true);
       source.writeAsStringSync('keep this configuration\n');
-      await SetupRunner(home: home.path, prefix: prefix.path).installScripts();
+      final catalog = ToolchainCatalog()
+        ..fetchJson = (_) async =>
+            throw StateError('Environment checks must stay offline');
+      await SetupRunner(
+        home: home.path,
+        prefix: prefix.path,
+        catalog: catalog,
+      ).installScripts();
+      final environment = File('${home.path}/.flit/env.sh').readAsStringSync();
+      expect(environment, isNot(contains('.tar.xz')));
+      expect(environment, isNot(contains('SHA256=')));
+      expect(environment, isNot(contains('toolchain_manifest')));
       final result = await Process.run(
         'bash',
         [
@@ -49,6 +61,40 @@ printf '%s\n' "$PATH" "$LD_LIBRARY_PATH"
         Directory('${prefix.path}/etc/apt/sources.list.d').existsSync(),
         isFalse,
       );
+    },
+  );
+  test(
+    'default installation resolves one stage lazily and keeps initialization mode',
+    () async {
+      final requests = <String>[];
+      final catalog = ToolchainCatalog()
+        ..fetchJson = (url) async {
+          requests.add(url);
+          return {
+            'tag_name': 'sdk-36.0.0',
+            'assets': [
+              {
+                'name': 'android-sdk.tar.xz',
+                'size': 1,
+                'browser_download_url': 'https://example.invalid/sdk',
+                'digest': 'sha256:${'a' * 64}',
+              },
+            ],
+          };
+        };
+      final runner = SetupRunner(
+        home: '/home',
+        prefix: '/usr',
+        catalog: catalog,
+      );
+      final plain = await runner.stageCommand('android_jdk');
+      expect(plain, contains('android_jdk.sh'));
+      expect(requests, isEmpty);
+      final command = await runner.stageCommand('android_sdk');
+      expect(requests.single, endsWith('/releases/tags/sdk-36.0.0'));
+      expect(command, contains('--install'));
+      expect(command, contains("'android-sdk' '36.0.0'"));
+      expect(command, contains('https://example.invalid/sdk'));
     },
   );
 }

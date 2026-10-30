@@ -23,7 +23,7 @@ probe() {
 }
 
 install() {
-  if [ -x "$JAVA_HOME/bin/java" ] && "$JAVA_HOME/bin/java" -version >/dev/null 2>&1; then
+  if [ -x "$JAVA_HOME/bin/java" ] && timeout 10 "$JAVA_HOME/bin/java" -version >/dev/null 2>&1; then
     ok "[jdk] 已安装，跳过"
   else
     # java 文件在但起不来 = 上次装到一半: 包状态可能已是 ii, 不加 --reinstall apt 会说
@@ -43,7 +43,7 @@ install() {
   [ -x "$JAVA_HOME/bin/java" ] || die "[jdk] ✗ 安装后仍缺少 $JAVA_HOME/bin/java"
   mkdir -p "$TMPDIR"
   _f="$TMPDIR/jdk-version.$$"
-  "$JAVA_HOME/bin/java" -version 2>&1 | tee "$_f" ||
+  timeout 10 "$JAVA_HOME/bin/java" -version 2>&1 | tee "$_f" ||
     die "[jdk] ✗ Java 无法运行，请查看上方动态库或运行时错误"
   echo "__VER__$STAGE:$(awk -F'"' '/version/ { print $2; exit }' "$_f")"
   rm -f "$_f"

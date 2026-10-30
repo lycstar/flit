@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
+import 'android_build_wrapper.dart';
 import 'bootstrap_installer.dart';
 import 'setup_runner.dart';
 import '../../services/shell.dart';
@@ -140,10 +141,31 @@ class StageState {
 
 /// App-owned installation task; navigation never changes its process lifetime.
 class EnvironmentController extends ChangeNotifier {
-  EnvironmentController({required ProcessLauncher launcher})
-    : _launcher = launcher;
+  EnvironmentController({
+    required ProcessLauncher launcher,
+    bool Function()? projectBusy,
+    Future<void> Function()? onFlutterChanged,
+  }) : _launcher = launcher,
+       _projectBusy = projectBusy ?? (() => false),
+       _onFlutterChanged = onFlutterChanged {
+    AndroidBuildWrapper.installationBusy.addListener(notifyListeners);
+  }
+
+  @override
+  void dispose() {
+    AndroidBuildWrapper.installationBusy.removeListener(notifyListeners);
+    super.dispose();
+  }
 
   final ProcessLauncher _launcher;
+  final bool Function() _projectBusy;
+  final Future<void> Function()? _onFlutterChanged;
+
+  bool _canMutate() {
+    if (!_projectBusy()) return true;
+    _term('项目任务正在使用开发环境，请先结束任务再安装、切换或删除组件', color: _cWarn);
+    return false;
+  }
 
   /// 当前任务的控制台: 安装=run(能停能删), 检测/探测=temp(只能删)。
   /// 没任务或被 ✕ 关掉后为 null, 面板回落到默认 bash——会话只在任务跑起来时才有。
@@ -153,7 +175,11 @@ class EnvironmentController extends ChangeNotifier {
 
   /// 版本目录的安装进行中(临时会话流式输出)
   bool installing = false;
-  bool get busy => pipelineRunning || checking || installing;
+  bool get busy =>
+      pipelineRunning ||
+      checking ||
+      installing ||
+      AndroidBuildWrapper.installing;
   List<InstalledToolchain> installed = [];
   // 状态按子任务维护(bootstrap + 7 个脚本), 展示层按 stageParts 聚合成 3 行
   final Map<String, StageState> stages = {
@@ -162,6 +188,7 @@ class EnvironmentController extends ChangeNotifier {
   };
   bool pipelineRunning = false;
   bool allDone = false;
+  bool _checkFailed = false;
 
   String? home;
   String? prefix;
@@ -180,58 +207,54 @@ class EnvironmentController extends ChangeNotifier {
       _term('当前有任务进行中，请等待完成后再安装版本', color: _cWarn);
       return;
     }
+    if (!_canMutate()) return;
     if (stages['bootstrap']!.state != 'DONE') {
       _term('请先安装基础环境，再安装其他版本', color: _cWarn);
       return;
     }
-    if (ToolchainCatalog.parseSha256('sha256:${entry.sha256}') == null) {
-      _term('该产物缺少校验值，已拒绝安装', color: _cErr);
-      return;
-    }
     installing = true;
+    AndroidBuildWrapper.installing = true;
     notifyListeners();
     final c = _openConsole('安装 ${entry.name}', SessionKind.temp);
     try {
+      _line(c, '正在获取 ${entry.tag} 的下载信息…');
+      final current = await _runner!.catalog.resolve(
+        entry.component,
+        tag: entry.tag,
+      );
+      if (c.disposed || c.stopRequested) return;
       final code = await _runInTerminal(
         c,
-        buildInstallCommand(entry),
+        buildInstallCommand(current),
         timeout: const Duration(minutes: 45),
       );
       if (code == 0) {
         _line(c, '✓ ${entry.name} 安装完成', _cOk);
+        if (entry.component == 'flutter-sdk') await _onFlutterChanged?.call();
       } else {
         _line(c, '安装失败，退出码 $code（详细输出见上）', _cErr);
       }
       await _refreshStatus(c);
+    } catch (error) {
+      _line(c, '安装失败：$error', _cErr);
     } finally {
       installing = false;
+      AndroidBuildWrapper.installing = false;
       notifyListeners();
     }
   }
 
   @visibleForTesting
-  static String buildInstallCommand(CatalogEntry entry) {
-    final sha = entry.sha256!;
-    final script = switch (entry.component) {
-      'android-sdk' => 'android_sdk.sh',
-      'flutter-sdk' => 'flutter_sdk.sh',
-      'cmake' => 'android_cmake.sh',
-      'ndk' => 'android_ndk.sh',
-      _ => throw StateError('组件不支持版本安装: ${entry.component}'),
-    };
-    final version = entry.tag.replaceFirst(RegExp(r'^(flutter|cmake)-'), '');
-    return 'bash "\$HOME/.flit/scripts/$script" --release '
-        '${shQuote(entry.url)} ${shQuote(sha)}'
-        '${{'flutter-sdk', 'cmake'}.contains(entry.component) ? ' ${shQuote(version)}' : ''}'
-        '${entry.component == 'android-sdk' ? ' && bash "\$HOME/.flit/scripts/android_gradle.sh"' : ''}';
-  }
+  static String buildInstallCommand(CatalogEntry entry) =>
+      SetupRunner.installCommand(entry);
 
   Future<void> changeInstalled(
     InstalledToolchain tool, {
     bool delete = false,
   }) async {
-    if (busy || _runner == null) return;
+    if (busy || _runner == null || !_canMutate()) return;
     installing = true;
+    AndroidBuildWrapper.installing = true;
     notifyListeners();
     final c = _openConsole(
       '${delete ? '删除' : '切换'} ${tool.title}',
@@ -243,9 +266,13 @@ class EnvironmentController extends ChangeNotifier {
           '${delete ? '--delete ${shQuote(tool.path)}' : '--select ${shQuote(tool.version)}'}';
       final code = await _runInTerminal(c, command);
       if (code != 0) _line(c, '操作失败，退出码 $code（详细输出见上）', _cErr);
+      if (code == 0 && !delete && tool.isFlutter) {
+        await _onFlutterChanged?.call();
+      }
       await _refreshStatus(c);
     } finally {
       installing = false;
+      AndroidBuildWrapper.installing = false;
       notifyListeners();
     }
   }
@@ -301,7 +328,10 @@ class EnvironmentController extends ChangeNotifier {
       kind: kind,
       launcher: _launcher,
     );
-    session.textStream.listen(_onPtyText);
+    session.textStream.listen((chunk) {
+      // 已被替换的控制台可能还在排空输出，不能再覆盖新一轮检测的状态。
+      if (identical(console, session)) _onPtyText(chunk);
+    });
     session.addListener(() {
       if (session.disposed && identical(console, session)) {
         console = null;
@@ -368,7 +398,7 @@ class EnvironmentController extends ChangeNotifier {
   }
 
   void _updateAllDone() {
-    allDone = stages.values.every((s) => s.state == 'DONE');
+    allDone = !_checkFailed && stages.values.every((s) => s.state == 'DONE');
   }
 
   /// 已装状态重算: 在终端内可见地跑 check.sh(幂等, 供重启后续装)。
@@ -385,6 +415,8 @@ class EnvironmentController extends ChangeNotifier {
   }
 
   Future<void> _refreshStatus([ConsoleSession? existing]) async {
+    _checkFailed = true; // 完整检测成功前，不能被提前到达的 DONE 标记解锁。
+    _updateAllDone();
     final bootstrapped =
         (await Shell.instance.bootstrapStatus())['bootstrapped'] == true;
     stages['bootstrap']!.state = bootstrapped ? 'DONE' : 'PENDING';
@@ -399,7 +431,10 @@ class EnvironmentController extends ChangeNotifier {
         'bash ${shQuote('${_runner!.scriptsDir}/check.sh')}',
         timeout: const Duration(minutes: 2),
       );
-      if (code != 0) _line(c, '环境检查未完成，退出码 $code', _cErr);
+      _checkFailed = code != 0;
+      if (code != 0) {
+        _line(c, '环境检查未完成，退出码 $code', _cErr);
+      }
       await _loadSizes();
       await _loadInstalled();
     }
@@ -413,6 +448,7 @@ class EnvironmentController extends ChangeNotifier {
         'bash "\$HOME/.flit/scripts/toolchain_manager.sh" --list',
         timeoutMs: 60000,
       );
+      if (result['exitCode'] != 0) throw StateError('组件目录检测失败');
       installed =
           (result['output'] as String? ?? '')
               .split('\n')
@@ -466,11 +502,15 @@ class EnvironmentController extends ChangeNotifier {
   /// 顺序在真终端里执行(失败即停, 后续 BLOCKED)。
   /// 停止旗标只有会话这一份(终端头部的停止按钮直接 stop 会话), 每步做完看一眼。
   Future<void> startPipeline() async {
-    if (busy || _runner == null) return;
+    if (busy || _runner == null || !_canMutate()) return;
     pipelineRunning = true;
+    AndroidBuildWrapper.installing = true;
     // 整个安装共用一个 run 控制台: 能停(⏹, 输出留着,「继续安装」重跑)能删(✕)
     final c = _openConsole('安装环境', SessionKind.run);
     try {
+      // 界面状态只是上次快照。继续安装前复查，已被删除/损坏的阶段不能直接跳过。
+      await _refreshStatus(c);
+      if (_stopped(c)) return;
       // ① bootstrap: 下载自建产物(校验) → 原生全量解压(bash/软链/权限)
       if (stages['bootstrap']!.state != 'DONE') {
         stages['bootstrap']!.state = 'RUNNING';
@@ -480,6 +520,10 @@ class EnvironmentController extends ChangeNotifier {
         c.beginTask();
         try {
           final spec = await _runner!.bootstrapSpec();
+          if (c.disposed || c.stopRequested) {
+            stages['bootstrap']!.state = 'PENDING';
+            return;
+          }
           await BootstrapInstaller.install(
             url: spec.url,
             sha256: spec.sha256,
@@ -497,7 +541,9 @@ class EnvironmentController extends ChangeNotifier {
           _blockAfter('bootstrap');
           return;
         } finally {
-          c.endTask(code: stages['bootstrap']!.state == 'DONE' ? 0 : 1);
+          if (!c.disposed) {
+            c.endTask(code: stages['bootstrap']!.state == 'DONE' ? 0 : 1);
+          }
         }
       }
 
@@ -513,18 +559,25 @@ class EnvironmentController extends ChangeNotifier {
           if (_stopped(c)) return;
           if (stages[part]!.state != 'DONE') {
             _line(c, '✗ $title 安装失败，已跳过后续步骤', _cErr);
-            _blockAfter(id);
+            _blockAfter(part);
             return;
           }
         }
         _line(c, '✓ $title 完成', _cOk);
       }
 
-      _line(c, '✓ 安装完成，开发环境已就绪', _cOk);
+      await _refreshStatus(c);
+      if (_stopped(c)) return;
+      _line(
+        c,
+        allDone ? '✓ 安装完成，开发环境已就绪' : '环境复查未通过，请查看缺失或失败的组件',
+        allDone ? _cOk : _cErr,
+      );
     } finally {
       await _loadSizes();
       await _loadInstalled();
       pipelineRunning = false;
+      AndroidBuildWrapper.installing = false;
       for (final stage in stages.values) {
         if (stage.state == 'RUNNING') {
           stage.state = c.stopRequested ? 'PENDING' : 'FAILED';
@@ -537,7 +590,7 @@ class EnvironmentController extends ChangeNotifier {
 
   /// 用户停止: 不判失败、已完成的阶段保留, 点「继续安装」从断点续装
   bool _stopped(ConsoleSession c) {
-    if (!c.stopRequested) return false;
+    if (!c.stopRequested && !c.disposed) return false;
     _line(c, '已停止，可随时继续安装', _cWarn);
     return true;
   }
@@ -550,15 +603,28 @@ class EnvironmentController extends ChangeNotifier {
   }
 
   Future<void> _runStageInTerminal(ConsoleSession c, String id) async {
-    final code = await _runInTerminal(
-      c,
-      'bash ${shQuote('${_runner!.scriptsDir}/$id.sh')}',
-    );
+    String command;
+    c.beginTask();
+    try {
+      _line(c, '准备 ${partNames[id] ?? id}…');
+      command = await _runner!.stageCommand(id);
+      command += ' && bash ${shQuote('${_runner!.scriptsDir}/$id.sh')} --check';
+    } catch (error) {
+      _line(c, '获取安装信息失败：$error', _cErr);
+      stages[id]!.state = 'FAILED';
+      return;
+    } finally {
+      if (!c.disposed) c.endTask(code: stages[id]!.state == 'FAILED' ? 1 : 0);
+    }
+    if (c.disposed || c.stopRequested) {
+      stages[id]!.state = 'PENDING';
+      return;
+    }
+    final code = await _runInTerminal(c, command);
     if (c.stopRequested) {
       stages[id]!.state = 'PENDING';
-    } else if (code == 0) {
-      // 退出码是唯一成功判据(脚本任何错误都 die 非零); __STAGE__ DONE 标记
-      // 只做过程展示, 不能反过来否决一次成功的安装
+    } else if (code == 0 && stages[id]!.state == 'DONE') {
+      // 安装和紧随其后的只读检测都通过，才能推进流水线。
       stages[id]!.state = 'DONE';
     } else {
       stages[id]!.state = 'FAILED';
@@ -568,20 +634,14 @@ class EnvironmentController extends ChangeNotifier {
   }
 
   void _blockAfter(String id) {
-    // id = 失败的可见阶段; 其后的可见阶段整体拉黑(已完成组件除外)
     var blocked = false;
-    for (final s in stageDefs) {
-      final sid = s['id'] as String;
-      if (sid == id) {
+    for (final part in stageParts.values.expand((parts) => parts)) {
+      if (part == id) {
         blocked = true;
         continue;
       }
-      if (blocked) {
-        for (final part in stageParts[sid]!) {
-          if (stages[part]!.state != 'DONE') {
-            stages[part]!.state = 'BLOCKED';
-          }
-        }
+      if (blocked && stages[part]!.state != 'DONE') {
+        stages[part]!.state = 'BLOCKED';
       }
     }
     notifyListeners();

@@ -18,6 +18,7 @@ class RunConfiguration {
     this.kind = SessionKind.temp,
     this.hotReload = false,
     this.exclusive = false,
+    this.readOnly = false,
     this.target,
     this.artifactPath,
     this.installAfterBuild = false,
@@ -28,10 +29,13 @@ class RunConfiguration {
   final SessionKind kind;
   final bool hotReload;
 
-  /// 与任何存活会话互斥(占用同一构建树/产物: 构建、clean)。
-  /// 普通工具任务(pub get/analyze/装包)允许与 run 并存——开发循环就是
-  /// "run 活着 → 加依赖 → pub get → hot reload", 一刀切互斥会砍断它。
+  /// clean、工具链安装会删除/替换运行所需的文件，必须独占项目。
+  /// 普通打包使用独立临时会话，可以与已启动的 run 并存。
   final bool exclusive;
+
+  /// 不改依赖和构建目录的诊断任务可并行；其余临时任务之间串行，避免两个
+  /// 构建或 pub get/build 同时写入 build/、.dart_tool/ 和 package_config。
+  final bool readOnly;
   final String? target;
   final String? artifactPath;
   final bool installAfterBuild;
@@ -80,6 +84,44 @@ class RunSessions extends ChangeNotifier {
     return null;
   }
 
+  /// 菜单和真正启动共用冲突规则，不能在 UI 用“有任意任务”一刀切。
+  /// run 是持续的设备连接；临时任务独立启动、显示输出、关闭，不结束 run。
+  String? conflictFor(RunConfiguration configuration) {
+    for (final session in _sessions.values.where((s) => s.alive)) {
+      final other = session.configuration;
+      if (configuration.kind == SessionKind.temp &&
+          other.id == configuration.id) {
+        continue; // 重复点击只选中已有任务。
+      }
+      if (configuration.exclusive || other.exclusive) {
+        return '“${other.title}”与该操作需要独占项目，请结束后重试';
+      }
+      if (other.kind == SessionKind.temp &&
+          !other.readOnly &&
+          (configuration.kind == SessionKind.run || !configuration.readOnly)) {
+        return '“${other.title}”正在更新依赖或构建文件，请等待完成';
+      }
+    }
+    return null;
+  }
+
+  /// 打包/改依赖期间保留设备会话，但暂停热重载和重启编译。
+  bool get hasWritingTask => _sessions.values.any(
+    (s) =>
+        s.alive &&
+        s.configuration.kind == SessionKind.temp &&
+        !s.configuration.readOnly,
+  );
+
+  RunSession? get activeRun {
+    for (final session in _sessions.values) {
+      if (session.alive && session.configuration.kind == SessionKind.run) {
+        return session;
+      }
+    }
+    return null;
+  }
+
   bool isStarting(String configurationId) =>
       _pending.containsKey(configurationId);
   bool get starting => _pending.isNotEmpty;
@@ -121,28 +163,9 @@ class RunSessions extends ChangeNotifier {
     void Function(String)? onText,
     String Function(String)? outputFormatter,
   ) async {
-    final active = _sessions.values.where((session) => session.alive).toList();
-    if (configuration.exclusive && active.isNotEmpty) {
-      throw StateError('构建期间不能并行其它任务，请先停止正在运行的项目');
-    }
-    if (configuration.kind == SessionKind.temp) {
-      // 普通工具任务与 run 并存(开发循环); temp 之间一次一个:
-      // 并发写 package_config/构建目录是真竞态
-      if (active.any(
-        (session) =>
-            session.configuration.kind == SessionKind.temp ||
-            session.configuration.exclusive,
-      )) {
-        throw StateError('当前已有工具任务正在运行，请稍后再试');
-      }
-    } else {
-      if (active.any(
-        (session) =>
-            session.configuration.kind == SessionKind.temp ||
-            session.configuration.exclusive,
-      )) {
-        throw StateError('当前已有工具任务正在运行，请稍后再运行项目');
-      }
+    final conflict = conflictFor(configuration);
+    if (conflict != null) throw StateError(conflict);
+    if (configuration.kind == SessionKind.run) {
       // Only one managed run target is kept. Switching Web/device closes the
       // previous run and its tab before creating the new target session.
       for (final old

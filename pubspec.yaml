@@ -52,15 +52,18 @@ flutter:
         - asset: assets/fonts/JetBrainsMono-Regular.ttf
 
   assets:
-    - assets/toolchain_manifest.json
     - assets/scripts/toolchain_manager.sh
     - assets/scripts/lib.sh
+    - assets/scripts/component_checks.sh
     - assets/scripts/check.sh
     - assets/scripts/android_jdk.sh
     - assets/scripts/android_sdk.sh
     - assets/scripts/android_ndk.sh
     - assets/scripts/android_cmake.sh
     - assets/scripts/android_gradle.sh
+    - assets/scripts/android_build.sh
+    - assets/scripts/android_components.sh
+    - assets/scripts/android_platform.sh
     - assets/scripts/flutter_sdk.sh
     - assets/scripts/flutter_tools.sh
     - assets/scripts/flutter_warmup.sh

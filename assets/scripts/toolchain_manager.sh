@@ -3,7 +3,7 @@
 init_stage toolchain_manager
 
 validate_path() {
-  [[ "$1" =~ ^(flutter|ndk|cmake|android-sdk/build-tools|android-sdk/cmdline-tools)/[0-9]+([.+_-][a-zA-Z0-9]+)*$|^android-sdk/platforms/android-[0-9]+$|^android-sdk/cmdline-tools/latest$|^android-sdk/platform-tools$ ]] || die '无效的工具链路径'
+  [[ "$1" =~ ^(flutter|ndk|cmake|android-sdk/build-tools|android-sdk/cmdline-tools)/[0-9]+([.+_-][a-zA-Z0-9]+)*$|^android-sdk/platforms/android-[0-9]+([.][0-9]+)?$|^android-sdk/cmdline-tools/latest$|^android-sdk/platform-tools$ ]] || die '无效的工具链路径'
 }
 
 case "${1:-}" in
@@ -13,17 +13,17 @@ case "${1:-}" in
       "$ANDROID_HOME"/cmdline-tools/* "$ANDROID_HOME"/platform-tools; do
       [ -d "$dir" ] && [ ! -L "$dir" ] || continue
       _active=0
-      if [ "$dir" = "$FLIT_TOOLCHAINS/flutter/$(readlink "$FLIT_TOOLCHAINS/flutter/current" 2>/dev/null || true)" ]; then _active=1; fi
+      if [ "$dir" -ef "$FLIT_TOOLCHAINS/flutter/current" ]; then _active=1; fi
       _complete=0
       if installed_ok "$dir"; then
         case "$dir" in
           */flutter/*) if flutter_complete "$dir"; then _complete=1; fi ;;
-          */ndk/*) if [ -x "$dir/toolchains/llvm/prebuilt/linux-arm64/bin/clang" ]; then _complete=1; fi ;;
-          */cmake/*) if [ -x "$dir/bin/cmake" ] && [ -x "$dir/bin/ninja" ]; then _complete=1; fi ;;
-          */platforms/*) if [ -s "$dir/android.jar" ]; then _complete=1; fi ;;
-          */build-tools/*) if [ -x "$dir/aapt2" ]; then _complete=1; fi ;;
-          */cmdline-tools/*) if [ -f "$dir/bin/sdkmanager" ]; then _complete=1; fi ;;
-          */platform-tools) if [ -x "$dir/adb" ]; then _complete=1; fi ;;
+          */ndk/*) if component_usable ndk "$dir" "$(basename "$dir")"; then _complete=1; fi ;;
+          */cmake/*) if component_usable cmake "$dir" "$(basename "$dir")"; then _complete=1; fi ;;
+          */platforms/*) if component_usable platforms "$dir"; then _complete=1; fi ;;
+          */build-tools/*) if component_usable build-tools "$dir" "$(basename "$dir")"; then _complete=1; fi ;;
+          */cmdline-tools/*) if component_usable cmdline-tools "$dir"; then _complete=1; fi ;;
+          */platform-tools) if component_usable platform-tools "$dir"; then _complete=1; fi ;;
         esac
       fi
       _revision=$(sed -n 's/^Pkg\.Revision[[:space:]]*=[[:space:]]*//p' "$dir/source.properties" 2>/dev/null | head -1 | tr -d ' \r' || true)
@@ -39,7 +39,7 @@ case "${1:-}" in
     validate_path "${2:-}"
     _path="$FLIT_TOOLCHAINS/$2"
     [ ! -L "$_path" ] || die '不能删除工具链链接'
-    if [ "$2" = "flutter/$(readlink "$FLIT_TOOLCHAINS/flutter/current" 2>/dev/null || true)" ]; then
+    if [ "$_path" -ef "$FLIT_TOOLCHAINS/flutter/current" ]; then
       die '请先切换 Flutter 版本，再删除当前版本'
     fi
     rm -rf "$_path"

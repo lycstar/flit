@@ -29,14 +29,122 @@ void main() {
       sources: {
         for (final entry in ToolchainCatalog.components.entries)
           entry.key: CatalogSource(
-            repo:
-                'example/${const {'android-sdk': 'android-sdk-custom', 'ndk': 'android-ndk-custom', 'cmake': 'cmake-custom', 'flutter-sdk': 'flutter-sdk-custom'}[entry.key]}',
+            repo: 'example/${entry.value.repo.split('/').last}',
             asset: entry.value.asset,
             install: entry.value.install,
+            tagPattern: entry.value.tagPattern,
+            defaultTag: entry.value.defaultTag,
           ),
       },
     );
   });
+  test('exact tags resolve current bundle and minor Platform metadata', () async {
+    final urls = <String>[];
+    final catalog = ToolchainCatalog()
+      ..fetchJson = (url) async {
+        urls.add(url);
+        final platform = url.endsWith('/platform-36.1');
+        return release(
+          platform ? 'platform-36.1' : 'sdk-36.0.0',
+          '2026-10-30T00:00:00Z',
+          assets: [
+            {
+              'name': platform ? 'platforms.tar.xz' : 'android-sdk.tar.xz',
+              'size': 123,
+              'digest': 'ab',
+            },
+          ],
+        );
+      };
+    final sdk = await catalog.resolve('android-sdk');
+    final platform = await catalog.resolve('platforms', tag: 'platform-36.1');
+    expect(sdk.name, 'android-sdk.tar.xz');
+    expect(sdk.sha256, 'ab'.padRight(64, '0'));
+    expect(platform.tag, 'platform-36.1');
+    expect(urls, [
+      'https://api.github.com/repos/lycstar/android-sdk-custom/releases/tags/sdk-36.0.0',
+      'https://api.github.com/repos/lycstar/android-sdk-custom/releases/tags/platform-36.1',
+    ]);
+  });
+
+  test('resolution rejects missing digests and mismatched releases', () async {
+    final catalog = ToolchainCatalog()
+      ..fetchJson = (_) async => release(
+        'sdk-36.0.0',
+        '2026-10-30T00:00:00Z',
+        assets: [
+          {'name': 'android-sdk.tar.xz', 'size': 1},
+        ],
+      );
+    await expectLater(catalog.resolve('android-sdk'), throwsStateError);
+    catalog.fetchJson = (_) async => release('sdk-35.0.0', '', assets: []);
+    await expectLater(catalog.resolve('android-sdk'), throwsStateError);
+    await expectLater(
+      catalog.resolve('android-sdk', tag: 'sdk-36.0.0-linux'),
+      throwsStateError,
+    );
+    catalog.fetchJson = (_) async =>
+        throw const HttpExceptionWithCode('HTTP 403');
+    await expectLater(
+      catalog.resolve('android-sdk'),
+      throwsA(isA<HttpExceptionWithCode>()),
+    );
+  });
+
+  test('SDK parts share paginated requests and filter tag families', () async {
+    final calls = <String>[];
+    final catalog =
+        ToolchainCatalog(
+            sources: {
+              for (final key in ['android-sdk', 'build-tools', 'platforms'])
+                key: ToolchainCatalog.components[key]!,
+            },
+          )
+          ..fetchJson = (url) async {
+            calls.add(url);
+            if (url.endsWith('page=1')) {
+              return List.generate(
+                100,
+                (i) => release('unrelated-$i', '', assets: []),
+              );
+            }
+            return [
+              release(
+                'sdk-35.0.0',
+                '',
+                assets: [
+                  {'name': 'android-sdk.tar.xz', 'size': 1, 'digest': 'aa'},
+                  {'name': 'build-tools.tar.xz', 'size': 1, 'digest': 'bb'},
+                ],
+              ),
+              release(
+                'platform-34',
+                '',
+                assets: [
+                  {'name': 'platforms.tar.xz', 'size': 1, 'digest': 'cc'},
+                ],
+              ),
+              release(
+                'sdk-35.0.0-linux',
+                '',
+                assets: [
+                  {'name': 'android-sdk.tar.xz', 'size': 1, 'digest': 'dd'},
+                ],
+              ),
+            ];
+          };
+    final found = await catalog.collect();
+    expect(calls, hasLength(2));
+    expect(found['android-sdk']!.single.tag, 'sdk-35.0.0');
+    expect(found['build-tools']!.single.name, 'build-tools.tar.xz');
+    expect(found['platforms']!.single.tag, 'platform-34');
+    catalog.fetchJson = (_) async => [];
+    expect(
+      (await catalog.collect()).values.every((entries) => entries.isEmpty),
+      isTrue,
+    );
+  });
+
   test('unconfigured repositories do not make network requests', () async {
     final catalog = ToolchainCatalog(
       sources: const {
@@ -75,10 +183,7 @@ void main() {
       isTrue,
     );
     expect(
-      ToolchainCatalog.matchesAsset(
-        'android-sdk-aarch64-linux-android.tar.xz',
-        'android-sdk-aarch64-linux-android.tar.xz',
-      ),
+      ToolchainCatalog.matchesAsset('android-sdk.tar.xz', 'android-sdk.tar.xz'),
       isTrue,
     );
     // 通配符段也不许缺席
@@ -122,11 +227,7 @@ void main() {
               'sdk-36.1.0',
               '2026-10-02T00:00:00Z',
               assets: [
-                {
-                  'name': 'android-sdk-aarch64-linux-android.tar.xz',
-                  'size': 156,
-                  'digest': 'bb',
-                },
+                {'name': 'android-sdk.tar.xz', 'size': 156, 'digest': 'bb'},
               ],
             ),
           ];
@@ -194,11 +295,7 @@ void main() {
           'sdk-36.1.0',
           '2026-10-02T00:00:00Z',
           assets: [
-            {
-              'name': 'android-sdk-aarch64-linux-android.tar.xz',
-              'size': 156,
-              'digest': 'bb',
-            },
+            {'name': 'android-sdk.tar.xz', 'size': 156, 'digest': 'bb'},
           ],
         ),
       ];

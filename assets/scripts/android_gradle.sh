@@ -8,7 +8,7 @@ _guard="$GRADLE_USER_HOME/init.d/flit-toolchain.gradle"
 
 probe() {
   _configured=$(sed -n 's/^android\.aapt2FromMavenOverride=//p' "$_props" 2>/dev/null || true)
-  if [ -n "$_configured" ] && [ -x "$_configured" ] && [ -f "$_guard" ] && [ -f "$_props" ] &&
+  if [ -n "$_configured" ] && tool_works "$_configured" version && [ -s "$_guard" ] && [ -f "$_props" ] &&
      grep -q '^android.builder.sdkDownload=false$' "$_props"; then
     st "$STAGE" DONE
   else
@@ -18,7 +18,15 @@ probe() {
 
 install() {
   _aapt2=''
+  _existing=$(sed -n 's/^android\.aapt2FromMavenOverride=//p' "$_props" 2>/dev/null || true)
+  for _candidate in "$_existing" "$ANDROID_HOME/build-tools/${SDK_VERSION:-}/aapt2"; do
+    if [ -x "$_candidate" ] && timeout 10 "$_candidate" version >/dev/null 2>&1; then
+      _aapt2=$_candidate
+      break
+    fi
+  done
   while IFS= read -r _bt; do
+    [ -z "$_aapt2" ] || break
     _candidate="$ANDROID_HOME/build-tools/$_bt/aapt2"
     if [ -x "$_candidate" ] && timeout 10 "$_candidate" version >/dev/null 2>&1; then
       _aapt2=$_candidate

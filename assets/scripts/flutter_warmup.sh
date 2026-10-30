@@ -10,8 +10,9 @@ init_stage flutter_warmup
 FLUTTER_DIR="$FLIT_TOOLCHAINS/flutter/current"
 
 probe() {
-  if [ -x "$FLUTTER_DIR/bin/cache/dart-sdk/bin/dart" ] &&
-     [ -f "$FLUTTER_DIR/bin/cache/flutter_tools.stamp" ]; then
+  if flutter_complete "$FLUTTER_DIR" &&
+     [ -s "$FLUTTER_DIR/bin/cache/flutter_tools.stamp" ] &&
+     [ -s "$FLUTTER_DIR/bin/cache/flutter_tools.snapshot" ]; then
     st "$STAGE" DONE
     if [ -f "$FLUTTER_DIR/version" ]; then echo "__VER__$STAGE:$(cat "$FLUTTER_DIR/version")"; fi
   else
