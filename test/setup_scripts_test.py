@@ -482,6 +482,40 @@ exit %d
         self.assertEqual((self.root / 'curl-calls').read_text(), downloads,
                          '第二次不应再下载')
 
+    def test_cmake_accepts_android_patch_dirty_suffix(self):
+        sha = self.archive([
+            ('3.22.1/bin/cmake', '#!/bin/sh\necho "cmake version 3.22.1-dirty"\n', 0o755),
+            ('3.22.1/bin/ninja', '#!/bin/sh\necho "1.12.1"\n', 0o755),
+        ])
+        self.install_fake_curl()
+        result = self.run_script('android_cmake.sh', '--release', 'https://test/cmake', sha, '3.22.1')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn('cmake version 3.22.1-dirty', result.stdout)
+        self.assertIn('1.12.1', result.stdout)
+        directory = self.root / 'android-sdk/cmake/3.22.1'
+        self.assertEqual((directory / 'source.properties').read_text(), 'Pkg.Revision=3.22.1\n')
+        self.config.write_text(f"CMAKE_SHA256='{sha}'\n")
+        result = self.run_script('android_cmake.sh', '--check')
+        self.assertIn('__STAGE__android_cmake:DONE', result.stdout)
+
+    def test_cmake_reports_actual_version_or_execution_error(self):
+        self.install_fake_curl()
+        for cmake, ninja, error in [
+            ('echo "cmake version 3.22.0"', 'exit 0', '实际 3.22.0'),
+            ('echo "cmake version 3.22.1-rc1"', 'exit 0', '实际 3.22.1-rc1'),
+            ('echo "CMake loader error" >&2; exit 126', 'exit 0', 'CMake loader error'),
+            ('echo "cmake version 3.22.1-dirty"', 'echo "Ninja loader error" >&2; exit 127', 'Ninja loader error'),
+        ]:
+            with self.subTest(error=error):
+                sha = self.archive([
+                    ('3.22.1/bin/cmake', f'#!/bin/sh\n{cmake}\n', 0o755),
+                    ('3.22.1/bin/ninja', f'#!/bin/sh\n{ninja}\n', 0o755),
+                ])
+                result = self.run_script('android_cmake.sh', '--release', 'https://test/cmake', sha, '3.22.1')
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn(error, result.stdout)
+                self.assertFalse(self.marker(self.root / 'android-sdk/cmake/3.22.1').exists())
+
     def test_cmake_catalog_versions_coexist_with_real_revision_metadata(self):
         self.install_fake_curl()
         for version in ('3.22.1', '3.31.6'):

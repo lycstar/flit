@@ -15,8 +15,32 @@ version() {
 }
 
 tools_work() {
-  [ "$(version)" = "$CMAKE_VERSION" ] &&
+  _actual=$(version) && [ "${_actual%-dirty}" = "$CMAKE_VERSION" ] &&
     timeout 10 "$CMAKE_DIR/bin/ninja" --version >/dev/null 2>&1
+}
+
+verify_tools() {
+  info '[cmake] 检查 CMake…'
+  if _output=$(timeout 10 "$CMAKE_DIR/bin/cmake" --version 2>&1); then
+    printf '%s\n' "$_output"
+  else
+    _rc=$?
+    printf '%s\n' "$_output"
+    die "[cmake] ✗ CMake 无法执行（退出码 $_rc），请查看上方错误"
+  fi
+  _actual=$(printf '%s\n' "$_output" | awk 'NR==1 { print $3 }')
+  # CMake 为经过 Android 移植补丁修改的源码自动追加 -dirty。
+  # 仅移除此构建标记；其他版本及 rc 等后缀仍不得冒充要求的正式版本。
+  [ "${_actual%-dirty}" = "$CMAKE_VERSION" ] ||
+    die "[cmake] ✗ CMake 版本不匹配：需要 ${CMAKE_VERSION}，实际 $_actual"
+  info '[cmake] 检查 Ninja…'
+  if _output=$(timeout 10 "$CMAKE_DIR/bin/ninja" --version 2>&1); then
+    printf '%s\n' "$_output"
+  else
+    _rc=$?
+    printf '%s\n' "$_output"
+    die "[cmake] ✗ Ninja 无法执行（退出码 $_rc），请查看上方错误"
+  fi
 }
 
 probe() {
@@ -49,9 +73,7 @@ install() {
   }
   [ -x "$CMAKE_DIR/bin/cmake" ] || die "[cmake] ✗ 解压后缺少 cmake"
   [ -x "$CMAKE_DIR/bin/ninja" ] || die "[cmake] ✗ 解压后缺少 ninja"
-  # 静态二进制: 真跑一把 --version, 架构不对在这里就暴露
-  tools_work ||
-    die "[cmake] ✗ CMake 版本不匹配或 CMake / Ninja 无法执行，请查看工具链架构"
+  verify_tools
   # 自家构建包没有 source.properties, 补一份供 AGP 按 Pkg.Revision 识别
   [ -f "$CMAKE_DIR/source.properties" ] ||
     printf 'Pkg.Revision=%s\n' "$CMAKE_VERSION" > "$CMAKE_DIR/source.properties"
