@@ -7,8 +7,16 @@ import '../../services/shell.dart';
 /// 外观与设备记忆(持久化到 $HOME/.flit/appearance.json)。
 /// 应用启动时由组合根加载一次; 之后组件只读它、经 update() 写它。
 class AppearancePreferences extends ChangeNotifier {
+  static const terminalMinSize = 9.0;
+  static const terminalMaxSize = 28.0;
+  static const terminalFonts = {
+    'JetBrainsMono': 'JetBrains Mono',
+    'monospace': '系统等宽字体',
+  };
   double editorSize = 14;
   double terminalSize = 13;
+  String terminalFont = 'JetBrainsMono';
+  double terminalLineHeight = 1.2;
   String editorTheme = 'dark'; // dark | light
   bool editorWrap = true; // 软换行(false = 长行横向滚动)
   bool backgroundNoticeShown = false;
@@ -32,9 +40,12 @@ class AppearancePreferences extends ChangeNotifier {
           12,
           20,
         );
-        terminalSize = (data['terminalSize'] as num? ?? 13).toDouble().clamp(
-          11,
-          20,
+        terminalSize = _terminalSize(
+          (data['terminalSize'] as num? ?? 13).toDouble(),
+        );
+        terminalFont = _terminalFont(data['terminalFont'] as String?);
+        terminalLineHeight = _terminalHeight(
+          (data['terminalLineHeight'] as num? ?? 1.2).toDouble(),
         );
         editorTheme = data['editorTheme'] as String? ?? 'dark';
         editorWrap = data['editorWrap'] as bool? ?? true;
@@ -54,6 +65,8 @@ class AppearancePreferences extends ChangeNotifier {
   Future<void> update({
     double? editor,
     double? terminal,
+    String? terminalFont,
+    double? terminalLineHeight,
     String? theme,
     bool? wrap,
     bool? backgroundNoticeShown,
@@ -64,7 +77,11 @@ class AppearancePreferences extends ChangeNotifier {
   }) async {
     await load();
     editorSize = editor ?? editorSize;
-    terminalSize = terminal ?? terminalSize;
+    terminalSize = _terminalSize(terminal ?? terminalSize);
+    if (terminalFont != null) this.terminalFont = _terminalFont(terminalFont);
+    this.terminalLineHeight = _terminalHeight(
+      terminalLineHeight ?? this.terminalLineHeight,
+    );
     this.backgroundNoticeShown =
         backgroundNoticeShown ?? this.backgroundNoticeShown;
     this.adbPaired = adbPaired ?? this.adbPaired;
@@ -80,6 +97,8 @@ class AppearancePreferences extends ChangeNotifier {
     final data = jsonEncode({
       'editorSize': editorSize,
       'terminalSize': terminalSize,
+      'terminalFont': this.terminalFont,
+      'terminalLineHeight': this.terminalLineHeight,
       'editorTheme': editorTheme,
       'editorWrap': editorWrap,
       'backgroundNoticeShown': this.backgroundNoticeShown,
@@ -101,4 +120,11 @@ class AppearancePreferences extends ChangeNotifier {
         ? CodeTheme.light
         : CodeTheme.dark;
   }
+
+  static double _terminalSize(double value) =>
+      value.isFinite ? value.clamp(terminalMinSize, terminalMaxSize) : 13;
+  static double _terminalHeight(double value) =>
+      value.isFinite ? value.clamp(1.0, 2.0) : 1.2;
+  static String _terminalFont(String? value) =>
+      terminalFonts.containsKey(value) ? value! : 'JetBrainsMono';
 }

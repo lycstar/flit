@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../settings/appearance_preferences.dart';
 import 'global_terminal_panel.dart';
 import 'console_session.dart';
 import '../../core/theme.dart';
@@ -46,7 +44,6 @@ class TerminalSidePane extends StatelessWidget {
             sessionsBar: sessionsBar,
             onToggle: () {},
             running: running,
-            fontSize: context.watch<AppearancePreferences>().terminalSize,
           ),
         );
       },

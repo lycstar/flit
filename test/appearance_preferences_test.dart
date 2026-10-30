@@ -11,9 +11,7 @@ void main() {
   test(
     'appearance changes preserve saved device and pairing preferences',
     () async {
-      final home = await Directory.systemTemp.createTemp(
-        'flit-preferences-',
-      );
+      final home = await Directory.systemTemp.createTemp('flit-preferences-');
       final messenger =
           TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
       messenger.setMockMethodCallHandler(const MethodChannel('flit/env'), (
@@ -30,7 +28,13 @@ void main() {
           adbPaired: true,
           runDevice: '192.168.1.8:32100',
         );
-        await preferences.update(editor: 16, theme: 'light');
+        await preferences.update(
+          editor: 16,
+          theme: 'light',
+          terminal: 22,
+          terminalFont: 'monospace',
+          terminalLineHeight: 1.6,
+        );
         final data = jsonDecode(
           await File('${home.path}/.flit/appearance.json').readAsString(),
         );
@@ -39,10 +43,22 @@ void main() {
         expect(data['runDevice'], '192.168.1.8:32100');
         await reloaded.load();
         expect(reloaded.editorSize, 16);
+        expect(reloaded.terminalSize, 22);
+        expect(reloaded.terminalFont, 'monospace');
+        expect(reloaded.terminalLineHeight, 1.6);
         expect(reloaded.adbHost, '192.168.1.8');
         expect(reloaded.adbPaired, true);
         expect(reloaded.runDevice, '192.168.1.8:32100');
-        await reloaded.update(adbPaired: false, runDevice: '');
+        await reloaded.update(
+          adbPaired: false,
+          runDevice: '',
+          terminal: 100,
+          terminalLineHeight: .1,
+          terminalFont: 'unavailable',
+        );
+        expect(reloaded.terminalSize, AppearancePreferences.terminalMaxSize);
+        expect(reloaded.terminalLineHeight, 1);
+        expect(reloaded.terminalFont, 'JetBrainsMono');
         expect(
           jsonDecode(
             await File('${home.path}/.flit/appearance.json').readAsString(),

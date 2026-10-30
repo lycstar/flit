@@ -11,7 +11,7 @@ import '../environment/environment_status.dart';
 import '../device/device_connect_page.dart';
 import '../editor/editor_settings_page.dart';
 import '../environment/environment_page.dart';
-import 'appearance_preferences.dart';
+import '../terminal/terminal_settings.dart';
 import 'app_versions_page.dart';
 import 'env_vars_page.dart';
 
@@ -27,9 +27,6 @@ class _SettingsPageState extends State<SettingsPage>
   bool _proxySaving = false;
   PermissionStatus _notificationStatus = PermissionStatus.denied;
   bool? _ignoringBattery;
-
-  /// 滑块拖动中的临时值; 松手写入偏好后清空, 偏好仍是唯一事实源
-  double? _draggingTerminalSize;
 
   @override
   void initState() {
@@ -140,7 +137,6 @@ class _SettingsPageState extends State<SettingsPage>
   @override
   Widget build(BuildContext context) {
     final proxy = context.watch<AutoProxy>();
-    final preferences = context.watch<AppearancePreferences>();
     return Scaffold(
       appBar: AppBar(title: const Text('设置')),
       body: PageList(
@@ -204,17 +200,11 @@ class _SettingsPageState extends State<SettingsPage>
               '字体 · 配色方案 · 软换行',
               const EditorSettingsPage(),
             ),
-            SettingsSlider(
-              title: '终端字号',
-              value: _draggingTerminalSize ?? preferences.terminalSize,
-              min: 11,
-              max: 20,
-              onChanged: (value) =>
-                  setState(() => _draggingTerminalSize = value),
-              onChangeEnd: (value) {
-                setState(() => _draggingTerminalSize = null);
-                preferences.update(terminal: value).catchError(_showError);
-              },
+            _link(
+              Icons.text_fields,
+              '终端设置',
+              '双指缩放 · 字号 · 等宽字体 · 行高',
+              const TerminalSettingsPage(),
             ),
           ]),
           const SectionLabel('关于 Flit'),
@@ -226,7 +216,10 @@ class _SettingsPageState extends State<SettingsPage>
               ),
               title: const Text('App 更新'),
               subtitle: const Text('检查更新 · 下载安装历史版本'),
-              trailing: const Icon(Icons.chevron_right, color: AppColors.textFaint),
+              trailing: const Icon(
+                Icons.chevron_right,
+                color: AppColors.textFaint,
+              ),
               onTap: () => _open(AppVersionsPage()),
             ),
             ListTile(

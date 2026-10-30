@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +10,9 @@ import '../../core/workbench_controls.dart';
 import 'pty_session.dart';
 import 'console_session.dart';
 import 'terminal_theme.dart';
+import 'terminal_zoom.dart';
+import 'terminal_settings.dart';
+import '../settings/appearance_preferences.dart';
 
 /// Terminal chrome and input surface. Parent supplies bounded space; selection
 /// actions float above the viewport and never change its row count.
@@ -20,7 +25,6 @@ class GlobalTerminalPanel extends StatefulWidget {
     this.height = 280,
     this.minHeight = 180,
     this.onFullscreen,
-    this.fontSize = 12,
     this.fullscreen = false,
     this.onResize,
     this.focusNode,
@@ -35,7 +39,6 @@ class GlobalTerminalPanel extends StatefulWidget {
   final double height;
   final double minHeight;
   final VoidCallback? onFullscreen;
-  final double fontSize;
   final bool fullscreen;
   final ValueChanged<double>? onResize;
   final FocusNode? focusNode;
@@ -50,6 +53,84 @@ class GlobalTerminalPanel extends StatefulWidget {
 class _GlobalTerminalPanelState extends State<GlobalTerminalPanel> {
   final _viewKey = GlobalKey<TerminalViewState>();
   PtySession? _workbench;
+  double? _zoomSize;
+  double _zoomStartSize = 13;
+  int _zoomGeneration = 0;
+
+  double get _fontSize =>
+      _zoomSize ?? context.read<AppearancePreferences?>()?.terminalSize ?? 13;
+
+  void _zoomStart() {
+    _zoomGeneration++;
+    _zoomStartSize = _fontSize;
+    _session.controller.clearSelection();
+  }
+
+  void _zoom(double scale) {
+    final size = (_zoomStartSize * scale).clamp(
+      AppearancePreferences.terminalMinSize,
+      AppearancePreferences.terminalMaxSize,
+    );
+    if (size.isFinite) setState(() => _zoomSize = size);
+  }
+
+  Future<void> _saveZoom() async {
+    if (_zoomSize == null) return;
+    final generation = _zoomGeneration;
+    final size = (_zoomSize! * 2).round() / 2;
+    try {
+      // 只在手势结束时写一次偏好，拖动期间不触发磁盘写入。
+      await context.read<AppearancePreferences>().update(terminal: size);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('字号已应用，但保存失败：$error')));
+      }
+    } finally {
+      if (mounted && generation == _zoomGeneration) {
+        setState(() => _zoomSize = null);
+      }
+    }
+  }
+
+  void _appearance() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => FractionallySizedBox(
+        heightFactor: .85,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+                child: Row(
+                  children: [
+                    const Expanded(child: Text('终端外观')),
+                    IconButton(
+                      tooltip: '关闭终端设置',
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              ),
+              const Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(16),
+                  child: TerminalAppearanceSettings(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   /// 没指定会话时回落到工作台默认 bash(应用级, 来自 AppScope)
   ConsoleSession get _session =>
@@ -84,6 +165,7 @@ class _GlobalTerminalPanelState extends State<GlobalTerminalPanel> {
   );
 
   Widget _panel() {
+    context.watch<AppearancePreferences?>();
     return Material(
       color: AppColors.surface,
       clipBehavior: Clip.antiAlias,
@@ -204,6 +286,8 @@ class _GlobalTerminalPanelState extends State<GlobalTerminalPanel> {
                     _session.alive ? '终止并关闭' : '关闭',
                     () => _session.close(),
                   ),
+                if (context.read<AppearancePreferences?>() != null)
+                  button(Icons.text_fields, '终端字体与缩放', _appearance),
                 button(
                   Icons.delete_sweep_outlined,
                   '清空终端',
@@ -228,25 +312,41 @@ class _GlobalTerminalPanelState extends State<GlobalTerminalPanel> {
       children: [
         Positioned.fill(
           child: LayoutBuilder(
-            builder: (context, constraints) => TerminalView(
-              _session.terminal,
-              key: _viewKey,
-              controller: _session.controller,
-              focusNode: widget.focusNode,
-              scrollController: _session.scrollController,
-              textStyle: TerminalStyle(
-                fontSize: widget.fontSize,
-                fontFamily: 'JetBrainsMono',
-              ),
-              theme: flitTerminalTheme,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              deleteDetection: true,
-              // run/temp 只读: 输出面板, 输入由按钮程序性写入(热重载 r/R)
-              readOnly: !_session.interactive,
-              // Keep the input client alive even in a very short landscape
-              // viewport, without sending a zero-row size to the PTY.
-              autoResize: constraints.maxHeight > widget.fontSize * 2,
-            ),
+            builder: (context, constraints) {
+              final preferences = context.watch<AppearancePreferences?>();
+              final style = flitTerminalStyle.copyWith(
+                fontSize: _fontSize,
+                fontFamily: preferences?.terminalFont,
+                height: preferences?.terminalLineHeight,
+              );
+              final view = TerminalView(
+                _session.terminal,
+                key: _viewKey,
+                controller: _session.controller,
+                focusNode: widget.focusNode,
+                scrollController: _session.scrollController,
+                textStyle: style,
+                theme: flitTerminalTheme,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                deleteDetection: true,
+                // run/temp 只读: 输出面板, 输入由按钮程序性写入(热重载 r/R)
+                readOnly: !_session.interactive,
+                // Keep the input client alive even in a very short landscape
+                // viewport, without sending a zero-row size to the PTY.
+                autoResize:
+                    constraints.maxHeight >
+                    MediaQuery.textScalerOf(context).scale(style.fontSize) *
+                        style.height *
+                        2,
+              );
+              if (preferences == null) return view;
+              return TerminalZoom(
+                onStart: _zoomStart,
+                onScale: _zoom,
+                onEnd: () => unawaited(_saveZoom()),
+                child: view,
+              );
+            },
           ),
         ),
         Positioned(

@@ -24,7 +24,6 @@ import '../workspace/project_session.dart';
 import '../workspace/workspace_views.dart';
 import '../terminal/run_sessions.dart';
 import '../terminal/terminal_host.dart';
-import '../settings/appearance_preferences.dart';
 import '../settings/settings_page.dart';
 import '../run/web_run_page.dart';
 
@@ -360,18 +359,15 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final terminalSize = context.watch<AppearancePreferences>().terminalSize;
     return ProjectScope(
       session: _project,
       layout: _layout,
       // 工程对象的 watch 必须在 ProjectScope 之下: 这里单独起一层 context
-      child: Builder(
-        builder: (context) => _workbench(context, terminalSize: terminalSize),
-      ),
+      child: Builder(builder: (context) => _workbench(context)),
     );
   }
 
-  Widget _workbench(BuildContext context, {required double terminalSize}) {
+  Widget _workbench(BuildContext context) {
     if (context.watch<ProjectSession>().closed) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -480,7 +476,8 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
                   );
                   return TerminalHost(
                     // MD 预览与编辑同样不自动弹终端
-                    expanded: layout.terminalExpanded && !editing && !_docPreview,
+                    expanded:
+                        layout.terminalExpanded && !editing && !_docPreview,
                     onToggle: _toggleTerminal,
                     footer: EditorDockToolbar(
                       controller: _codeCtrl,
@@ -490,10 +487,15 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
                       terminalExpanded: layout.terminalExpanded && !editing,
                       docPreviewAvailable: _previewableOpen,
                       docPreviewOn: _docPreview,
-                      docPreviewLabel: _docPreviewFormat == 'svg' ? 'SVG' : 'MD',
-                      onDocPreview: () => setState(() => _docPreview = !_docPreview),
+                      docPreviewLabel: _docPreviewFormat == 'svg'
+                          ? 'SVG'
+                          : 'MD',
+                      onDocPreview: () =>
+                          setState(() => _docPreview = !_docPreview),
                       canEdit:
-                          !layout.showPreview && !_docPreview && _current is CodeTab,
+                          !layout.showPreview &&
+                          !_docPreview &&
+                          _current is CodeTab,
                       onCode: () {
                         setState(() => _docPreview = false);
                         _layout.selectView(preview: false);
@@ -503,7 +505,6 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
                     ),
                     running: busy,
                     preferredHeight: 260,
-                    fontSize: terminalSize,
                     session: executions.console,
                     sessionsBar: const TerminalSessionTabs(),
                     child: content,

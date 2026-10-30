@@ -17,7 +17,6 @@ class TerminalHost extends StatefulWidget {
     required this.onToggle,
     this.running = false,
     this.preferredHeight = 300,
-    this.fontSize = 12,
     this.hideContentWithKeyboard = false,
     this.session,
     this.sessionsBar,
@@ -29,7 +28,6 @@ class TerminalHost extends StatefulWidget {
   final VoidCallback onToggle;
   final bool running;
   final double preferredHeight;
-  final double fontSize;
   final bool hideContentWithKeyboard;
   final ConsoleSession? session;
   final Widget? sessionsBar; // 会话切换/控制条
@@ -173,7 +171,6 @@ class _TerminalHostState extends State<TerminalHost> with RouteAware {
                   expanded: expanded,
                   onToggle: _toggleExpanded,
                   running: widget.running,
-                  fontSize: widget.fontSize,
                   fullscreen: _fullscreen,
                   onFullscreen: _toggleFullscreen,
                   onResize: expanded && !fill
@@ -236,7 +233,6 @@ class _TerminalHostState extends State<TerminalHost> with RouteAware {
                         expanded: true,
                         onToggle: _toggleExpanded,
                         running: widget.running,
-                        fontSize: widget.fontSize,
                         fullscreen: _fullscreen,
                         consumeSafeArea: false,
                         onFullscreen: _toggleFullscreen,

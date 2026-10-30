@@ -17,6 +17,7 @@ import 'package:flit/features/projects/clone_project_page.dart';
 import 'package:flit/features/settings/app_versions_page.dart';
 import 'package:flit/features/settings/env_vars_page.dart';
 import 'package:flit/features/settings/settings_page.dart';
+import 'package:flit/features/terminal/terminal_settings.dart';
 import 'package:flit/services/app_releases.dart';
 
 import 'support/app_scope.dart';
@@ -255,27 +256,27 @@ void main() {
       });
     }
     final appReleases = AppReleases()
-      ..fetchJson =
-          (_) async => [
+      ..fetchJson = (_) async => [
+        {
+          'tag_name': 'v1.0.0-preview.1',
+          'name': 'Flit v1.0.0-preview.1',
+          'prerelease': true,
+          'published_at': '2026-10-29T11:17:00Z',
+          'assets': [
             {
-              'tag_name': 'v1.0.0-preview.1',
-              'name': 'Flit v1.0.0-preview.1',
-              'prerelease': true,
-              'published_at': '2026-10-29T11:17:00Z',
-              'assets': [
-                {
-                  'name': 'flit-v1.0.0-preview.1-202610291117-1e99594.apk',
-                  'size': 987,
-                  'browser_download_url': 'https://example/flit.apk',
-                },
-              ],
+              'name': 'flit-v1.0.0-preview.1-202610291117-1e99594.apk',
+              'size': 987,
+              'browser_download_url': 'https://example/flit.apk',
             },
-          ];
+          ],
+        },
+      ];
     final pages = <String, Widget>{
       'device': const DeviceConnectPage(),
       'create': const CreateProjectPage(projectRoot: '/home/projects'),
       'settings': const SettingsPage(),
       'editor-settings': const EditorSettingsPage(),
+      'terminal-settings': const TerminalSettingsPage(),
       'variables': const EnvVarsPage(),
       'app-versions': AppVersionsPage(releases: appReleases),
       'clone': const CloneProjectPage(targetDir: '/home/projects'),

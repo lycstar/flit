@@ -5,7 +5,7 @@ import '../../core/theme.dart';
 
 /// 全局终端统一外观: 工作台/编辑器渲染同一个 Terminal 实例, 外观定义也只有一份。
 const flitTerminalStyle = TerminalStyle(
-  fontSize: 12,
+  fontSize: 13,
   fontFamily: 'JetBrainsMono',
 );
 
