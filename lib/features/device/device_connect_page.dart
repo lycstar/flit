@@ -14,6 +14,7 @@ import '../terminal/console_session.dart';
 import '../terminal/terminal_host.dart';
 import 'device_connection.dart';
 import 'device_usb_guide.dart';
+import 'device_pairing_guide_page.dart';
 
 /// 状态 + 两种激活方式，详细步骤按需打开。无线配对服务独立于页面生命周期；
 /// USB 激活直接连接回环地址，不依赖 Wi-Fi 或端口发现。
@@ -399,45 +400,16 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
             ),
           ),
           const SizedBox(height: 8),
-          ExpansionTile(
-            title: const Text('连接帮助', style: TextStyle(fontSize: 13)),
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'Android 11 及以上：开启无线调试 → 使用配对码配对设备 → 下拉通知输入配对码。\n连接端口和配对端口不同；重新开启无线调试后请重新扫描。',
-                  style: TextStyle(
-                    fontSize: 12,
-                    height: 1.6,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-              Wrap(
-                children: [
-                  TextButton(
-                    onPressed: () async {
-                      try {
-                        await FlitDevice.openNotificationSettings();
-                      } catch (e) {
-                        _error(e);
-                      }
-                    },
-                    child: const Text('通知设置'),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      try {
-                        await FlitDevice.requestIgnoreBatteryOptimizations();
-                      } catch (e) {
-                        _error(e);
-                      }
-                    },
-                    child: const Text('允许后台运行'),
-                  ),
-                ],
-              ),
-            ],
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+            leading: const Icon(Icons.help_outline, size: 20),
+            title: const Text('无线配对指南', style: TextStyle(fontSize: 13)),
+            subtitle: const Text(
+              '通知样式、配对步骤与常见问题',
+              style: TextStyle(fontSize: 12),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 20),
+            onTap: _showPairingGuide,
           ),
         ],
       ),
@@ -455,6 +427,18 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
     } finally {
       if (mounted) setState(() => _connectingMethod = null);
     }
+  }
+
+  Future<void> _showPairingGuide() async {
+    final start = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => DevicePairingGuidePage(
+          allowStart: !_blocked && !_connection.missing,
+        ),
+      ),
+    );
+    // 阅读指南或返回上一页不会启动服务；真实开始仍由同一入口串行处理。
+    if (mounted && start == true) await _notificationPair();
   }
 
   Future<void> _showUsbGuide() async {
@@ -530,7 +514,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
               ),
               onPressed: _blocked || _connection.missing
                   ? null
-                  : _notificationPair,
+                  : _showPairingGuide,
               child: const Text('通知配对'),
             ),
             FilledButton(

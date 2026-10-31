@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flit/core/app_scope.dart';
 import 'package:flit/core/theme.dart';
 import 'package:flit/features/device/device_connect_page.dart';
+import 'package:flit/features/device/device_pairing_guide_page.dart';
 import 'package:flit/features/editor/editor_settings_page.dart';
 import 'package:flit/features/environment/environment_page.dart';
 import 'package:flit/features/projects/create_project_page.dart';
@@ -58,6 +59,15 @@ void main() {
       const MethodChannel('flutter.baseflow.com/permissions/methods'),
       (call) async => 1, // PermissionStatus.granted
     );
+    messenger.setMockMethodCallHandler(const MethodChannel('flit/device'), (
+      call,
+    ) async {
+      if (call.method == 'pairingReadiness') {
+        return {'supported': true, 'notificationsEnabled': true};
+      }
+      if (call.method == 'pairingStatus') return <String, Object>{};
+      return null;
+    });
     messenger.setMockMethodCallHandler(const MethodChannel('flit/env'), (
       call,
     ) async {
@@ -273,6 +283,7 @@ void main() {
       ];
     final pages = <String, Widget>{
       'device': const DeviceConnectPage(autoConnectOnOpen: false),
+      'pairing-guide': const DevicePairingGuidePage(),
       'create': const CreateProjectPage(projectRoot: '/home/projects'),
       'settings': const SettingsPage(),
       'editor-settings': const EditorSettingsPage(),

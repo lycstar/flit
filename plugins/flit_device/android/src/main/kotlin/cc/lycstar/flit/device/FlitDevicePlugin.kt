@@ -100,6 +100,10 @@ class FlitDevicePlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
                 result.success(true)
             }
             "pairingStatus" -> result.success(AdbPairingService.status(context))
+            "pairingReadiness" -> result.success(mapOf(
+                "supported" to (Build.VERSION.SDK_INT >= 30),
+                "notificationsEnabled" to AdbPairingService.notificationsEnabled(context),
+            ))
             "openWirelessSettings" -> {
                 val intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
                     .putExtra(":settings:fragment_args_key", "toggle_adb_wireless")

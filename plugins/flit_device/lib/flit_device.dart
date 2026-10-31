@@ -61,6 +61,13 @@ class FlitDevice {
   static Future<void> openWirelessSettings() async =>
       channel.invokeMethod('openWirelessSettings');
 
+  /// 指南只读取系统版本、应用通知和配对通知渠道的状态，不启动配对。
+  /// 通知样式由厂商设置控制，Android 没有通用接口读取或切换它。
+  static Future<Map<String, dynamic>> pairingReadiness() async =>
+      Map<String, dynamic>.from(
+        await channel.invokeMethod('pairingReadiness') ?? const {},
+      );
+
   /// MIUI 等系统对后台/不可见时的网络限制: 是否已忽略电池优化
   static Future<bool> isIgnoringBatteryOptimizations() async =>
       await channel.invokeMethod('isIgnoringBatteryOptimizations') == true;

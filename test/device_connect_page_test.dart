@@ -68,6 +68,9 @@ void main() {
     ) async {
       nativeCalls.add(call.method);
       if (call.method == 'pairingStatus') return pairingStatus;
+      if (call.method == 'pairingReadiness') {
+        return {'supported': true, 'notificationsEnabled': true};
+      }
       if (call.method == 'startPairing') {
         pairingStatus = {'state': 'searching', 'message': '等待配对窗口'};
         return true;
@@ -409,6 +412,13 @@ void main() {
       expect(tester.getRect(button('连接本机')).bottom, lessThan(700));
       await press(tester, '通知配对');
       await settle(tester);
+      expect(find.widgetWithText(AppBar, '无线配对指南'), findsOneWidget);
+      expect(nativeCalls, isNot(contains('startPairing')));
+      await press(tester, '开始配对');
+      // 等待指南路由退出动画，通知轮询仍在运行，不能用 pumpAndSettle。
+      await tester.pump(const Duration(seconds: 1));
+      await settle(tester);
+      expect(nativeCalls, contains('startPairing'));
       expect(
         nativeCalls.indexOf('startPairing'),
         lessThan(nativeCalls.indexOf('openWirelessSettings')),

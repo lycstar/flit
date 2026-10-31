@@ -22,6 +22,12 @@ class AdbPairingService : Service() {
         private const val CODE = "pairing_code"
         @Volatile private var running = false
         private fun prefs(context: Context) = context.getSharedPreferences("adb_pairing", Context.MODE_PRIVATE)
+        /** Read-only check for the tutorial. Do not start discovery or create a channel here. */
+        fun notificationsEnabled(context: Context): Boolean {
+            val manager = context.getSystemService(NotificationManager::class.java)
+            return manager.areNotificationsEnabled() &&
+                (Build.VERSION.SDK_INT < 26 || manager.getNotificationChannel(CHANNEL)?.importance != NotificationManager.IMPORTANCE_NONE)
+        }
         fun status(context: Context): Map<String, Any> {
             val saved = prefs(context)
             val state = saved.getString("state", "idle") ?: "idle"
