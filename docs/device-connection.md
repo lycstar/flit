@@ -18,9 +18,19 @@
 - 参考 [Shizuku AdbPairingService](https://github.com/RikkaApps/Shizuku/blob/master/manager/src/main/java/moe/shizuku/manager/adb/AdbPairingService.kt) 的通知交互方式；Flit 配对仍由自带 ADB 执行。需要 Android 11 及以上。其他设备配对保留手动入口，不错误地跳到本机自动连接。
 - 自动连接只认可目标地址的 `device` 状态，并等待短暂的上线延迟。认证失败与扫描失败、端口拒绝分别处理；单凭发现广播不能断言“未配对”。
 
+## 电脑 USB 激活
+
+- 页面参考 Shizuku 的“状态 + 无线调试 + 电脑启动”卡片结构，见 [home_start_adb.xml](https://github.com/RikkaApps/Shizuku/blob/master/manager/src/main/res/layout/home_start_adb.xml) 和 [StartAdbViewHolder](https://github.com/RikkaApps/Shizuku/blob/master/manager/src/main/java/moe/shizuku/manager/home/StartAdbViewHolder.kt)。Flit 使用完整 ADB 连接供 Flutter 运行、调试和端口转发；不启动 Shizuku 的 Binder 权限服务。
+- 电脑安装 Platform Tools，手机打开 USB 调试并授权，电脑执行 `adb devices`、`adb -d tcpip 5555`。`-d` 限定 USB 目标，多个 USB 设备连接时会拒绝执行，指南要求只连接当前手机。
+- `DeviceUsbGuide` 单独维护指南、电脑系统选择和复制操作。Windows PowerShell 使用 `.\adb.exe`，macOS/Linux 使用 `./adb`，均在解压后的 Platform Tools 目录执行。页面不会把这些命令交给手机终端。
+- `DeviceConnection.connectUsb()` 只连接 `127.0.0.1:5555`，不等待 NSD，也不调用 `adb pair`。只有该目标在 `adb devices -l` 中处于 `device` 才算成功；局域网或其他无线端口在线不算成功。
+- 授权失败引导确认手机上的 USB 调试授权；拒绝连接引导重新执行电脑命令，不误导到无线配对。成功后可拔线，通常无需 Wi-Fi；重启后一般需要重新激活，厂商限制仍需真机验证。
+- TCP 调试可能监听其他网络接口。接回电脑执行 `adb -d usb` 可切回 USB 模式；Flit 的“断开”只断开客户端，不关闭 adbd 的 TCP 监听。
+- 保存最后成功的连接方式，重新进页按该方式重连。显式选择无线连接时，不复用 USB 缓存端口；通知配对结果按 revision 只处理一次，防止旧成功结果覆盖后来的 USB 选择。首次进入无历史记录时只读状态，不自动启动扫描并显示错误。
+
 ## 页面
 
-- 默认只显示设备状态、扫描连接和通知配对；手动地址、端口及帮助折叠显示。日志默认收起，操作不强制抢占表单空间。
+- 默认显示设备状态、无线调试卡片和电脑 USB 激活卡片；手动地址、端口及帮助折叠显示。电脑操作指南按需打开，支持复制命令和执行后的连接。日志默认收起，操作不强制抢占表单空间。
 - `PageContent` / `PageList` 统一安全区域、16px 页面边距和 800px 表单最大宽度；颜色、字体和卡片复用应用主题。
 - `PageIntro`、`StatusNotice`、`SettingsSlider` 统一说明、错误反馈与手机滑块布局。
 - Flutter / Dart 创建分别检查对应命令，忽略过时的检查结果；创建和克隆在返回参数前检查目标目录，失败后保留表单。

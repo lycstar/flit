@@ -1,4 +1,5 @@
 import 'package:flit/core/app_scope.dart';
+import 'package:flit/services/adb_connection_method.dart';
 import 'package:flit/features/settings/appearance_preferences.dart';
 import 'package:flit/features/terminal/console_session.dart';
 import 'package:flit/features/terminal/terminal_host.dart';
@@ -27,6 +28,8 @@ class RecordingPreferences extends AppearancePreferences {
     bool? adbPaired,
     String? adbHost,
     String? adbConnectPort,
+    AdbConnectionMethod? adbConnectionMethod,
+    int? adbPairingRevision,
     String? runDevice,
   }) {
     if (terminal != null) terminalWrites++;

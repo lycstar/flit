@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flit/features/device/device_connect_page.dart';
 import 'package:flit/features/settings/appearance_preferences.dart';
+import 'package:flit/services/adb_connection_method.dart';
 
 import 'support/app_scope.dart';
 import 'support/fake_session_process.dart';
@@ -150,6 +151,91 @@ void main() {
     }
     expect(tester.takeException(), isNull);
   }
+
+  testWidgets('USB card connects directly and never starts discovery', (
+    tester,
+  ) async {
+    await open(tester, manual: false);
+    await press(tester, '连接本机');
+    expect(commands, ["adb connect '127.0.0.1:5555'"]);
+    expect(nativeCalls, isNot(contains('discoverAdb')));
+    expect(nativeCalls, isNot(contains('startPairing')));
+    expect(tester.widget<FilledButton>(button('扫描并连接')).onPressed, isNull);
+    await processes.single.finish(1);
+    await settle(tester);
+    expect(find.textContaining('未能连接本机 5555'), findsOneWidget);
+    await close(tester);
+  });
+
+  testWidgets(
+    'USB guide copies computer commands and connects only on explicit action',
+    (tester) async {
+      String? copied;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+      await open(tester, manual: false);
+      await tester.tap(find.text('查看步骤'));
+      await settle(tester);
+      expect(commands, isEmpty);
+      final command = find.byWidgetPredicate(
+        (w) => w is SelectableText && (w.data?.contains('tcpip') ?? false),
+      );
+      expect(
+        tester.widget<SelectableText>(command).data,
+        r'.\adb.exe devices'
+        '\n'
+        r'.\adb.exe -d tcpip 5555',
+      );
+      await tester.ensureVisible(find.text('复制命令'));
+      await tester.tap(find.text('复制命令'));
+      await settle(tester);
+      expect(copied, contains('-d tcpip 5555'));
+      expect(commands, isEmpty);
+      await tester.tap(find.text('已执行，连接本机'));
+      await settle(tester);
+      expect(commands, ["adb connect '127.0.0.1:5555'"]);
+      await close(tester);
+    },
+  );
+
+  testWidgets('USB guide fits phone, landscape and large text', (tester) async {
+    await open(tester, manual: false);
+    await tester.tap(find.text('查看步骤'));
+    await settle(tester);
+    for (final size in [const Size(320, 740), const Size(700, 360)]) {
+      tester.view.physicalSize = size;
+      await settle(tester);
+      expect(tester.takeException(), isNull);
+    }
+    tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await settle(tester);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('关闭'));
+    await settle(tester);
+    expect(commands, isEmpty);
+    await close(tester);
+  });
+
+  testWidgets(
+    'consumed notification result cannot override the USB method on reopening',
+    (tester) async {
+      prefs.adbConnectionMethod = AdbConnectionMethod.usb;
+      prefs.adbPairingRevision = 10;
+      pairingStatus = {'state': 'success', 'revision': 10};
+      await open(tester, manual: false);
+      expect(commands, isEmpty);
+      expect(prefs.adbConnectionMethod, AdbConnectionMethod.usb);
+      await close(tester);
+    },
+  );
 
   testWidgets('rejects out-of-range ports and accepts the upper boundary', (
     tester,
@@ -320,6 +406,7 @@ void main() {
       expect(field('配对端口'), findsNothing);
       expect(tester.getRect(button('扫描并连接')).bottom, lessThan(700));
       expect(tester.getRect(button('通知配对')).bottom, lessThan(700));
+      expect(tester.getRect(button('连接本机')).bottom, lessThan(700));
       await press(tester, '通知配对');
       await settle(tester);
       expect(
@@ -368,6 +455,7 @@ void main() {
     await settle(tester);
     expect(find.textContaining('已自动连接本机'), findsOneWidget);
     expect(prefs.adbPaired, true);
+    expect(prefs.adbPairingRevision, 10);
     await close(tester);
   });
 }

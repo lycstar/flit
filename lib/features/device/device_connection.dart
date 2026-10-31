@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flit_device/flit_device.dart';
 
 import '../../services/adb_ops.dart';
+import '../../services/adb_connection_method.dart';
 import '../../services/shell.dart';
 import '../settings/appearance_preferences.dart';
 import '../terminal/console_session.dart';
@@ -189,38 +190,57 @@ class DeviceConnection extends ChangeNotifier {
     return true;
   });
 
-  /// 进页自动连接: 已连→true; 未配对→false(页面留在配对流程); 没发现端口→false。
-  Future<bool> autoConnect() => _action(() async {
-    final current = _log;
-    final outcome = await autoConnectAdb(
-      console: current,
-      preferences: _preferences,
-    );
-    if (_closed || current.disposed || current.stopRequested) return false;
-    switch (outcome) {
-      case AdbAutoResult.connected:
-        final verified = await _read();
-        if (_closed || current.disposed || current.stopRequested) return false;
-        if (!verified ||
-            !devices.any((d) => _isLocalAdbDevice(d) && d.online)) {
-          _result('连接后未能确认设备在线，请刷新设备或查看日志', error: true);
+  /// 进页沿用上次成功方式；无线卡片显式指定 wireless，避免复用 USB 端口。
+  Future<bool> autoConnect({AdbConnectionMethod? method}) {
+    final selected = method ?? _preferences.adbConnectionMethod;
+    if (selected == AdbConnectionMethod.usb) return connectUsb();
+    return _action(() async {
+      final current = _log;
+      final outcome = await autoConnectAdb(
+        console: current,
+        preferences: _preferences,
+        method: selected,
+      );
+      if (_closed || current.disposed || current.stopRequested) return false;
+      switch (outcome) {
+        case AdbAutoResult.connected:
+          final verified = await _read();
+          if (_closed || current.disposed || current.stopRequested) {
+            return false;
+          }
+          if (!verified ||
+              !devices.any((d) => _matchesMethod(d, selected) && d.online)) {
+            _result('连接后未能确认设备在线，请刷新设备或查看日志', error: true);
+            return false;
+          }
+          _result('✓ 已自动连接本机无线调试');
+          return true;
+        case AdbAutoResult.needsAuthorization:
+          _result('请在手机上允许 USB 调试授权后重试', error: true);
           return false;
-        }
-        _result('✓ 已自动连接本机无线调试');
-        return true;
-      case AdbAutoResult.needsPairing:
-        _result('需要配对，请点击“通知配对”');
-        return false;
-      case AdbAutoResult.failed:
-        _result('连接未成功，请查看日志或使用当前端口手动连接', error: true);
-        return false;
-      case AdbAutoResult.unavailable:
-        _result('未发现连接端口，请开启无线调试后重试', error: true);
-        return false;
-    }
-  });
+        case AdbAutoResult.needsPairing:
+          _result('需要配对，请点击“通知配对”');
+          return false;
+        case AdbAutoResult.failed:
+          _result('连接未成功，请查看日志或使用当前端口手动连接', error: true);
+          return false;
+        case AdbAutoResult.unavailable:
+          _result('未发现无线端口，可重新扫描、手动输入，或通过电脑 USB 激活', error: true);
+          return false;
+      }
+    });
+  }
 
-  Future<bool> connect(String host, String port) => _action(() async {
+  /// 不扫描端口、不发配对命令，也不在手机内执行电脑端的 tcpip 命令。
+  /// 只有 127.0.0.1:5555 被确认在线，才记住 USB 激活方式。
+  Future<bool> connectUsb() =>
+      connect('127.0.0.1', adbUsbPort, method: AdbConnectionMethod.usb);
+
+  Future<bool> connect(
+    String host,
+    String port, {
+    AdbConnectionMethod method = AdbConnectionMethod.wireless,
+  }) => _action(() async {
     final target = endpoint(host, port);
     final result = await _run('adb connect ${shQuote(target)}');
     if (_closed) return false;
@@ -241,10 +261,15 @@ class DeviceConnection extends ChangeNotifier {
       if (device?.online == true) {
         await _remember(
           host,
-          paired: true,
+          paired: method == AdbConnectionMethod.wireless,
+          method: method,
           port: int.parse(port.trim()).toString(),
         );
-        _result('✓ 已连接 $target');
+        _result(
+          method == AdbConnectionMethod.usb
+              ? '✓ 已连接本机 · 电脑 USB 激活，可拔掉数据线'
+              : '✓ 已连接 $target',
+        );
         return true;
       }
       if (device?.state == 'unauthorized') break;
@@ -262,6 +287,18 @@ class DeviceConnection extends ChangeNotifier {
       if (_closed) return false;
     }
     final output = result.output.toLowerCase();
+    if (method == AdbConnectionMethod.usb) {
+      _result(switch (device?.state) {
+        'unauthorized' => '设备未授权：请在手机上允许 USB 调试授权，再点连接',
+        'offline' => '本机 ADB 离线，请在电脑重新执行激活命令后重试',
+        _ when output.contains('authenticate') =>
+          'ADB 认证失败：请在手机上确认 USB 调试授权，再点连接',
+        _ when output.contains('refused') =>
+          '尚未激活：请用 USB 连接电脑，执行激活命令后重试；手机重启后需重新激活',
+        _ => '未能连接本机 5555 端口，请检查电脑激活结果和手机授权；部分系统可能限制此方式',
+      }, error: true);
+      return false;
+    }
     _result(switch (device?.state) {
       'unauthorized' => '设备未授权：请在目标设备确认调试授权；无线调试请重新配对，再使用连接端口连接。',
       'offline' => '设备离线：请确认无线调试仍开启，再断开此设备并用当前连接端口重连。',
@@ -288,15 +325,24 @@ class DeviceConnection extends ChangeNotifier {
     return ok;
   });
 
-  Future<void> _remember(String host, {bool? paired, String? port}) async {
+  Future<void> _remember(
+    String host, {
+    bool? paired,
+    String? port,
+    AdbConnectionMethod method = AdbConnectionMethod.wireless,
+  }) async {
     final preferences = _preferences;
     host = host.trim().isEmpty ? '127.0.0.1' : host.trim();
     try {
       await preferences.update(
         adbHost: host,
+        adbConnectionMethod: method,
         adbConnectPort:
             port ??
-            (host == preferences.adbHost ? preferences.adbConnectPort : ''),
+            (host == preferences.adbHost &&
+                    method == preferences.adbConnectionMethod
+                ? preferences.adbConnectPort
+                : ''),
         adbPaired:
             paired ?? (preferences.adbHost == host && preferences.adbPaired),
       );
@@ -328,14 +374,30 @@ class DeviceConnection extends ChangeNotifier {
 bool _isLocalAdbDevice(AdbStatus device) =>
     RegExp(r'^(127\.0\.0\.1|localhost|\[::1\]):\d+$').hasMatch(device.serial);
 
-enum AdbAutoResult { connected, needsPairing, unavailable, failed }
+bool _matchesMethod(AdbStatus device, AdbConnectionMethod method) =>
+    method == AdbConnectionMethod.usb
+    ? device.serial == '127.0.0.1:$adbUsbPort'
+    : _isLocalAdbDevice(device) && !device.serial.endsWith(':$adbUsbPort');
+
+enum AdbAutoResult {
+  connected,
+  needsPairing,
+  needsAuthorization,
+  unavailable,
+  failed,
+}
 
 /// 本机连接只认可回环地址的目标设备。缓存端口先尝试，失败再发现；
 /// 发现服务不代表已配对，端口拒绝也不代表认证失败。
 Future<AdbAutoResult> autoConnectAdb({
   required ConsoleSession console,
   required AppearancePreferences preferences,
+  AdbConnectionMethod? method,
 }) async {
+  final selected = method ?? preferences.adbConnectionMethod;
+  final authRequired = selected == AdbConnectionMethod.usb
+      ? AdbAutoResult.needsAuthorization
+      : AdbAutoResult.needsPairing;
   final c = console;
   bool cancelled() => c.disposed || c.stopRequested;
   Future<({int code, String output})> run(String command) async {
@@ -364,7 +426,7 @@ Future<AdbAutoResult> autoConnectAdb({
     final result = await run('adb connect $target');
     if (cancelled()) return AdbAutoResult.unavailable;
     if (result.output.toLowerCase().contains('failed to authenticate')) {
-      return AdbAutoResult.needsPairing;
+      return authRequired;
     }
     final failed =
         result.code != 0 ||
@@ -383,13 +445,14 @@ Future<AdbAutoResult> autoConnectAdb({
           await preferences.update(
             adbHost: '127.0.0.1',
             adbConnectPort: port,
-            adbPaired: true,
+            adbPaired: selected == AdbConnectionMethod.wireless,
+            adbConnectionMethod: selected,
           );
         } catch (_) {}
         return AdbAutoResult.connected;
       }
       if (targetState?.state == 'unauthorized') {
-        return AdbAutoResult.needsPairing;
+        return authRequired;
       }
       if (i < 5 && !failed) {
         await Future<void>.delayed(const Duration(milliseconds: 400));
@@ -401,13 +464,28 @@ Future<AdbAutoResult> autoConnectAdb({
   try {
     final initial = await devices();
     if (cancelled()) return AdbAutoResult.unavailable;
-    if (initial.any((d) => _isLocalAdbDevice(d) && d.online)) {
+    if (initial.any((d) => _matchesMethod(d, selected) && d.online)) {
+      final device = initial.firstWhere(
+        (d) => _matchesMethod(d, selected) && d.online,
+      );
+      try {
+        await preferences.update(
+          adbHost: '127.0.0.1',
+          adbConnectPort: device.serial.split(':').last,
+          adbConnectionMethod: selected,
+        );
+      } catch (_) {}
       return AdbAutoResult.connected;
+    }
+    // USB 激活没有 mDNS 服务；失败也不切换到无线配对流程。
+    if (selected == AdbConnectionMethod.usb) {
+      return await connect(adbUsbPort);
     }
     final tried = <String>{};
     var unauthorized = false;
     final last = preferences.adbConnectPort.trim();
-    if (preferences.adbHost == '127.0.0.1' &&
+    if (preferences.adbConnectionMethod == selected &&
+        preferences.adbHost == '127.0.0.1' &&
         RegExp(r'^\d+$').hasMatch(last) &&
         (int.tryParse(last) ?? 0) >= 1 &&
         (int.tryParse(last) ?? 0) <= 65535) {
@@ -432,7 +510,7 @@ Future<AdbAutoResult> autoConnectAdb({
       if (result == AdbAutoResult.connected) return result;
       unauthorized |= result == AdbAutoResult.needsPairing;
     }
-    if (unauthorized) return AdbAutoResult.needsPairing;
+    if (unauthorized) return authRequired;
     return found.isEmpty ? AdbAutoResult.unavailable : AdbAutoResult.failed;
   } catch (error) {
     if (!cancelled()) c.log.err('扫描或连接失败：$error');

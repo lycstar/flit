@@ -1,4 +1,5 @@
 import '../../core/theme.dart';
+import '../../services/adb_connection_method.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -22,6 +23,8 @@ class AppearancePreferences extends ChangeNotifier {
   bool backgroundNoticeShown = false;
   bool adbPaired = false; // 曾完成无线配对，不代表系统仍保留授权
   String adbHost = '127.0.0.1'; // 最近一次 adb 连接的主机(本机/局域网)
+  int adbPairingRevision = 0; // 已处理的通知配对结果，避免重新进页时重放
+  AdbConnectionMethod adbConnectionMethod = AdbConnectionMethod.wireless;
   String adbConnectPort = ''; // 上次成功连接的端口(无线调试不重开就不变, 自动重连先试它)
   String runDevice = ''; // 最近一次热重载运行的设备 serial
   File? _file;
@@ -53,6 +56,10 @@ class AppearancePreferences extends ChangeNotifier {
         adbPaired = data['adbPaired'] as bool? ?? false;
         adbHost = data['adbHost'] as String? ?? '127.0.0.1';
         adbConnectPort = data['adbConnectPort'] as String? ?? '';
+        adbPairingRevision = data['adbPairingRevision'] as int? ?? 0;
+        adbConnectionMethod = AdbConnectionMethod.values.byName(
+          data['adbConnectionMethod'] == 'usb' ? 'usb' : 'wireless',
+        );
         runDevice = data['runDevice'] as String? ?? '';
       }
       _applyTheme();
@@ -73,6 +80,8 @@ class AppearancePreferences extends ChangeNotifier {
     bool? adbPaired,
     String? adbHost,
     String? adbConnectPort,
+    AdbConnectionMethod? adbConnectionMethod,
+    int? adbPairingRevision,
     String? runDevice,
   }) async {
     await load();
@@ -87,6 +96,8 @@ class AppearancePreferences extends ChangeNotifier {
     this.adbPaired = adbPaired ?? this.adbPaired;
     this.adbHost = adbHost ?? this.adbHost;
     this.adbConnectPort = adbConnectPort ?? this.adbConnectPort;
+    this.adbPairingRevision = adbPairingRevision ?? this.adbPairingRevision;
+    this.adbConnectionMethod = adbConnectionMethod ?? this.adbConnectionMethod;
     this.runDevice = runDevice ?? this.runDevice;
     if (theme != null && theme != editorTheme) {
       editorTheme = theme;
@@ -105,6 +116,8 @@ class AppearancePreferences extends ChangeNotifier {
       'adbPaired': this.adbPaired,
       'adbHost': this.adbHost,
       'adbConnectPort': this.adbConnectPort,
+      'adbPairingRevision': this.adbPairingRevision,
+      'adbConnectionMethod': this.adbConnectionMethod.name,
       'runDevice': this.runDevice,
     });
     _saving = _saving.catchError((_) {}).then((_) async {

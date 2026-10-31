@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flit/features/device/device_connection.dart';
+import 'package:flit/services/adb_connection_method.dart';
 import 'package:flit/features/settings/appearance_preferences.dart';
 import 'package:flit/features/terminal/console_session.dart';
 import 'package:flit_device/flit_device.dart';
@@ -18,6 +19,7 @@ void main() {
 
   setUp(() async {
     discoveries = 0;
+    prefs.adbConnectionMethod = AdbConnectionMethod.wireless;
     prefs.adbConnectPort = '';
     prefs.adbHost = '127.0.0.1';
     prefs.adbPaired = false;
@@ -45,6 +47,7 @@ void main() {
     List<DiscoveredAdb> discovered = const [],
     int onlineDelay = 0,
     bool discoveryFails = false,
+    AdbConnectionMethod? method,
   }) async {
     final commands = <String>[];
     var connectedPort = '';
@@ -101,10 +104,64 @@ void main() {
         for (final d in discovered) {'host': d.host, 'port': d.port},
       ];
     });
-    final result = await autoConnectAdb(console: console, preferences: prefs);
+    final result = await autoConnectAdb(
+      console: console,
+      preferences: prefs,
+      method: method,
+    );
     await console.close();
     return (result, commands);
   }
+
+  test(
+    'USB auto reconnect uses fixed port without discovery or pairing',
+    () async {
+      prefs.adbConnectionMethod = AdbConnectionMethod.usb;
+      prefs.adbConnectPort = '43210';
+      final (result, commands) = await runAuto(
+        onlinePort: '5555',
+        discoveryFails: true,
+      );
+      expect(result, AdbAutoResult.connected);
+      expect(commands, [
+        'adb devices',
+        'adb connect 127.0.0.1:5555',
+        'adb devices',
+      ]);
+      expect(discoveries, 0);
+      expect(prefs.adbConnectionMethod, AdbConnectionMethod.usb);
+      expect(prefs.adbPaired, false);
+    },
+  );
+
+  test('USB authorization failure never asks for wireless pairing', () async {
+    prefs.adbConnectionMethod = AdbConnectionMethod.usb;
+    final (result, _) = await runAuto(connectOutput: 'failed to authenticate');
+    expect(result, AdbAutoResult.needsAuthorization);
+    expect(discoveries, 0);
+  });
+
+  test('USB refusal does not fall back to NSD', () async {
+    prefs.adbConnectionMethod = AdbConnectionMethod.usb;
+    final (result, _) = await runAuto();
+    expect(result, AdbAutoResult.failed);
+    expect(discoveries, 0);
+  });
+
+  test('wireless action ignores USB cache and online transport', () async {
+    prefs.adbConnectionMethod = AdbConnectionMethod.usb;
+    prefs.adbConnectPort = '5555';
+    final (result, commands) = await runAuto(
+      method: AdbConnectionMethod.wireless,
+      initialDevices: 'List of devices attached\n127.0.0.1:5555 device\n',
+      onlinePort: '43210',
+      discovered: [const DiscoveredAdb(host: '127.0.0.1', port: '43210')],
+    );
+    expect(result, AdbAutoResult.connected);
+    expect(commands, isNot(contains('adb connect 127.0.0.1:5555')));
+    expect(discoveries, 1);
+    expect(prefs.adbConnectionMethod, AdbConnectionMethod.wireless);
+  });
 
   test(
     'last successful port is tried first and persisted on success',

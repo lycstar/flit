@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flit/features/device/device_connection.dart';
 import 'package:flit/features/settings/appearance_preferences.dart';
 import 'package:flit/services/adb_ops.dart';
+import 'package:flit/services/adb_connection_method.dart';
 import 'support/fake_session_process.dart';
 
 void main() {
@@ -13,11 +14,15 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   late DeviceConnection connection;
   late FakeProcess process;
+  late AppearancePreferences prefs;
+  final commands = <String?>[];
   var statuses = '';
   Future<Map<String, Object>> Function()? pendingRead;
 
   setUp(() {
     statuses = '';
+    commands.clear();
+    prefs = AppearancePreferences();
     pendingRead = null;
     messenger.setMockMethodCallHandler(const MethodChannel('flit/env'), (
       call,
@@ -40,7 +45,7 @@ void main() {
       return false;
     });
     connection = DeviceConnection(
-      preferences: AppearancePreferences(),
+      preferences: prefs,
       launcher:
           ({
             required command,
@@ -48,6 +53,7 @@ void main() {
             required rows,
             required columns,
           }) async {
+            commands.add(command);
             process = FakeProcess();
             return process;
           },
@@ -60,6 +66,58 @@ void main() {
     process.emit(output);
     await process.finish(code);
   }
+
+  test(
+    'USB requires exact localhost target and remembers method only on success',
+    () async {
+      statuses = '192.168.1.8:5555 device\n';
+      final failed = connection.connectUsb();
+      await finish('cannot connect: Connection refused');
+      expect(await failed, false);
+      expect(connection.message, contains('尚未激活'));
+      expect(connection.message, isNot(contains('无线调试')));
+      expect(prefs.adbConnectionMethod, AdbConnectionMethod.wireless);
+      statuses = '127.0.0.1:5555 device\n';
+      final success = connection.connectUsb();
+      await finish('connected to 127.0.0.1:5555');
+      expect(await success, true);
+      expect(prefs.adbConnectionMethod, AdbConnectionMethod.usb);
+      expect(prefs.adbPaired, false);
+      expect(prefs.adbConnectPort, '5555');
+      expect(commands, everyElement("adb connect '127.0.0.1:5555'"));
+    },
+  );
+
+  test(
+    'USB authorization error tells user to accept the system dialog',
+    () async {
+      statuses = '127.0.0.1:5555 unauthorized\n';
+      final result = connection.connectUsb();
+      await finish('failed to authenticate');
+      expect(await result, false);
+      expect(connection.message, contains('允许 USB 调试授权'));
+      expect(connection.message, isNot(contains('配对')));
+    },
+  );
+
+  test('reopening uses remembered USB method without an NSD call', () async {
+    prefs.adbConnectionMethod = AdbConnectionMethod.usb;
+    final result = connection.autoConnect();
+    statuses = '127.0.0.1:5555 device\n';
+    await finish('connected');
+    expect(await result, true);
+    expect(commands, ["adb connect '127.0.0.1:5555'"]);
+  });
+
+  test('wireless pairing clears a remembered USB port', () async {
+    prefs.adbConnectionMethod = AdbConnectionMethod.usb;
+    prefs.adbConnectPort = '5555';
+    final result = connection.pair('127.0.0.1', '43210', '123456');
+    await finish('Successfully paired to 127.0.0.1:43210');
+    expect(await result, true);
+    expect(prefs.adbConnectionMethod, AdbConnectionMethod.wireless);
+    expect(prefs.adbConnectPort, isEmpty);
+  });
 
   test('device list retains auth states but run targets stay online only', () {
     const output =

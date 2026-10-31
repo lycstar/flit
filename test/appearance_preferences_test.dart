@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flit/features/settings/appearance_preferences.dart';
+import 'package:flit/services/adb_connection_method.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,8 @@ void main() {
         await preferences.update(
           adbHost: '192.168.1.8',
           adbPaired: true,
+          adbConnectionMethod: AdbConnectionMethod.usb,
+          adbPairingRevision: 12345,
           runDevice: '192.168.1.8:32100',
         );
         await preferences.update(
@@ -40,6 +43,8 @@ void main() {
         );
         expect(data['adbHost'], '192.168.1.8');
         expect(data['adbPaired'], true);
+        expect(data['adbConnectionMethod'], 'usb');
+        expect(data['adbPairingRevision'], 12345);
         expect(data['runDevice'], '192.168.1.8:32100');
         await reloaded.load();
         expect(reloaded.editorSize, 16);
@@ -48,6 +53,8 @@ void main() {
         expect(reloaded.terminalLineHeight, 1.6);
         expect(reloaded.adbHost, '192.168.1.8');
         expect(reloaded.adbPaired, true);
+        expect(reloaded.adbConnectionMethod, AdbConnectionMethod.usb);
+        expect(reloaded.adbPairingRevision, 12345);
         expect(reloaded.runDevice, '192.168.1.8:32100');
         await reloaded.update(
           adbPaired: false,
