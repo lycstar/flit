@@ -37,6 +37,18 @@ Application ID: `cc.lycstar.flit` · Android 7.0+ · arm64-v8a
 - Stage, commit, manage branches, pull and push with Git; sign in to GitHub through its device authorization flow.
 - Share files and access projects from the system Files app through Android’s Storage Access Framework.
 
+## Preview
+
+<p>
+  <img src="docs/juejin/assets/flit-neofetch.png" width="270" alt="Integrated terminal" />
+  <img src="docs/juejin/assets/flit-environment-ready.jpg" width="270" alt="Development environment and components" />
+  <img src="docs/juejin/assets/flit-web-debug.jpg" width="270" alt="Flutter Web debugging" />
+</p>
+
+<p>
+  <img src="docs/juejin/assets/flit-hot-reload.gif" width="270" alt="Edit code and hot reload" />
+</p>
+
 ## Start using Flit
 
 1. Download an APK from [Releases](https://github.com/lycstar/flit/releases) and install it on an arm64 Android device.
@@ -49,6 +61,10 @@ Wireless pairing on the same device requires Android 11+ and wireless debugging 
 Projects live in the app’s private `files/home/projects` directory. **Uninstalling Flit or clearing its data deletes those projects.** Back them up with Git or copy them through **Files → Flit 工程**. GitHub authentication is optional; local development does not require an account.
 
 ## How it works
+
+The key to running the Flutter build chain on a phone is telling apart what can be reused as-is and what must be recompiled: Gradle, `d8`, `apksigner` and flutter_tools are JVM/Dart VM bytecode, and `android.jar` plus engine artifacts are pure data — those are portable by nature. `aapt2`, `aidl`, `zipalign`, the Dart VM, `gen_snapshot` and clang are native ELF host tools that must execute on the device; upstream only ships x86_64 glibc builds, so they are cross-compiled against bionic. The port happens in three layers: a self-built Termux userland (bootstrap and APT packages) provides shell and package management; Android SDK/NDK/CMake host tools are cross-compiled while official data and metadata are kept untouched; Flutter/Dart host tools are cross-compiled and combined with the official Android engine artifacts. Gradle and AGP are reused unchanged, with `android.aapt2FromMavenOverride` pointing at the on-device ARM64 AAPT2 and SDK auto-downloads disabled so AGP cannot pull desktop binaries.
+
+A full write-up (Chinese): [如何在 Android 设备上构建 Flutter 应用：Flit 的工具链移植实践](docs/juejin/article.md).
 
 ```mermaid
 flowchart LR
@@ -66,21 +82,21 @@ flowchart LR
 
 The APK contains the editor, native bridges and setup scripts. Setup downloads the development environment separately: bootstrap userland, OpenJDK, Android SDK/NDK and a Flutter SDK built for **Android bionic aarch64**. Desktop Linux tools cannot replace these executables.
 
-```mermaid
-flowchart TD
-    Start[Launch] --> Check{All required tools ready?}
-    Check -->|No| Setup[Environment setup and visible logs]
-    Setup --> Check
-    Check -->|Yes| Projects[Project list]
-    Projects --> Open[Open one active project]
-    Open --> Edit[Edit and save]
-    Edit --> Run{Run target}
-    Run --> Android[Android: build / ADB / Flutter run]
-    Run --> Web[Web: development server / preview]
-    Open --> Git[Git and project tasks]
-    Open --> Back[Return to project list: keep session]
-    Back --> Close[Close or switch project: save and release resources]
-```
+### Build chain components on the device
+
+| Component | Role in the build | How it is provided |
+| --- | --- | --- |
+| Terminal / userland | Shell, package manager and process environment | Termux bootstrap and APT packages rebuilt for Flit's private prefix |
+| OpenJDK | Runs Gradle and Java tools | Cross-compiled from the official Termux package recipe, installed via APT |
+| Gradle / AGP | Coordinates the Android build | Official Java/JVM distribution, run by OpenJDK |
+| Android SDK | Platform, Build Tools and packaging tools | Host tools cross-compiled, platform data reused |
+| NDK / CMake / Ninja | Compiles native plugins | LLVM and CMake/Ninja cross-compiled, then assembled into the NDK |
+| Flutter SDK | Compiles Dart, provides analysis and run tools | Host tools cross-compiled, Android engine artifacts reused |
+| Git, GitHub CLI and other tools | Required by Flutter and in-app features | Cross-compiled from the official Termux package recipe, installed via APT |
+
+Once setup completes, `flutter doctor -v` recognizes Flutter, the Android toolchain and OpenJDK on the phone:
+
+![flutter doctor -v in the Flit terminal, Flutter 3.47.8 and the Android toolchain pass](docs/juejin/assets/flit-flutter-doctor.jpg)
 
 ## Build from source
 
@@ -111,9 +127,7 @@ The application keeps only repository and default-version rules; installation re
 
 Toolchain build recipes belong in those repositories. This repository contains only the application’s installation scripts and version-selection rules. See [runtime configuration](docs/runtime-environment.md) for version catalogs and validation requirements.
 
-Distribution tags use component prefixes and complete versions: `sdk-36.0.0` (Build Tools), `ndk-r27d`, `llvm-r27d`, `cmake-3.22.1` and `flutter-3.47.8`. NDK revisions such as r27 and r27d are separate releases.
-
-SDK releases use `sdk-<Build Tools version>` tags and contain one matching Platform. Independent Platforms use `platform-<API>` tags. Build Tools **34.0.0, 35.0.0, 36.0.0 and 37.0.0** are available; the application initializes 36.0.0 by default. Additional NDK builds target **r25b (25.1.8937393), r26b (26.1.10909125) and r27 (27.0.12077973)** alongside the existing r28c and newer distributions. Versions become available in the catalog after their builds publish successfully. CMake **3.22.1** and **3.31.6** are selectable in the same catalog.
+Distribution tags use component prefixes and complete versions: `sdk-36.0.0` (Build Tools), `ndk-r27d`, `llvm-r27d`, `cmake-3.22.1` and `flutter-3.47.8`. NDK revisions such as r27 and r27d are separate releases. SDK releases use `sdk-<Build Tools version>` tags and contain one matching Platform; independent Platforms use `platform-<API>` tags. Build Tools **34.0.0, 35.0.0, 36.0.0 and 37.0.0** are available, with 36.0.0 initialized by default; additional NDK (**r25b, r26b, r27**) and CMake (**3.22.1, 3.31.6**) builds exist in the same catalog. Versions appear in the catalog only after their builds publish successfully.
 
 ## Structure
 

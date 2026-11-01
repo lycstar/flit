@@ -1,0 +1,8 @@
+掘金发布说明
+
+标题：如何在 Android 设备上构建 Flutter 应用：Flit 的工具链移植实践
+已发布：https://juejin.cn/post/7702863198185504819
+
+1. article.md 与线上发布版同步（2026-11-01），图片使用本地相对路径 assets/...；线上为掘金 CDN 地址。
+2. assets 仅保留正文引用的 6 个媒体文件：mobile-dev-tools.png、flit-neofetch.png、flit-environment-ready.jpg、flit-flutter-doctor.jpg、flit-web-debug.jpg、flit-hot-reload.gif（热重载动图，480px/8fps/2 倍速）。
+3. README（中英文）的“预览”小节也引用上述素材；改图时两处一起换。

@@ -37,6 +37,18 @@ Flit 支持编辑 Dart 代码、在设备上构建应用、通过无线 ADB 运�
 - 使用 Git 暂存、提交、管理分支、拉取和推送；通过设备授权流程登录 GitHub。
 - 分享文件，并通过 Android 存储访问框架（SAF）在系统“文件”应用中访问工程。
 
+## 预览
+
+<p>
+  <img src="docs/juejin/assets/flit-neofetch.png" width="270" alt="集成终端" />
+  <img src="docs/juejin/assets/flit-environment-ready.jpg" width="270" alt="开发环境与组件管理" />
+  <img src="docs/juejin/assets/flit-web-debug.jpg" width="270" alt="Flutter Web 调试" />
+</p>
+
+<p>
+  <img src="docs/juejin/assets/flit-hot-reload.gif" width="270" alt="修改代码并热重载" />
+</p>
+
 ## 开始使用
 
 1. 从 [Releases](https://github.com/lycstar/flit/releases) 下载 APK，安装到 arm64 Android 设备。
@@ -49,6 +61,10 @@ Flit 支持编辑 Dart 代码、在设备上构建应用、通过无线 ADB 运�
 工程保存在应用私有的 `files/home/projects` 目录中。**卸载 Flit 或清除应用数据会删除这些工程。** 请使用 Git 备份，或通过**文件 → Flit 工程**复制。GitHub 登录是可选功能，本地开发不需要账户。
 
 ## 工作原理
+
+在手机上跑通 Flutter 构建链的关键，是分清构建环节里什么可直接复用、什么必须重新编译：Gradle、`d8`、`apksigner` 和 flutter_tools 是 JVM/Dart VM 上的字节码，`android.jar` 与引擎产物是纯数据——这些天然可移植；`aapt2`、`aidl`、`zipalign`、Dart VM、`gen_snapshot` 和 clang 是必须在本机执行的原生 ELF，官方只提供 x86_64 glibc 版本，需要以 bionic 为目标交叉编译。移植按三层展开：自建 Termux 用户空间（bootstrap 与 APT 包）提供 shell 和包管理；交叉编译 Android SDK/NDK/CMake 宿主工具，官方数据与元信息原样保留；交叉编译 Flutter/Dart 宿主工具并复用官方 Android 引擎产物。Gradle 与 AGP 原样复用，通过 `android.aapt2FromMavenOverride` 指向本机 ARM64 AAPT2 并关闭 SDK 自动下载，避免 AGP 拉回桌面版二进制。
+
+完整过程见文章：[如何在 Android 设备上构建 Flutter 应用：Flit 的工具链移植实践](docs/juejin/article.md)。
 
 ```mermaid
 flowchart LR
@@ -66,21 +82,21 @@ flowchart LR
 
 APK 包含编辑器、原生桥接和安装脚本。开发环境在初始化时单独下载，包括 bootstrap 基础用户环境、OpenJDK、Android SDK/NDK，以及为 **Android bionic aarch64** 构建的 Flutter SDK。桌面 Linux 工具不能替代这些可执行文件。
 
-```mermaid
-flowchart TD
-    Start[启动] --> Check{所有必要工具是否就绪？}
-    Check -->|否| Setup[配置开发环境并显示日志]
-    Setup --> Check
-    Check -->|是| Projects[项目列表]
-    Projects --> Open[打开一个活动项目]
-    Open --> Edit[编辑与保存]
-    Edit --> Run{运行目标}
-    Run --> Android[Android：构建 / ADB / Flutter run]
-    Run --> Web[Web：开发服务器 / 预览]
-    Open --> Git[Git 与项目任务]
-    Open --> Back[返回项目列表：保留会话]
-    Back --> Close[关闭或切换项目：保存并释放资源]
-```
+### 设备端构建链各组件
+
+| 组件 | 在构建中的作用 | 处理方式 |
+| --- | --- | --- |
+| 终端 / 用户空间 | 提供 shell、包管理器和进程环境 | 为 Flit 私有前缀重建 Termux bootstrap 和 APT 包 |
+| OpenJDK | 运行 Gradle 和 Java 工具 | 沿用 Termux 官方包配方交叉编译，通过 APT 安装 |
+| Gradle / AGP | 协调 Android 构建和依赖 | 复用官方 Java/JVM 发行版，由 OpenJDK 运行 |
+| Android SDK | 提供 Platform、Build Tools 和打包工具 | 交叉编译宿主工具，复用平台资源 |
+| NDK / CMake / Ninja | 编译原生插件 | 交叉编译 LLVM 和 CMake/Ninja，再组装 NDK |
+| Flutter SDK | 编译 Dart、提供分析和运行工具 | 交叉编译宿主工具，复用 Android 引擎产物 |
+| Git、GitHub CLI 等额外工具 | Flutter 工具和应用内功能需要 | 沿用 Termux 官方包配方交叉编译，通过 APT 安装 |
+
+环境就绪后，`flutter doctor -v` 可以在手机上完整识别 Flutter、Android 工具链与 OpenJDK：
+
+![Flit 终端中运行 flutter doctor -v，Flutter 3.47.8 和 Android 工具链检查通过](docs/juejin/assets/flit-flutter-doctor.jpg)
 
 ## 从源码构建
 
@@ -111,9 +127,7 @@ flutter build apk --debug --target-platform android-arm64
 
 工具链构建脚本由这些仓库维护。本仓库维护应用安装脚本和版本选择规则。版本目录与验证要求见[运行环境配置](docs/runtime-environment.md)。
 
-工具链 Tag 统一使用组件前缀与完整版本：`sdk-36.0.0`（Build Tools）、`ndk-r27d`、`llvm-r27d`、`cmake-3.22.1`、`flutter-3.47.8`。NDK 的 r27 与 r27d 属于不同修订版，独立发布。
-
-SDK 使用 `sdk-<Build Tools版本>` 发布，整包只带对应的一个 Platform；`platform-<API>` 提供独立平台分包。当前提供 Build Tools **34.0.0、35.0.0、36.0.0、37.0.0**，App 默认初始化 36.0.0。NDK 补充构建 **r25b（25.1.8937393）、r26b（26.1.10909125）、r27（27.0.12077973）**，与已有 r28c 及更新版本并存。构建发布成功后，相应版本才会出现在版本目录中。CMake **3.22.1** 与 **3.31.6** 也可在同一目录中选择。
+工具链 Tag 统一使用组件前缀与完整版本：`sdk-36.0.0`（Build Tools）、`ndk-r27d`、`llvm-r27d`、`cmake-3.22.1`、`flutter-3.47.8`。NDK 的 r27 与 r27d 属于不同修订版，独立发布。SDK 使用 `sdk-<Build Tools版本>` 发布，整包只带对应的一个 Platform；`platform-<API>` 提供独立平台分包。当前 Build Tools 提供 **34.0.0、35.0.0、36.0.0、37.0.0**，App 默认初始化 36.0.0；NDK 另有 **r25b、r26b、r27** 历史版本，CMake 提供 **3.22.1 与 3.31.6**。版本构建发布成功后才会出现在版本目录中，可选范围以目录为准。
 
 应用的 APK 构建和 Android 设备运行由独立 `AndroidBuildWrapper` 检查缺失组件，确认后安装并最多重试一次；覆盖 Platform、Build Tools、NDK、CMake/Ninja 和设备运行所需的 Platform Tools。宿主工具保持 ARM64 适配包，AGP 通用自动下载保持关闭。
 
