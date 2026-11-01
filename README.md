@@ -41,10 +41,15 @@ Application ID: `cc.lycstar.flit` · Android 7.0+ · arm64-v8a
 
 1. Download an APK from [Releases](https://github.com/lycstar/flit/releases) and install it on an arm64 Android device.
 2. Complete **Development environment** setup. All required components must be ready before creating or building projects. Installation output remains visible in the terminal.
+
+   ![neofetch in the Flit terminal, showing the Android environment](docs/juejin/assets/flit-neofetch.png)
+
 3. Create or clone a project, or open a directory from the project list.
 4. Select Web preview or connect an Android device. Run, inspect the output, and use reload/restart while editing.
 
-![Edit code and hot reload in Flit](docs/juejin/assets/flit-hot-reload.gif)
+| Flutter Web debugging | Flutter Android debugging |
+| --- | --- |
+| ![Flutter Web app running in Flit, Debug badge on the page, Dart VM Service in the terminal below](docs/juejin/assets/flit-web-debug.jpg) | ![Editing code and hot reloading in Flit](docs/juejin/assets/flit-hot-reload.gif) |
 
 Wireless pairing on the same device requires Android 11+ and wireless debugging enabled in Developer options. Manual host/port connection is available for an already configured ADB endpoint. Pairing history is not proof of a current connection: Flit checks the device state reported by ADB.
 
@@ -86,9 +91,9 @@ The APK contains the editor, native bridges and setup scripts. Setup downloads t
 
 Once setup completes, `flutter doctor -v` recognizes Flutter, the Android toolchain and OpenJDK on the phone:
 
-<p align="center">
-  <img src="docs/juejin/assets/flit-flutter-doctor.jpg" width="270" alt="flutter doctor -v in the Flit terminal, Flutter 3.47.8 and the Android toolchain pass" />
-</p>
+| Components | flutter doctor -v |
+| --- | --- |
+| ![Flit development environment page, environment ready](docs/juejin/assets/flit-environment-ready.jpg) | ![flutter doctor -v in the Flit terminal, Flutter 3.47.8 and the Android toolchain pass](docs/juejin/assets/flit-flutter-doctor.jpg) |
 
 ## Build from source
 

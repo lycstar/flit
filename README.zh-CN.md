@@ -41,10 +41,15 @@ Flit 支持编辑 Dart 代码、在设备上构建应用、通过无线 ADB 运�
 
 1. 从 [Releases](https://github.com/lycstar/flit/releases) 下载 APK，安装到 arm64 Android 设备。
 2. 完成**开发环境**配置。创建或构建项目之前，所有必要组件必须就绪。安装输出会持续显示在终端中。
+
+   ![在 Flit 终端中运行 neofetch，显示 Android 环境](docs/juejin/assets/flit-neofetch.png)
+
 3. 创建或克隆项目，也可以从项目列表打开目录。
 4. 选择 Web 预览或连接 Android 设备，运行项目、查看输出，并在编辑时使用热重载或热重启。
 
-![在 Flit 中修改代码并热重载](docs/juejin/assets/flit-hot-reload.gif)
+| Flutter Web 调试 | Flutter android调试 |
+| --- | --- |
+| ![Flit 内运行 Flutter Web 应用，页面显示 Debug 标记，下方终端显示 Dart VM Service](docs/juejin/assets/flit-web-debug.jpg) | ![在 Flit 中修改代码并热重载](docs/juejin/assets/flit-hot-reload.gif) |
 
 本机无线配对需要 Android 11 及以上，并在开发者选项中启用无线调试。对于已配置的 ADB 端点，可手动输入主机和端口连接。配对记录不代表当前已连接：Flit 以 ADB 返回的设备状态为准。
 
@@ -86,9 +91,9 @@ APK 包含编辑器、原生桥接和安装脚本。开发环境在初始化时�
 
 环境就绪后，`flutter doctor -v` 可以在手机上完整识别 Flutter、Android 工具链与 OpenJDK：
 
-<p align="center">
-  <img src="docs/juejin/assets/flit-flutter-doctor.jpg" width="270" alt="Flit 终端中运行 flutter doctor -v，Flutter 3.47.8 和 Android 工具链检查通过" />
-</p>
+| 组件列表 | flutter doctor -v |
+| --- | --- |
+| ![Flit 开发环境页，环境已就绪](docs/juejin/assets/flit-environment-ready.jpg) | ![Flit 终端中运行 flutter doctor -v，Flutter 3.47.8 和 Android 工具链检查通过](docs/juejin/assets/flit-flutter-doctor.jpg) |
 
 ## 从源码构建
 
