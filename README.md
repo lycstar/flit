@@ -37,24 +37,14 @@ Application ID: `cc.lycstar.flit` · Android 7.0+ · arm64-v8a
 - Stage, commit, manage branches, pull and push with Git; sign in to GitHub through its device authorization flow.
 - Share files and access projects from the system Files app through Android’s Storage Access Framework.
 
-## Preview
-
-<p>
-  <img src="docs/juejin/assets/flit-neofetch.png" width="270" alt="Integrated terminal" />
-  <img src="docs/juejin/assets/flit-environment-ready.jpg" width="270" alt="Development environment and components" />
-  <img src="docs/juejin/assets/flit-web-debug.jpg" width="270" alt="Flutter Web debugging" />
-</p>
-
-<p>
-  <img src="docs/juejin/assets/flit-hot-reload.gif" width="270" alt="Edit code and hot reload" />
-</p>
-
 ## Start using Flit
 
 1. Download an APK from [Releases](https://github.com/lycstar/flit/releases) and install it on an arm64 Android device.
 2. Complete **Development environment** setup. All required components must be ready before creating or building projects. Installation output remains visible in the terminal.
 3. Create or clone a project, or open a directory from the project list.
 4. Select Web preview or connect an Android device. Run, inspect the output, and use reload/restart while editing.
+
+![Edit code and hot reload in Flit](docs/juejin/assets/flit-hot-reload.gif)
 
 Wireless pairing on the same device requires Android 11+ and wireless debugging enabled in Developer options. Manual host/port connection is available for an already configured ADB endpoint. Pairing history is not proof of a current connection: Flit checks the device state reported by ADB.
 
@@ -96,7 +86,9 @@ The APK contains the editor, native bridges and setup scripts. Setup downloads t
 
 Once setup completes, `flutter doctor -v` recognizes Flutter, the Android toolchain and OpenJDK on the phone:
 
-![flutter doctor -v in the Flit terminal, Flutter 3.47.8 and the Android toolchain pass](docs/juejin/assets/flit-flutter-doctor.jpg)
+<p align="center">
+  <img src="docs/juejin/assets/flit-flutter-doctor.jpg" width="270" alt="flutter doctor -v in the Flit terminal, Flutter 3.47.8 and the Android toolchain pass" />
+</p>
 
 ## Build from source
 
