@@ -68,3 +68,4 @@ flutter:
     - assets/scripts/flutter_tools.sh
     - assets/scripts/flutter_warmup.sh
     - assets/scripts/net_probe.sh
+    - assets/device/flit-usb.sh

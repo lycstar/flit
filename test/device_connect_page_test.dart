@@ -79,6 +79,9 @@ void main() {
         pairingStatus = {'state': 'idle'};
         return true;
       }
+      if (call.method == 'writeUsbScript') {
+        return '/sdcard/Android/data/cc.lycstar.flit/start.sh';
+      }
       // 电池优化已忽略: 电池提示卡不出现, 页面布局保持紧凑
       if (call.method == 'isIgnoringBatteryOptimizations') return true;
       // NSD 发现返回空: 自动连接的发现环节立即结束(视为无线调试未开)
@@ -171,7 +174,8 @@ void main() {
   });
 
   testWidgets(
-    'USB guide copies computer commands and connects only on explicit action',
+    'USB guide copies the script command, keeps tcpip as fallback, '
+    'and connects only on explicit action',
     (tester) async {
       String? copied;
       messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
@@ -187,20 +191,33 @@ void main() {
       await tester.tap(find.text('查看步骤'));
       await settle(tester);
       expect(commands, isEmpty);
-      final command = find.byWidgetPredicate(
-        (w) => w is SelectableText && (w.data?.contains('tcpip') ?? false),
+      // 主命令：内置脚本写入外部包目录根部（与 Shizuku 文档命令同形）
+      final script = find.byWidgetPredicate(
+        (w) => w is SelectableText && (w.data?.contains('start.sh') ?? false),
       );
       expect(
-        tester.widget<SelectableText>(command).data,
-        r'.\adb.exe devices'
-        '\n'
-        r'.\adb.exe -d tcpip 5555',
+        tester.widget<SelectableText>(script).data,
+        r'.\adb.exe shell sh /sdcard/Android/data/cc.lycstar.flit/start.sh',
       );
       await tester.ensureVisible(find.text('复制命令'));
       await tester.tap(find.text('复制命令'));
       await settle(tester);
-      expect(copied, contains('-d tcpip 5555'));
+      expect(copied, contains('start.sh'));
       expect(commands, isEmpty);
+      // 备用的电脑直连激活命令默认折叠
+      final fallback = find.byWidgetPredicate(
+        (w) => w is SelectableText && (w.data?.contains('tcpip') ?? false),
+      );
+      expect(fallback, findsNothing);
+      await tester.ensureVisible(find.text('备用：直接执行激活命令'));
+      await tester.tap(find.text('备用：直接执行激活命令'));
+      await settle(tester);
+      expect(
+        tester.widget<SelectableText>(fallback).data,
+        r'.\adb.exe devices'
+        '\n'
+        r'.\adb.exe -d tcpip 5555',
+      );
       await tester.tap(find.text('已执行，连接本机'));
       await settle(tester);
       expect(commands, ["adb connect '127.0.0.1:5555'"]);
