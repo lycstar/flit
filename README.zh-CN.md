@@ -49,7 +49,7 @@ Flit 支持编辑 Dart 代码、在设备上构建应用、通过无线 ADB 运�
 
 | Flutter Web 调试 | Flutter android调试 |
 | --- | --- |
-| ![Flit 内运行 Flutter Web 应用，页面显示 Debug 标记，下方终端显示 Dart VM Service](docs/juejin/assets/flit-web-debug.jpg) | ![在 Flit 中修改代码并热重载](docs/juejin/assets/flit-hot-reload.gif) |
+| <img src="docs/juejin/assets/flit-web-debug.jpg" width="340" alt="Flit 内运行 Flutter Web 应用，页面显示 Debug 标记，下方终端显示 Dart VM Service" /> | <img src="docs/juejin/assets/flit-hot-reload.gif" width="340" alt="在 Flit 中修改代码并热重载" /> |
 
 本机无线配对需要 Android 11 及以上，并在开发者选项中启用无线调试。对于已配置的 ADB 端点，可手动输入主机和端口连接。配对记录不代表当前已连接：Flit 以 ADB 返回的设备状态为准。
 
@@ -93,7 +93,7 @@ APK 包含编辑器、原生桥接和安装脚本。开发环境在初始化时�
 
 | 组件列表 | flutter doctor -v |
 | --- | --- |
-| ![Flit 开发环境页，环境已就绪](docs/juejin/assets/flit-environment-ready.jpg) | ![Flit 终端中运行 flutter doctor -v，Flutter 3.47.8 和 Android 工具链检查通过](docs/juejin/assets/flit-flutter-doctor.jpg) |
+| <img src="docs/juejin/assets/flit-environment-ready.jpg" width="340" alt="Flit 开发环境页，环境已就绪" /> | <img src="docs/juejin/assets/flit-flutter-doctor.jpg" width="340" alt="Flit 终端中运行 flutter doctor -v，Flutter 3.47.8 和 Android 工具链检查通过" /> |
 
 ## 从源码构建
 

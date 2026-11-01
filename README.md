@@ -49,7 +49,7 @@ Application ID: `cc.lycstar.flit` · Android 7.0+ · arm64-v8a
 
 | Flutter Web debugging | Flutter Android debugging |
 | --- | --- |
-| ![Flutter Web app running in Flit, Debug badge on the page, Dart VM Service in the terminal below](docs/juejin/assets/flit-web-debug.jpg) | ![Editing code and hot reloading in Flit](docs/juejin/assets/flit-hot-reload.gif) |
+| <img src="docs/juejin/assets/flit-web-debug.jpg" width="340" alt="Flutter Web app running in Flit, Debug badge on the page, Dart VM Service in the terminal below" /> | <img src="docs/juejin/assets/flit-hot-reload.gif" width="340" alt="Editing code and hot reloading in Flit" /> |
 
 Wireless pairing on the same device requires Android 11+ and wireless debugging enabled in Developer options. Manual host/port connection is available for an already configured ADB endpoint. Pairing history is not proof of a current connection: Flit checks the device state reported by ADB.
 
@@ -93,7 +93,7 @@ Once setup completes, `flutter doctor -v` recognizes Flutter, the Android toolch
 
 | Components | flutter doctor -v |
 | --- | --- |
-| ![Flit development environment page, environment ready](docs/juejin/assets/flit-environment-ready.jpg) | ![flutter doctor -v in the Flit terminal, Flutter 3.47.8 and the Android toolchain pass](docs/juejin/assets/flit-flutter-doctor.jpg) |
+| <img src="docs/juejin/assets/flit-environment-ready.jpg" width="340" alt="Flit development environment page, environment ready" /> | <img src="docs/juejin/assets/flit-flutter-doctor.jpg" width="340" alt="flutter doctor -v in the Flit terminal, Flutter 3.47.8 and the Android toolchain pass" /> |
 
 ## Build from source
 
