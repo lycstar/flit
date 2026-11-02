@@ -60,6 +60,46 @@ void main() {
   }
 
   test(
+    'launch url reported on 0.0.0.0 is accepted and normalized to loopback for the preview',
+    () async {
+      await web.start();
+      await emit({
+        'event': 'app.start',
+        'params': {'appId': 'app-$port'},
+      });
+      await emit({
+        'event': 'app.webLaunchUrl',
+        'params': {'url': 'http://0.0.0.0:$port'},
+      });
+      await emit({'event': 'app.started', 'params': {}});
+      expect(web.serving, true);
+      expect(web.url!.host, '127.0.0.1');
+      expect(web.url!.port, port);
+    },
+  );
+
+  test('machine errors retain severity and stack traces without coloring app text', () async {
+    await web.start();
+    await emit({
+      'event': 'daemon.logMessage',
+      'params': {'level': 'error', 'message': 'Compiler failed', 'stackTrace': '  #0 compiler\n  #1 main'},
+    });
+    await emit({
+      'event': 'daemon.logMessage',
+      'params': {'level': 'warning', 'message': 'Configuration warning'},
+    });
+    await emit({'event': 'app.log', 'params': {'log': 'ordinary error counter'}});
+    final buffer = web.session!.terminal.buffer;
+    expect(buffer.getText(), contains('Compiler failed\n  #0 compiler\n  #1 main'));
+    final lines = buffer.lines;
+    final error = List.generate(lines.length, (i) => lines[i]).firstWhere((l) => l.getText().startsWith('Compiler failed'));
+    final warning = List.generate(lines.length, (i) => lines[i]).firstWhere((l) => l.getText().startsWith('Configuration warning'));
+    final ordinary = List.generate(lines.length, (i) => lines[i]).firstWhere((l) => l.getText().startsWith('ordinary error counter'));
+    expect(error.getForeground(0), isNot(ordinary.getForeground(0)));
+    expect(warning.getForeground(0), isNot(error.getForeground(0)));
+  });
+
+  test(
     'switching to a device stops Web preview and disables its hot reload',
     () async {
       await web.start();
