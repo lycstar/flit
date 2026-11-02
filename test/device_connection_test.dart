@@ -30,6 +30,9 @@ void main() {
       if (call.method == 'bootstrapStatus') return {'home': '', 'prefix': ''};
       if (call.method == 'exec') {
         final cmd = (call.arguments as Map)['cmd'];
+        if (cmd.toString().endsWith('adb connect 127.0.0.1:5555')) {
+          return {'exitCode': 0, 'output': 'connected to 127.0.0.1:5555'};
+        }
         if (cmd.toString().endsWith('command -v adb')) {
           return {'exitCode': 0, 'output': '/prefix/bin/adb'};
         }
@@ -60,6 +63,41 @@ void main() {
     );
   });
   tearDown(() => connection.dispose());
+
+  test('quiet USB check trusts device state, not command success', () async {
+    statuses = '192.168.1.8:5555 device\n';
+    expect(await connection.checkUsb(cancelled: () => false), 'waiting');
+    expect(connection.console, isNull);
+    expect(connection.message, isNull);
+    expect(prefs.adbConnectionMethod, AdbConnectionMethod.wireless);
+    statuses = '127.0.0.1:5555 unauthorized\n';
+    expect(await connection.checkUsb(cancelled: () => false), 'unauthorized');
+    statuses = '127.0.0.1:5555 device\n';
+    expect(await connection.checkUsb(cancelled: () => false), 'connected');
+    expect(prefs.adbConnectionMethod, AdbConnectionMethod.usb);
+  });
+
+  test(
+    'cancelled USB check ignores pending device response and serializes actions',
+    () async {
+      final response = Completer<Map<String, Object>>();
+      pendingRead = () => response.future;
+      var cancelled = false;
+      final check = connection.checkUsb(cancelled: () => cancelled);
+      expect(connection.busy, true);
+      expect(await connection.connectUsb(), false);
+      cancelled = true;
+      response.complete({
+        'exitCode': 0,
+        'output': 'List of devices attached\n127.0.0.1:5555 device\n',
+      });
+      expect(await check, 'waiting');
+      expect(connection.busy, false);
+      expect(connection.devices, isEmpty);
+      expect(prefs.adbConnectionMethod, AdbConnectionMethod.wireless);
+      expect(commands, isEmpty);
+    },
+  );
 
   Future<void> finish(String output, [int code = 0]) async {
     await Future<void>.delayed(Duration.zero);

@@ -27,9 +27,9 @@
 ## 电脑 USB 激活
 
 - 页面参考 Shizuku 的“状态 + 无线调试 + 电脑启动”卡片结构，见 [home_start_adb.xml](https://github.com/RikkaApps/Shizuku/blob/master/manager/src/main/res/layout/home_start_adb.xml) 和 [StartAdbViewHolder](https://github.com/RikkaApps/Shizuku/blob/master/manager/src/main/java/moe/shizuku/manager/home/StartAdbViewHolder.kt)。Flit 使用完整 ADB 连接供 Flutter 运行、调试和端口转发；不启动 Shizuku 的 Binder 权限服务。
-- 参考 Shizuku 启动脚本的形态：App 把内置 `assets/device/flit-usb.sh` 经 `flit/device` 通道 `writeUsbScript` 写入应用外部包目录根部并命名 `start.sh`（无需存储权限，shell 可读），电脑只执行一条 `adb shell sh /sdcard/Android/data/cc.lycstar.flit/start.sh`，与 Shizuku 文档命令同形；根部写入失败回落 `files/`，展示路径统一为 `/sdcard/...` 形态。脚本输出 ASCII 英文，避免 Windows 终端中文代码页乱码。
-- 脚本原理：设备端 `setprop service.adb.tcp.port 5555` 完成与电脑 `adb tcpip` 相同的配置动作。Android ≤ 11 该属性标为 `shell_prop`（shell 可写），写入后依次尝试 gadget 复位 / ctl 重启 / stop-start；Android 12+ 收紧为 `adbd_config_prop`（系统拒绝），脚本检测写入失败并提示改用电脑命令。重启 adbd 会断开当前 adb 会话，因此提示在重启动作之前输出。
-- 备用命令（`adb devices` + `adb -d tcpip 5555`）默认折叠：脚本写入失败、Android 12+ 或脚本激活不生效时展开使用。`-d` 限定 USB 目标，多个 USB 设备连接时会拒绝执行，指南要求只连接当前手机。
+- 电脑只执行一条 `adb -d tcpip 5555`。`-d` 限定 USB 目标，指南要求只连接当前手机；不再通过手机端脚本修改系统属性或尝试重启 adbd。
+- 打开 USB 引导后串行检测本机连接，每次结束后间隔 2 秒重试，最多等待 2 分钟。后台暂停、关闭停止，超时可重试；等待期间不创建终端或刷错误日志。未授权时提示允许系统调试授权，只有实际设备在线才保存连接方式。
+- 引导内保留“立即连接”，设备页保留“连接本机”。自动检测与手动连接共享连接服务的操作锁，避免命令重叠。
 - `DeviceUsbGuide` 单独维护指南、电脑系统选择和复制操作。Windows PowerShell 使用 `.\adb.exe`，macOS/Linux 使用 `./adb`，均在解压后的 Platform Tools 目录执行。页面不会把这些命令交给手机终端。
 - `DeviceConnection.connectUsb()` 只连接 `127.0.0.1:5555`，不等待 NSD，也不调用 `adb pair`。只有该目标在 `adb devices -l` 中处于 `device` 才算成功；局域网或其他无线端口在线不算成功。
 - 授权失败引导确认手机上的 USB 调试授权；拒绝连接引导重新执行电脑命令，不误导到无线配对。成功后可拔线，通常无需 Wi-Fi；重启后一般需要重新激活，厂商限制仍需真机验证。

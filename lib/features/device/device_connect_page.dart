@@ -442,11 +442,10 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
   }
 
   Future<void> _showUsbGuide() async {
-    final connect = await showDialog<bool>(
+    await showDialog<void>(
       context: context,
-      builder: (_) => const DeviceUsbGuide(),
+      builder: (_) => DeviceUsbGuide(connection: _connection),
     );
-    if (mounted && connect == true) await _connect(AdbConnectionMethod.usb);
   }
 
   Widget _methodCard({
@@ -565,7 +564,10 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
           runSpacing: 4,
           alignment: WrapAlignment.end,
           children: [
-            TextButton(onPressed: _showUsbGuide, child: const Text('查看步骤')),
+            TextButton(
+              onPressed: _blocked ? null : _showUsbGuide,
+              child: const Text('查看步骤'),
+            ),
             FilledButton.tonal(
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.accent.withValues(alpha: .12),

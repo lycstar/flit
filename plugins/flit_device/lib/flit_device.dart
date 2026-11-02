@@ -81,18 +81,4 @@ class FlitDevice {
   static Future<void> openNotificationSettings() async {
     await channel.invokeMethod('openNotificationSettings');
   }
-
-  /// 把 USB 激活脚本写入应用外部 files 目录(shell 可读、无需存储权限),
-  /// 返回电脑 `adb shell sh` 命令用的绝对路径; 失败返回 null, 走备用命令。
-  static Future<String?> writeUsbScript(String content) async {
-    try {
-      return await channel.invokeMethod<String>('writeUsbScript', {
-        'content': content,
-      });
-    } on MissingPluginException {
-      return null;
-    } on PlatformException {
-      return null;
-    }
-  }
 }

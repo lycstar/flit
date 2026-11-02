@@ -20,6 +20,7 @@ void main() {
   late AppearancePreferences prefs;
   var reads = 0;
   var available = true;
+  var usbAttempts = 0;
   final nativeCalls = <String>[];
   Map<String, Object> pairingStatus = {};
   List<Map<String, Object>> scanResults = [];
@@ -37,6 +38,7 @@ void main() {
     commands.clear();
     reads = 0;
     available = true;
+    usbAttempts = 0;
     prefs = AppearancePreferences()
       ..adbHost = '127.0.0.1'
       ..adbPaired = false;
@@ -50,6 +52,13 @@ void main() {
       }
       if (call.method == 'exec') {
         final command = (call.arguments as Map)['cmd'];
+        if (command.toString().endsWith('adb connect 127.0.0.1:5555')) {
+          usbAttempts++;
+          return {
+            'exitCode': 0,
+            'output': 'cannot connect: Connection refused',
+          };
+        }
         if (command.toString().endsWith('command -v adb')) {
           return {
             'exitCode': available ? 0 : 1,
@@ -78,9 +87,6 @@ void main() {
       if (call.method == 'stopPairing') {
         pairingStatus = {'state': 'idle'};
         return true;
-      }
-      if (call.method == 'writeUsbScript') {
-        return '/sdcard/Android/data/cc.lycstar.flit/start.sh';
       }
       // 电池优化已忽略: 电池提示卡不出现, 页面布局保持紧凑
       if (call.method == 'isIgnoringBatteryOptimizations') return true;
@@ -174,8 +180,7 @@ void main() {
   });
 
   testWidgets(
-    'USB guide copies the script command, keeps tcpip as fallback, '
-    'and connects only on explicit action',
+    'USB guide copies one PC command and waits for actual authorization',
     (tester) async {
       String? copied;
       messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
@@ -191,36 +196,65 @@ void main() {
       await tester.tap(find.text('查看步骤'));
       await settle(tester);
       expect(commands, isEmpty);
-      // 主命令：内置脚本写入外部包目录根部（与 Shizuku 文档命令同形）
       final script = find.byWidgetPredicate(
-        (w) => w is SelectableText && (w.data?.contains('start.sh') ?? false),
+        (w) => w is SelectableText && (w.data?.contains('tcpip') ?? false),
       );
       expect(
         tester.widget<SelectableText>(script).data,
-        r'.\adb.exe shell sh /sdcard/Android/data/cc.lycstar.flit/start.sh',
+        r'.\adb.exe -d tcpip 5555',
       );
       await tester.ensureVisible(find.text('复制命令'));
       await tester.tap(find.text('复制命令'));
       await settle(tester);
-      expect(copied, contains('start.sh'));
+      expect(copied, r'.\adb.exe -d tcpip 5555');
       expect(commands, isEmpty);
-      // 备用的电脑直连激活命令默认折叠
-      final fallback = find.byWidgetPredicate(
-        (w) => w is SelectableText && (w.data?.contains('tcpip') ?? false),
-      );
-      expect(fallback, findsNothing);
-      await tester.ensureVisible(find.text('备用：直接执行激活命令'));
-      await tester.tap(find.text('备用：直接执行激活命令'));
+      expect(usbAttempts, greaterThan(0));
+      expect(prefs.adbConnectionMethod, AdbConnectionMethod.wireless);
+      readDevices = () async => deviceList('127.0.0.1:5555 unauthorized');
+      await tester.pump(const Duration(seconds: 2));
       await settle(tester);
-      expect(
-        tester.widget<SelectableText>(fallback).data,
-        r'.\adb.exe devices'
-        '\n'
-        r'.\adb.exe -d tcpip 5555',
-      );
-      await tester.tap(find.text('已执行，连接本机'));
+      expect(find.textContaining('Flit 会自动继续连接'), findsOneWidget);
+      final attempts = usbAttempts;
+      readDevices = () async => deviceList('127.0.0.1:5555 device');
+      await tester.pump(const Duration(seconds: 2));
       await settle(tester);
-      expect(commands, ["adb connect '127.0.0.1:5555'"]);
+      expect(find.text('已连接本机，可以拔掉数据线。'), findsOneWidget);
+      expect(prefs.adbConnectionMethod, AdbConnectionMethod.usb);
+      await tester.pump(const Duration(seconds: 5));
+      expect(usbAttempts, attempts);
+      await tester.tap(find.text('完成'));
+      await settle(tester);
+      await close(tester);
+    },
+  );
+
+  testWidgets(
+    'USB guide pauses in background, times out and supports manual retry',
+    (tester) async {
+      await open(tester, manual: false);
+      await tester.tap(find.text('查看步骤'));
+      await settle(tester);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      final attempts = usbAttempts;
+      await tester.pump(const Duration(seconds: 10));
+      expect(usbAttempts, attempts);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await settle(tester);
+      expect(usbAttempts, greaterThan(attempts));
+      await tester.pump(const Duration(minutes: 2));
+      await settle(tester);
+      expect(find.textContaining('等待超时'), findsOneWidget);
+      final timedOutAttempts = usbAttempts;
+      await tester.pump(const Duration(seconds: 10));
+      expect(usbAttempts, timedOutAttempts);
+      readDevices = () async => deviceList('127.0.0.1:5555 device');
+      await tester.tap(find.text('重新连接'));
+      await settle(tester);
+      expect(find.text('已连接本机，可以拔掉数据线。'), findsOneWidget);
+      await tester.tap(find.text('完成'));
+      await settle(tester);
       await close(tester);
     },
   );
@@ -240,6 +274,9 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.tap(find.text('关闭'));
     await settle(tester);
+    final attempts = usbAttempts;
+    await tester.pump(const Duration(seconds: 5));
+    expect(usbAttempts, attempts);
     expect(commands, isEmpty);
     await close(tester);
   });

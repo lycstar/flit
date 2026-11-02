@@ -14,7 +14,6 @@ import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import java.io.File
 
 /**
  * 本机调试设备原生桥(flit/device): 无线调试端口 NSD 发现(本机过滤)、
@@ -114,34 +113,6 @@ class FlitDevicePlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
                     .onFailure { result.error("open_failed", it.message, null) }
             }
 
-            "writeUsbScript" -> {
-                // 参考 Shizuku 的启动脚本: 写到应用外部包目录根部、命名 start.sh,
-                // 电脑执行 `adb shell sh /sdcard/Android/data/<pkg>/start.sh`(与
-                // Shizuku 文档命令同形)。包目录根部与 files/ 全程无需存储权限;
-                // 根部写入失败时回落 files/, 返回路径统一成 /sdcard 展示形态
-                val files = context.getExternalFilesDir(null)
-                if (files == null) {
-                    result.error("unavailable", "外部存储不可用", null)
-                } else {
-                    runCatching {
-                        val content = (call.argument<String>("content") ?: "") + "\n"
-                        val file = runCatching {
-                            val root = files.parentFile ?: files
-                            File(root, "start.sh").apply { writeText(content) }
-                        }.getOrElse {
-                            File(files, "start.sh").apply { writeText(content) }
-                        }
-                        // 展示形态与 Shizuku 文档一致(/sdcard/...); 两种路径 adb shell 均可用
-                        val path = file.absolutePath
-                        if (path.startsWith("/storage/emulated/0")) {
-                            "/sdcard" + path.removePrefix("/storage/emulated/0")
-                        } else {
-                            path
-                        }
-                    }.onSuccess { result.success(it) }
-                        .onFailure { result.error("write_failed", it.message, null) }
-                }
-            }
             "isIgnoringBatteryOptimizations" -> result.success(ignoringBatteryOptimizations())
             "openNotificationSettings" -> {
                 // targetSdk 28 下系统不为 POST_NOTIFICATIONS 的运行时请求弹授权框,

@@ -236,6 +236,50 @@ class DeviceConnection extends ChangeNotifier {
   Future<bool> connectUsb() =>
       connect('127.0.0.1', adbUsbPort, method: AdbConnectionMethod.usb);
 
+  Future<String> checkUsb({required bool Function() cancelled}) async {
+    if (_closed || cancelled() || busy) return 'waiting';
+    ++_revision;
+    refreshing = false;
+    busy = true;
+    _notify();
+    try {
+      var current = await AdbOps.statuses();
+      if (_closed || cancelled()) return 'waiting';
+      var device = current
+          .where((d) => d.serial == '127.0.0.1:5555')
+          .firstOrNull;
+      if (device == null ||
+          (!device.online && device.state != 'unauthorized')) {
+        await Shell.instance.exec(
+          '${terminalEnvSource}adb connect 127.0.0.1:5555',
+          timeoutMs: 5000,
+        );
+        if (_closed || cancelled()) return 'waiting';
+        current = await AdbOps.statuses();
+        if (_closed || cancelled()) return 'waiting';
+        device = current.where((d) => d.serial == '127.0.0.1:5555').firstOrNull;
+      }
+      devices = current;
+      if (device?.online == true) {
+        await _remember(
+          '127.0.0.1',
+          paired: false,
+          port: adbUsbPort,
+          method: AdbConnectionMethod.usb,
+        );
+        if (_closed || cancelled()) return 'waiting';
+        _result('✓ 已连接本机 · 电脑 USB 激活，可拔掉数据线');
+        return 'connected';
+      }
+      return device?.state == 'unauthorized' ? 'unauthorized' : 'waiting';
+    } catch (_) {
+      return 'failed';
+    } finally {
+      busy = false;
+      _notify();
+    }
+  }
+
   Future<bool> connect(
     String host,
     String port, {
