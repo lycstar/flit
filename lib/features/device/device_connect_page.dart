@@ -38,6 +38,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
   final _pairPortFocus = FocusNode();
   final _pairCodeFocus = FocusNode();
   bool _expanded = false;
+  bool _manualOpen = false;
   AdbConnectionMethod? _connectingMethod;
   bool _pairDiscovering = false;
   bool _startingPairing = false;
@@ -347,108 +348,161 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
           const SizedBox(height: 12),
           SurfaceCard(
             padding: EdgeInsets.zero,
-            child: ExpansionTile(
-              key: const PageStorageKey('manual-adb'),
-              maintainState: true,
-              title: const Text('手动连接 / 其他设备', style: TextStyle(fontSize: 13)),
-              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
-                  key: const PageStorageKey('adb-host-input'),
-                  controller: _host,
-                  focusNode: _hostFocus,
-                  enabled: !_blocked,
-                  autocorrect: false,
-                  keyboardType: TextInputType.url,
-                  decoration: const InputDecoration(
-                    labelText: '设备地址',
-                    hintText: '127.0.0.1',
-                  ),
-                  onChanged: (_) {
-                    ++_scanGeneration;
-                    _pairDiscovering = false;
-                    _pairPort.clear();
-                    _connection.clearMessage();
-                    setState(() => _pageError = null);
-                  },
-                ),
-                const SizedBox(height: 12),
-                _numberField(
-                  _connPort,
-                  '连接端口',
-                  focusNode: _connPortFocus,
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.tonal(
-                    onPressed: _blocked || _connection.missing
-                        ? null
-                        : () {
-                            setState(() => _pageError = null);
-                            FocusScope.of(context).unfocus();
-                            _connection.connect(_hostname, _connPort.text);
-                          },
-                    child: const Text('连接'),
-                  ),
-                ),
-                const Divider(height: 28),
-                if (_paired)
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '有配对记录',
-                      style: TextStyle(color: AppColors.success, fontSize: 12),
+                InkWell(
+                  onTap: () => setState(() => _manualOpen = !_manualOpen),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
                     ),
-                  ),
-                const SizedBox(height: 8),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '手动配对时请分屏保留系统配对窗口。',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            '手动连接 / 其他设备',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                        ),
+                        AnimatedRotation(
+                          turns: _manualOpen ? .5 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: const Icon(Icons.expand_more, size: 20),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _numberField(
-                        _pairPort,
-                        '配对端口',
-                        focusNode: _pairPortFocus,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _numberField(
-                        _pairCode,
-                        '配对码（6 位）',
-                        length: 6,
-                        focusNode: _pairCodeFocus,
-                      ),
-                    ),
-                  ],
-                ),
-                if (_local)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: _blocked || _pairDiscovering
-                          ? null
-                          : _discoverPairPort,
-                      icon: const Icon(Icons.radar, size: 16),
-                      label: Text(_pairDiscovering ? '扫描中…' : '扫描配对端口'),
-                    ),
-                  ),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.tonal(
-                    onPressed: _blocked || _connection.missing ? null : _pair,
-                    child: const Text('配对'),
+                // Expansible 的展开动画用 ClipRect+Align(heightFactor), 默认
+                // 居中对齐会把首行文字上下同时裁切; 改为顶部锚定的
+                // AnimatedSize, 从下缘展开, 顶部文字永不裁切。
+                ClipRect(
+                  child: AnimatedSize(
+                    alignment: Alignment.topCenter,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    child: _manualOpen
+                        ? Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                TextField(
+                                  key: const PageStorageKey('adb-host-input'),
+                                  controller: _host,
+                                  focusNode: _hostFocus,
+                                  enabled: !_blocked,
+                                  autocorrect: false,
+                                  keyboardType: TextInputType.url,
+                                  decoration: const InputDecoration(
+                                    labelText: '设备地址',
+                                    hintText: '127.0.0.1',
+                                  ),
+                                  onChanged: (_) {
+                                    ++_scanGeneration;
+                                    _pairDiscovering = false;
+                                    _pairPort.clear();
+                                    _connection.clearMessage();
+                                    setState(() => _pageError = null);
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                _numberField(
+                                  _connPort,
+                                  '连接端口',
+                                  focusNode: _connPortFocus,
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: FilledButton.tonal(
+                                    onPressed: _blocked || _connection.missing
+                                        ? null
+                                        : () {
+                                            setState(() => _pageError = null);
+                                            FocusScope.of(context).unfocus();
+                                            _connection.connect(
+                                              _hostname,
+                                              _connPort.text,
+                                            );
+                                          },
+                                    child: const Text('连接'),
+                                  ),
+                                ),
+                                const Divider(height: 28),
+                                if (_paired)
+                                  const Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      '有配对记录',
+                                      style: TextStyle(
+                                        color: AppColors.success,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(height: 8),
+                                const Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    '手动配对时请分屏保留系统配对窗口。',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _numberField(
+                                        _pairPort,
+                                        '配对端口',
+                                        focusNode: _pairPortFocus,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _numberField(
+                                        _pairCode,
+                                        '配对码（6 位）',
+                                        length: 6,
+                                        focusNode: _pairCodeFocus,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (_local)
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton.icon(
+                                      onPressed: _blocked || _pairDiscovering
+                                          ? null
+                                          : _discoverPairPort,
+                                      icon: const Icon(Icons.radar, size: 16),
+                                      label: Text(
+                                        _pairDiscovering
+                                            ? '扫描中…'
+                                            : '扫描配对端口',
+                                      ),
+                                    ),
+                                  ),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: FilledButton.tonal(
+                                    onPressed: _blocked || _connection.missing
+                                        ? null
+                                        : _pair,
+                                    child: const Text('配对'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : const SizedBox(width: double.infinity),
                   ),
                 ),
               ],
