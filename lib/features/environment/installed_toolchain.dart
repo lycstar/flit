@@ -1,3 +1,5 @@
+import 'package:flit/l10n/strings.dart';
+
 /// 本地实际目录是已安装版本的事实来源，不额外保存一份版本配置。
 class InstalledToolchain {
   const InstalledToolchain({
@@ -27,7 +29,7 @@ class InstalledToolchain {
   String get version => path.split('/').last;
   String get displayVersion =>
       component == 'platform-tools' || component == 'cmdline-tools'
-      ? (revision.isEmpty ? '版本未知' : revision)
+      ? (revision.isEmpty ? strings.unknownVersion : revision)
       : component == 'platforms'
       ? version.replaceFirst('android-', 'API ')
       : version;

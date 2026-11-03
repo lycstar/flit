@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -53,26 +54,28 @@ class _DeviceCodeDialogState extends State<_DeviceCodeDialog> {
       if (!await Shell.instance.openUrl('https://github.com/login/device') &&
           mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('无法打开浏览器，请访问 github.com/login/device')),
+          SnackBar(
+            content: Text(context.strings.unableToOpenBrowserVisitGithubCom),
+          ),
         );
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('打开浏览器失败：$error')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.strings.failedToOpenBrowserP(error))),
+        );
       }
     }
   }
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('登录 GitHub'),
+    title: Text(context.strings.signInToGithub),
     content: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          '复制设备授权码后，在浏览器中授权。完成后自动更新登录状态。',
+        Text(
+          context.strings.copyTheDeviceCodeAndAuthorizeIn,
           style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 16),
@@ -93,12 +96,16 @@ class _DeviceCodeDialogState extends State<_DeviceCodeDialog> {
           widget.onCancel?.call();
           Navigator.pop(context);
         },
-        child: Text(widget.onCancel == null ? '稍后处理' : '取消登录'),
+        child: Text(
+          widget.onCancel == null
+              ? context.strings.later
+              : context.strings.cancelSignIn,
+        ),
       ),
       FilledButton.icon(
         onPressed: _open,
         icon: const Icon(Icons.open_in_browser, size: 18),
-        label: const Text('复制并打开浏览器'),
+        label: Text(context.strings.copyAndOpenBrowser),
       ),
     ],
   );

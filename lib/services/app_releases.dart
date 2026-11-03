@@ -25,9 +25,11 @@ class AppReleases {
   Future<Object?> Function(String url) fetchJson = _fetchJsonDefault;
 
   Future<List<AppRelease>> collect({int perPage = 30}) async {
-    final releases = await fetchJson(
-          'https://api.github.com/repos/$repo/releases?per_page=$perPage',
-        ) as List? ??
+    final releases =
+        await fetchJson(
+              'https://api.github.com/repos/$repo/releases?per_page=$perPage',
+            )
+            as List? ??
         const [];
     return [
       for (final release in releases)
@@ -74,13 +76,17 @@ class AppReleases {
         : Directory('$home/.flit/updates');
     await base.create(recursive: true);
     final file = File('${base.path}/${asset.name}');
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 15);
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 15);
     try {
       final request = await client.getUrl(Uri.parse(asset.url));
       request.headers.set('User-Agent', 'Flit');
       final response = await request.close();
       if (response.statusCode != 200) {
-        throw HttpException('HTTP ${response.statusCode}', uri: Uri.parse(asset.url));
+        throw HttpException(
+          'HTTP ${response.statusCode}',
+          uri: Uri.parse(asset.url),
+        );
       }
       final total = response.contentLength;
       var received = 0;
@@ -102,7 +108,8 @@ class AppReleases {
   }
 
   static Future<Object?> _fetchJsonDefault(String url) async {
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 15);
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 15);
     try {
       final request = await client.getUrl(Uri.parse(url));
       request.headers.set('User-Agent', 'Flit');

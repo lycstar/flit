@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 import 'dart:convert' as convert;
 
@@ -86,8 +87,10 @@ class ConsoleSession extends ChangeNotifier {
   /// 非进程任务(如 Dart 侧的原生下载/解压)也登记为本会话的任务: 头部状态、
   /// 停止按钮与进程任务走同一套逻辑。stop() 只置 stopRequested, 任务方自行收手。
   void beginTask() {
-    if (_disposed || _closing != null) throw StateError('会话已关闭');
-    if (alive) throw StateError('当前任务尚未结束');
+    if (_disposed || _closing != null) {
+      throw StateError(strings.sessionIsClosed);
+    }
+    if (alive) throw StateError(strings.theCurrentTaskHasNotFinished);
     _stopRequested = false;
     exitCode = null;
     _done = Completer<int>();
@@ -109,12 +112,19 @@ class ConsoleSession extends ChangeNotifier {
 
   Future<void> start({
     String? command,
+    String? displayCommand,
     String? workingDirectory,
     String Function(String)? outputFormatter,
+    String Function()? finishOutput,
   }) {
-    if (_disposed || _closing != null) return Future.error(StateError('会话已关闭'));
+    if (_disposed || _closing != null) {
+      return Future.error(StateError(strings.sessionIsClosed));
+    }
     if (_starting != null) return _starting!;
     if (alive) return Future.value();
+    if (command != null && command.trim().isNotEmpty) {
+      log.info('\$ ${displayCommand ?? command}');
+    }
     _stopRequested = false;
     exitCode = null;
     _done = Completer<int>();
@@ -124,6 +134,7 @@ class ConsoleSession extends ChangeNotifier {
       command,
       workingDirectory,
       outputFormatter,
+      finishOutput,
     ).whenComplete(() => _starting = null);
   }
 
@@ -131,6 +142,7 @@ class ConsoleSession extends ChangeNotifier {
     String? command,
     String? cwd,
     String Function(String)? outputFormatter,
+    String Function()? finishOutput,
   ) async {
     try {
       final process = await _launcher(
@@ -152,8 +164,12 @@ class ConsoleSession extends ChangeNotifier {
               terminal.write(outputFormatter?.call(chunk) ?? chunk);
               _text.add(chunk);
             },
-            onError: (Object error) => log.err('读取输出失败： $error'),
-            onDone: outputDone.complete,
+            onError: (Object error) =>
+                log.err(strings.failedToReadOutputP(error)),
+            onDone: () {
+              if (finishOutput != null) terminal.write(finishOutput());
+              outputDone.complete();
+            },
           );
       state = _stopRequested ? ExecutionState.stopping : ExecutionState.running;
       if (!_keepAlive) {
@@ -166,7 +182,7 @@ class ConsoleSession extends ChangeNotifier {
     } catch (error) {
       state = ExecutionState.failed;
       exitCode = -1;
-      log.err('启动失败： $error');
+      log.err(strings.failedToStartP(error));
       _done.complete(-1);
       notifyListeners();
     }
@@ -189,11 +205,11 @@ class ConsoleSession extends ChangeNotifier {
         ? ExecutionState.exited
         : ExecutionState.failed;
     if (_stopRequested) {
-      log.warn('已停止');
+      log.warn(strings.stopped);
     } else if (code == 0) {
-      log.ok('进程结束，退出码 0');
+      log.ok(strings.processExitedWithCode);
     } else {
-      log.err('进程结束，退出码 $code');
+      log.err(strings.processExitedWithCodeP(code));
     }
     _done.complete(code);
     notifyListeners();
@@ -242,15 +258,20 @@ class ConsoleSession extends ChangeNotifier {
 
   Future<int> run(
     String command, {
+    String? displayCommand,
     String? workingDirectory,
     Duration timeout = const Duration(minutes: 30),
   }) async {
-    if (alive) throw StateError('当前任务尚未结束');
-    await start(command: command, workingDirectory: workingDirectory);
+    if (alive) throw StateError(strings.theCurrentTaskHasNotFinished);
+    await start(
+      command: command,
+      displayCommand: displayCommand,
+      workingDirectory: workingDirectory,
+    );
     try {
       return await done.timeout(timeout);
     } on TimeoutException {
-      log.err('执行超时，正在停止');
+      log.err(strings.executionTimedOutStopping);
       await stop();
       return -1;
     }

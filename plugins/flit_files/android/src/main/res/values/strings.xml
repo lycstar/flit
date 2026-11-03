@@ -1,0 +1,14 @@
+<resources>
+    <string name="flit_files_0">Flit Projects</string>
+    <string name="flit_files_1">Unable to list %1$s</string>
+    <string name="flit_files_2">Unable to create %1$s: %2$s</string>
+    <string name="flit_files_3">Unable to create %1$s</string>
+    <string name="flit_files_4">Cannot delete the project root</string>
+    <string name="flit_files_5">Failed to delete %1$s</string>
+    <string name="flit_files_6">Cannot rename the project root</string>
+    <string name="flit_files_7">Failed to rename %1$s</string>
+    <string name="flit_files_8">Invalid name: %1$s</string>
+    <string name="flit_files_9">Unknown document: %1$s</string>
+    <string name="flit_files_10">Path outside project: %1$s</string>
+    <string name="flit_files_11">Document does not exist: %1$s</string>
+</resources>

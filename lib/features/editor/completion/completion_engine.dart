@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import '../lsp/protocol.dart';
 
 /// Local fallback and atomic application of LSP completion edits.
@@ -79,9 +80,9 @@ class CompletionEngine {
           insert: s.word,
           label: s.word,
           kind: switch (s.source) {
-            _Source.local => '本文档',
-            _Source.symbol => '符号',
-            _Source.keyword => '关键字',
+            _Source.local => strings.document,
+            _Source.symbol => strings.symbol,
+            _Source.keyword => strings.keyword,
           },
         ),
       );
@@ -139,12 +140,12 @@ class CompletionItem {
     insert: item.insert,
     label: item.label,
     kind: switch (item.kind) {
-      2 || 3 => '方法',
-      4 || 7 || 8 => '类型',
-      5 || 6 => '变量',
-      9 => '模块',
-      10 => '属性',
-      14 => '关键字',
+      2 || 3 => strings.method,
+      4 || 7 || 8 => strings.type,
+      5 || 6 => strings.variable,
+      9 => strings.module,
+      10 => strings.property,
+      14 => strings.keyword,
       _ => 'Dart',
     },
     detail: item.detail,

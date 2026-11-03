@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flit_device/flit_device.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -98,12 +99,12 @@ class _BackgroundSetupDialogState extends State<_BackgroundSetupDialog>
   Widget build(BuildContext context) {
     final caption = Theme.of(context).textTheme.bodySmall;
     return AlertDialog(
-      title: const Text('后台运行与通知'),
+      title: Text(context.strings.backgroundExecutionAndNotifications),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('初始化和构建可能耗时较长，建议开启：'),
+          Text(context.strings.setupAndBuildsMayTakeAWhile),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -116,7 +117,11 @@ class _BackgroundSetupDialogState extends State<_BackgroundSetupDialog>
                     _foregroundAllowed == true ? Icons.check : Icons.task_alt,
                     size: 18,
                   ),
-                  label: Text(_foregroundAllowed == true ? '已开启' : '前台服务'),
+                  label: Text(
+                    _foregroundAllowed == true
+                        ? context.strings.enabled
+                        : context.strings.foregroundService,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -129,19 +134,26 @@ class _BackgroundSetupDialogState extends State<_BackgroundSetupDialog>
                         : Icons.battery_saver_outlined,
                     size: 18,
                   ),
-                  label: Text(_batteryAllowed == true ? '已允许' : '后台运行'),
+                  label: Text(
+                    _batteryAllowed == true
+                        ? context.strings.allowed
+                        : context.strings.backgroundExecution,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Text('前台服务仅显示通用运行状态，开关在系统通知设置中，可稍后在「设置 → 后台与通知」里再调。', style: caption),
+          Text(
+            context.strings.theForegroundServiceOnlyShowsGeneralTask,
+            style: caption,
+          ),
         ],
       ),
       actions: [
         FilledButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('继续'),
+          child: Text(context.strings.continueAction),
         ),
       ],
     );

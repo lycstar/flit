@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
@@ -18,9 +19,7 @@ class StageTimeline extends StatelessWidget {
     return SurfaceCard(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
-        children: [
-          for (final (i, s) in stageDefs.indexed) _row(context, s, i),
-        ],
+        children: [for (final (i, s) in stageDefs.indexed) _row(context, s, i)],
       ),
     );
   }
@@ -30,15 +29,19 @@ class StageTimeline extends StatelessWidget {
     final state = _aggState(id);
     final dim = state == 'BLOCKED';
     final (icon, color, label) = switch (state) {
-      'DONE' => (Icons.check_circle, AppColors.success, '完成'),
-      'RUNNING' => (null, AppColors.accent, '安装中'),
-      'FAILED' => (Icons.error, AppColors.danger, '失败'),
+      'DONE' => (Icons.check_circle, AppColors.success, context.strings.done),
+      'RUNNING' => (null, AppColors.accent, context.strings.installing),
+      'FAILED' => (Icons.error, AppColors.danger, context.strings.failed),
       'BLOCKED' => (
         Icons.remove_circle_outline,
         AppColors.textDisabled,
-        '等待依赖',
+        context.strings.waitingForDependencies,
       ),
-      _ => (Icons.radio_button_unchecked, AppColors.textDisabled, '待安装'),
+      _ => (
+        Icons.radio_button_unchecked,
+        AppColors.textDisabled,
+        context.strings.pendingInstallation,
+      ),
     };
     final hint = s['hint'] as String;
     final parts = stageParts[id]!;
@@ -101,6 +104,7 @@ class StageTimeline extends StatelessWidget {
                           : AppColors.textPrimary,
                     ),
                   ),
+                  _trailing(state, label, color, dim),
                   const SizedBox(height: 1),
                   Text(
                     subtitle,
@@ -113,7 +117,6 @@ class StageTimeline extends StatelessWidget {
                 ],
               ),
             ),
-            _trailing(state, label, color, dim),
           ],
         ),
       ),
@@ -146,10 +149,10 @@ class StageTimeline extends StatelessWidget {
     ].whereType<String>().where((e) => e.isNotEmpty).join(' · ');
     final text = switch (ps.state) {
       'DONE' => info.isEmpty ? name : '$name · $info',
-      'RUNNING' => '$name · 安装中',
-      'FAILED' => '$name · 失败',
-      'BLOCKED' => '$name · 等待前序步骤',
-      _ => '$name · 待安装',
+      'RUNNING' => strings.pInstalling(name),
+      'FAILED' => strings.pFailed(name),
+      'BLOCKED' => strings.pWaitingForPreviousSteps(name),
+      _ => strings.pPendingInstallation(name),
     };
     return Padding(
       padding: const EdgeInsets.only(top: 4),

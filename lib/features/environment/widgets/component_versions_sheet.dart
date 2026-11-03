@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -71,16 +72,18 @@ class _ComponentVersionsSheetState extends State<ComponentVersionsSheet> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('替换 ${widget.component.title}？'),
-          content: Text('将安装 ${entry.tag} 提供的配套工具包，替换当前共用工具。'),
+          title: Text(context.strings.replaceP(widget.component.title)),
+          content: Text(
+            context.strings.installTheCompanionToolsFromPReplacing(entry.tag),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消'),
+              child: Text(context.strings.cancel),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('替换'),
+              child: Text(context.strings.replace),
             ),
           ],
         ),
@@ -142,8 +145,9 @@ class _ComponentVersionsSheetState extends State<ComponentVersionsSheet> {
           top: false,
           child: Column(
             children: [
+              const SheetHandle(),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
+                padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
                 child: Row(
                   children: [
                     Expanded(
@@ -156,12 +160,12 @@ class _ComponentVersionsSheetState extends State<ComponentVersionsSheet> {
                       ),
                     ),
                     IconButton(
-                      tooltip: '刷新可下载版本',
+                      tooltip: context.strings.refreshAvailableVersions,
                       onPressed: _loading ? null : () => _load(refresh: true),
                       icon: const Icon(Icons.refresh, size: 20),
                     ),
                     IconButton(
-                      tooltip: '关闭',
+                      tooltip: context.strings.close,
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.close, size: 20),
                     ),
@@ -172,15 +176,17 @@ class _ComponentVersionsSheetState extends State<ComponentVersionsSheet> {
                 child: ListView(
                   children: [
                     _notice(component.description),
-                    _heading('本地版本'),
+                    _heading(context.strings.localVersions),
                     if (env.installedError != null)
                       _notice(env.installedError!, error: true),
                     if (env.checking || !env.installedLoaded)
                       _notice(
-                        env.installedError == null ? '正在检测本地组件…' : '安装状态待确认',
+                        env.installedError == null
+                            ? context.strings.checkingLocalComponents
+                            : context.strings.installationStatusUnconfirmed,
                       )
                     else if (local.isEmpty && env.installedError == null)
-                      _notice('未安装'),
+                      _notice(context.strings.notInstalled),
                     for (final tool in local)
                       InstalledToolchainTile(
                         tool: tool,
@@ -188,11 +194,20 @@ class _ComponentVersionsSheetState extends State<ComponentVersionsSheet> {
                         onChange: _change,
                         onRepair: _repairFor(tool, entries),
                       ),
-                    _heading(component.shared ? '配套工具包' : '可下载版本'),
+                    _heading(
+                      component.shared
+                          ? context.strings.companionTools
+                          : context.strings.availableVersions,
+                    ),
                     if (_loading) const LinearProgressIndicator(minHeight: 2),
                     if (_error != null)
                       _notice(
-                        '获取版本失败，${entries.isEmpty ? '可稍后点击刷新重试' : '暂时显示上次获取的目录'}。\n$_error',
+                        context.strings.failedToFetchVersionsPP(
+                          entries.isEmpty
+                              ? context.strings.refreshVersionsLater
+                              : context.strings.showingPreviousCatalog,
+                          _error,
+                        ),
                         error: true,
                       ),
                     if (!_loading && _error == null && downloads.isEmpty)
@@ -207,13 +222,19 @@ class _ComponentVersionsSheetState extends State<ComponentVersionsSheet> {
                                               .sources[component.id]
                                               ?.defaultTag,
                                     ))
-                            ? '仓库暂无可下载的配套版本。'
-                            : '目录中的版本已在本地，需修复的版本可通过管理菜单重新安装。',
+                            ? context
+                                  .strings
+                                  .noDownloadableCompanionVersionsInTheRepository
+                            : context
+                                  .strings
+                                  .allCatalogVersionsAreInstalledUseThe,
                       ),
                     if (component.id == 'ndk' &&
                         local.isNotEmpty &&
                         downloads.isNotEmpty)
-                      _notice('安装相同 NDK 版本会保留现有可用版本。'),
+                      _notice(
+                        context.strings.installingTheSameNdkVersionKeepsThe,
+                      ),
                     for (final entry in downloads)
                       ListTile(
                         dense: true,
@@ -222,7 +243,7 @@ class _ComponentVersionsSheetState extends State<ComponentVersionsSheet> {
                           style: const TextStyle(fontSize: 13),
                         ),
                         subtitle: Text(
-                          '${_formatSize(entry.size)}${component.shared && local.isNotEmpty ? ' · 替换共用工具' : ''}',
+                          '${_formatSize(entry.size)}${component.shared && local.isNotEmpty ? context.strings.replaceSharedToolsSuffix : ''}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,

@@ -435,6 +435,11 @@ class Buffer {
   }
 
   void resize(int oldWidth, int oldHeight, int newWidth, int newHeight) {
+    // Track the logical insertion point, including a pending wrap at column
+    // oldWidth. Clamping the old column loses it when a soft line is reflowed.
+    final cursorAnchor = terminal.reflowEnabled && !isAltBuffer
+        ? createAnchor(_cursorX, absoluteCursorY)
+        : null;
     // 1. Adjust the height.
     if (newHeight > oldHeight) {
       // Grow larger
@@ -473,6 +478,22 @@ class Buffer {
       } else {
         lines.forEach((item) => item.resize(newWidth));
       }
+    }
+
+    if (cursorAnchor != null) {
+      if (cursorAnchor.attached) {
+        // Reflow can add rows below an editing cursor. Discard only unused
+        // trailing rows so that the cursor is not pushed into scrollback.
+        while (cursorAnchor.y < lines.length - newHeight &&
+            lines[lines.length - 1].getTrimmedLength(newWidth) == 0) {
+          lines.pop();
+        }
+        _cursorX = cursorAnchor.x.clamp(0, newWidth);
+        _cursorY =
+            (cursorAnchor.y - (lines.length - newHeight).clamp(0, lines.length))
+                .clamp(0, newHeight - 1);
+      }
+      cursorAnchor.dispose();
     }
   }
 

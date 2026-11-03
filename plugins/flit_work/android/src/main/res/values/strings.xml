@@ -1,0 +1,5 @@
+<resources>
+    <string name="flit_work_0">Flit Tasks</string>
+    <string name="flit_work_1">Flit tasks running</string>
+    <string name="flit_work_2">Terminal sessions and builds are running</string>
+</resources>

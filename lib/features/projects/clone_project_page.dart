@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
@@ -158,14 +159,22 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
       );
       if (!mounted) return;
       if (result['exitCode'] == 0) {
-        setState(() => _error = '${params.dirName} 已存在，请换一个目录名');
+        setState(
+          () => _error = context.strings
+              .pAlreadyExistsChooseAnotherDirectoryName(params.dirName),
+        );
       } else if (result['exitCode'] == 1) {
         Navigator.pop(context, params);
       } else {
-        setState(() => _error = '无法检查目标目录，请检查开发环境后重试');
+        setState(
+          () => _error =
+              context.strings.unableToCheckDestinationCheckTheDevelopment,
+        );
       }
     } catch (error) {
-      if (mounted) setState(() => _error = '克隆前检查失败：$error');
+      if (mounted) {
+        setState(() => _error = context.strings.clonePreflightFailedP(error));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -174,7 +183,7 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('克隆仓库')),
+      appBar: AppBar(title: Text(context.strings.cloneRepository)),
       body: PageContent(
         child: Column(
           children: [
@@ -184,8 +193,11 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                   children: [
-                    const PageIntro('从版本控制获取项目', '将远程仓库克隆到本地，克隆完成后打开项目。'),
-                    const SectionLabel('仓库'),
+                    PageIntro(
+                      context.strings.getFromVersionControl,
+                      context.strings.cloneARemoteRepositoryToLocalStorage,
+                    ),
+                    SectionLabel(context.strings.repository),
                     SurfaceCard(
                       child: Column(
                         children: [
@@ -197,8 +209,8 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
                               fontSize: 13,
                             ),
                             onChanged: (_) => setState(() => _error = null),
-                            decoration: const InputDecoration(
-                              labelText: '仓库地址',
+                            decoration: InputDecoration(
+                              labelText: context.strings.repositoryUrl,
                               hintText: 'https://github.com/user/repo.git',
                             ),
                           ),
@@ -210,9 +222,11 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
                               fontSize: 13,
                             ),
                             onChanged: (_) => setState(() => _error = null),
-                            decoration: const InputDecoration(
-                              labelText: '目录名称（可选）',
-                              hintText: '留空则使用仓库名称',
+                            decoration: InputDecoration(
+                              labelText: context.strings.directoryNameOptional,
+                              hintText: context
+                                  .strings
+                                  .leaveEmptyToUseTheRepositoryName,
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -222,9 +236,11 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
                               fontFamily: 'monospace',
                               fontSize: 13,
                             ),
-                            decoration: const InputDecoration(
-                              labelText: '分支（可选）',
-                              hintText: '留空则使用远程仓库的默认分支',
+                            decoration: InputDecoration(
+                              labelText: context.strings.branchOptional,
+                              hintText: context
+                                  .strings
+                                  .leaveEmptyToUseTheRemoteDefault,
                             ),
                           ),
                         ],
@@ -234,12 +250,12 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
                     SurfaceCard(
                       child: SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          '浅克隆',
+                        title: Text(
+                          context.strings.shallowClone,
                           style: TextStyle(fontSize: 14),
                         ),
                         subtitle: Text(
-                          '仅获取最近一次提交。可使用 git fetch --unshallow 获取完整历史。',
+                          context.strings.fetchOnlyTheLatestCommitUseGit,
                           style: TextStyle(
                             fontSize: 11,
                             color: AppColors.textSecondary,
@@ -249,7 +265,7 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
                         onChanged: (v) => setState(() => _shallow = v),
                       ),
                     ),
-                    const SectionLabel('克隆前检查'),
+                    SectionLabel(context.strings.clonePreflight),
                     SurfaceCard(child: _preview()),
                     if (_error != null)
                       Padding(
@@ -263,8 +279,8 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
                         ),
                       ),
                     const SizedBox(height: 8),
-                    const Text(
-                      '私有仓库需要先登录 GitHub，登录后即可直接克隆。',
+                    Text(
+                      context.strings.signInToGithubBeforeCloningA,
                       style: TextStyle(
                         fontSize: 11,
                         color: AppColors.textSecondary,
@@ -297,14 +313,17 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
               const SizedBox(width: 8),
-              Text('检测中…', style: _valueStyle),
+              Text(context.strings.checking, style: _valueStyle),
             ],
           ),
         );
       case _GitCheck.ok:
         gitRow = _previewRow(
           'Git',
-          Text(_gitVersion.isEmpty ? '就绪' : _gitVersion, style: _valueStyle),
+          Text(
+            _gitVersion.isEmpty ? context.strings.ready : _gitVersion,
+            style: _valueStyle,
+          ),
         );
       case _GitCheck.missing || _GitCheck.broken:
         gitRow = _previewRow(
@@ -314,8 +333,8 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
             children: [
               Text(
                 _git == _GitCheck.missing
-                    ? '未找到 Git，请检查安装状态和 PATH'
-                    : '无法运行：$_gitDetail',
+                    ? context.strings.gitNotFoundCheckItsInstallationAnd
+                    : context.strings.unableToRunP(_gitDetail),
                 style: const TextStyle(fontSize: 12, color: AppColors.danger),
               ),
               TextButton.icon(
@@ -328,7 +347,10 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
                   widget.onOpenEnvironment?.call();
                 },
                 icon: const Icon(Icons.build_circle_outlined, size: 15),
-                label: const Text('配置开发环境', style: TextStyle(fontSize: 12)),
+                label: Text(
+                  context.strings.setUpDevelopmentEnvironment,
+                  style: TextStyle(fontSize: 12),
+                ),
               ),
             ],
           ),
@@ -339,11 +361,9 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
       children: [
         gitRow,
         _previewRow(
-          '保存位置',
+          context.strings.location,
           Text(
-            _dirName.isEmpty
-                ? '-'
-                : '${widget.targetDir}/$_dirName',
+            _dirName.isEmpty ? '-' : '${widget.targetDir}/$_dirName',
             style: _valueStyle,
           ),
         ),
@@ -388,7 +408,10 @@ class _CloneProjectPageState extends State<CloneProjectPage> {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('克隆仓库', style: TextStyle(fontSize: 15)),
+              : Text(
+                  context.strings.cloneRepository,
+                  style: TextStyle(fontSize: 15),
+                ),
         ),
       ),
     );

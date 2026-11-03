@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flit_device/flit_device.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -14,6 +15,7 @@ import '../environment/environment_page.dart';
 import '../terminal/terminal_settings.dart';
 import 'app_versions_page.dart';
 import 'env_vars_page.dart';
+import 'appearance_preferences.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -23,7 +25,7 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage>
     with WidgetsBindingObserver {
-  String _environment = '检测中…';
+  EnvironmentStatus? _environment;
   bool _proxySaving = false;
   PermissionStatus _notificationStatus = PermissionStatus.denied;
   bool? _ignoringBattery;
@@ -52,15 +54,17 @@ class _SettingsPageState extends State<SettingsPage>
 
   void _showError(Object error) {
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('设置保存或读取失败：$error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.strings.failedToSaveOrLoadSettingsP(error)),
+        ),
+      );
     }
   }
 
   Future<void> _refresh() async {
     final status = await EnvironmentStatus.inspect();
-    if (mounted) setState(() => _environment = status.label);
+    if (mounted) setState(() => _environment = status);
   }
 
   /// 通知与电池优化状态来自方法通道; 测试环境没有 mock, 失败时静默保持占位
@@ -107,9 +111,11 @@ class _SettingsPageState extends State<SettingsPage>
 
   void _permissionError() {
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('无法请求系统权限，可稍后在系统应用设置中调整')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.strings.unableToRequestPermissionYouCanChange),
+        ),
+      );
     }
   }
 
@@ -123,9 +129,13 @@ class _SettingsPageState extends State<SettingsPage>
     try {
       await context.read<AutoProxy>().setEnabled(value);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('代理设置已更新，新终端和任务生效')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.strings.proxySettingsUpdatedAppliesToNewTerminals,
+            ),
+          ),
+        );
       }
     } catch (error) {
       _showError(error);
@@ -137,47 +147,76 @@ class _SettingsPageState extends State<SettingsPage>
   @override
   Widget build(BuildContext context) {
     final proxy = context.watch<AutoProxy>();
+    final preferences = context.watch<AppearancePreferences>();
     return Scaffold(
-      appBar: AppBar(title: const Text('设置')),
+      appBar: AppBar(title: Text(context.strings.settings)),
       body: PageList(
         children: [
-          const PageIntro('IDE 设置', '配置开发环境、设备连接和编辑器选项。'),
-          const SectionLabel('账户'),
+          PageIntro(
+            context.strings.ideSettings,
+            context.strings.configureDevelopmentToolsDeviceConnectionsAndThe,
+          ),
+          SurfaceCard(
+            child: DropdownButtonFormField<String>(
+              isExpanded: true,
+              initialValue: preferences.language,
+              decoration: InputDecoration(labelText: context.strings.language),
+              items: [
+                DropdownMenuItem(
+                  value: 'system',
+                  child: Text(context.strings.followSystem),
+                ),
+                const DropdownMenuItem(value: 'zh', child: Text('简体中文')),
+                const DropdownMenuItem(value: 'en', child: Text('English')),
+              ],
+              onChanged: (value) async {
+                if (value == null) return;
+                try {
+                  await preferences.setLanguage(value);
+                } catch (error) {
+                  _showError(error);
+                }
+              },
+            ),
+          ),
+          SectionLabel(context.strings.account),
           _card(const [GithubAccountTile()]),
-          const SectionLabel('开发环境'),
+          SectionLabel(context.strings.developmentEnvironment),
           _card([
             _link(
               Icons.layers_outlined,
-              '开发环境',
-              _environment,
+              context.strings.developmentEnvironment,
+              _environment?.label ?? context.strings.checking,
               const EnvironmentPage(),
             ),
             _link(
               Icons.data_object,
-              '环境变量',
-              '查看工具链路径与命令环境快照',
+              context.strings.environmentVariables,
+              context.strings.viewToolchainPathsAndCommandEnvironmentSnapshots,
               const EnvVarsPage(),
             ),
             _link(
               Icons.phonelink_setup,
-              '连接设备',
-              '无线调试 · 配对与认证状态',
+              context.strings.connectDevice,
+              context.strings.wirelessDebuggingPairingAndAuthorization,
               const DeviceConnectPage(),
             ),
             SwitchListTile(
               secondary: const Icon(Icons.swap_vert, color: AppColors.accent),
-              title: const Text('跟随系统代理'),
-              subtitle: Text(proxy.address ?? '未检测到系统代理；检测到后自动使用'),
+              title: Text(context.strings.useSystemProxy),
+              subtitle: Text(
+                proxy.address ?? context.strings.noSystemProxyDetectedItWillBe,
+              ),
               value: proxy.enabled,
               onChanged: _proxySaving ? null : _setProxy,
             ),
           ]),
-          const SectionLabel('后台与通知'),
+          SectionLabel(context.strings.backgroundAndNotifications),
           _card([
             ListTile(
               leading: const Icon(Icons.task_alt, color: AppColors.accent),
-              title: const Text('前台服务'),
-              subtitle: const Text('常驻通知展示构建与任务的运行状态'),
+              title: Text(context.strings.foregroundService),
+              subtitle: Text(context.strings.showBuildAndTaskStatusInA),
               trailing: _notificationLabel(),
               onTap: _requestNotifications,
             ),
@@ -186,36 +225,40 @@ class _SettingsPageState extends State<SettingsPage>
                 Icons.battery_saver_outlined,
                 color: AppColors.accent,
               ),
-              title: const Text('后台运行'),
-              subtitle: const Text('忽略电池优化，减少切到后台后任务被中断'),
+              title: Text(context.strings.backgroundExecution),
+              subtitle: Text(
+                context.strings.ignoreBatteryOptimizationToReduceBackgroundTask,
+              ),
               trailing: _batteryLabel(),
               onTap: _requestBattery,
             ),
           ]),
-          const SectionLabel('编辑器与终端'),
+          SectionLabel(context.strings.editorAndTerminal),
           _card([
             _link(
               Icons.code,
-              '编辑器设置',
-              '字体 · 配色方案 · 软换行',
+              context.strings.editorSettings,
+              context.strings.fontColorSchemeSoftWraps,
               const EditorSettingsPage(),
             ),
             _link(
               Icons.text_fields,
-              '终端设置',
-              '双指缩放 · 字号 · 等宽字体 · 行高',
+              context.strings.terminalSettings,
+              context.strings.pinchToZoomFontSizeMonospaceFont,
               const TerminalSettingsPage(),
             ),
           ]),
-          const SectionLabel('关于 Flit'),
+          SectionLabel(context.strings.aboutFlit),
           _card([
             ListTile(
               leading: const Icon(
                 Icons.system_update_alt,
                 color: AppColors.accent,
               ),
-              title: const Text('App 更新'),
-              subtitle: const Text('检查更新 · 下载安装历史版本'),
+              title: Text(context.strings.appUpdates),
+              subtitle: Text(
+                context.strings.checkForUpdatesDownloadPreviousVersions,
+              ),
               trailing: const Icon(
                 Icons.chevron_right,
                 color: AppColors.textFaint,
@@ -223,7 +266,7 @@ class _SettingsPageState extends State<SettingsPage>
               onTap: () => _open(AppVersionsPage()),
             ),
             ListTile(
-              title: const Text('构建提交'),
+              title: Text(context.strings.buildCommit),
               subtitle: SelectableText(
                 String.fromEnvironment(
                   'BUILD_SHA',
@@ -232,8 +275,8 @@ class _SettingsPageState extends State<SettingsPage>
                 style: AppColors.mono,
               ),
             ),
-            const ListTile(
-              title: Text('运行平台'),
+            ListTile(
+              title: Text(context.strings.platform),
               subtitle: Text('Android · arm64-v8a'),
             ),
           ]),
@@ -252,15 +295,15 @@ class _SettingsPageState extends State<SettingsPage>
       );
 
   Widget _notificationLabel() => switch (_notificationStatus) {
-    PermissionStatus.granted => _stateLabel('已开启', ok: true),
-    PermissionStatus.permanentlyDenied => _stateLabel('已拒绝'),
-    _ => _stateLabel('未开启'),
+    PermissionStatus.granted => _stateLabel(context.strings.enabled, ok: true),
+    PermissionStatus.permanentlyDenied => _stateLabel(context.strings.denied),
+    _ => _stateLabel(context.strings.disabled),
   };
 
   Widget _batteryLabel() => switch (_ignoringBattery) {
-    true => _stateLabel('已允许', ok: true),
-    false => _stateLabel('未设置'),
-    _ => _stateLabel('检测中…'),
+    true => _stateLabel(context.strings.allowed, ok: true),
+    false => _stateLabel(context.strings.notConfigured),
+    _ => _stateLabel(context.strings.checking),
   };
 
   Widget _stateLabel(String text, {bool ok = false}) => Text(

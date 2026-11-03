@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
@@ -35,16 +36,16 @@ class InstalledToolchainTile extends StatelessWidget {
           : AppColors.textSecondary,
     ),
     title: Text(
-      '${tool.title}${tool.active ? ' · 当前' : ''}',
+      '${tool.title}${tool.active ? context.strings.currentSuffix : ''}',
       style: const TextStyle(fontSize: 13),
     ),
     subtitle: Text(
-      '${tool.size} · ${tool.complete ? '已安装' : '安装不完整'}\n${tool.path}',
+      '${tool.size} · ${tool.complete ? context.strings.installed : context.strings.installationIncomplete}\n${tool.path}',
       style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
     ),
     trailing: PopupMenuButton<String>(
       enabled: !busy,
-      tooltip: '管理版本',
+      tooltip: context.strings.manageVersions,
       onSelected: (action) async {
         if (action == 'repair') {
           onRepair?.call();
@@ -57,16 +58,16 @@ class InstalledToolchainTile extends StatelessWidget {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('删除 ${tool.title}？'),
-            content: const Text('依赖此版本的项目需重新安装后才能构建；删除基础必需版本后，需要补齐开发环境。'),
+            title: Text(context.strings.deleteP(tool.title)),
+            content: Text(context.strings.projectsUsingThisVersionWillNeedIt),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('取消'),
+                child: Text(context.strings.cancel),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('删除'),
+                child: Text(context.strings.delete),
               ),
             ],
           ),
@@ -75,13 +76,23 @@ class InstalledToolchainTile extends StatelessWidget {
       },
       itemBuilder: (_) => [
         if (!tool.complete && onRepair != null)
-          const PopupMenuItem(value: 'repair', child: Text('修复安装')),
+          PopupMenuItem(
+            value: 'repair',
+            child: Text(context.strings.repairInstallation),
+          ),
         if (tool.isFlutter && !tool.active && tool.complete)
-          const PopupMenuItem(value: 'select', child: Text('使用此版本')),
+          PopupMenuItem(
+            value: 'select',
+            child: Text(context.strings.useThisVersion),
+          ),
         PopupMenuItem(
           value: 'delete',
           enabled: !tool.active,
-          child: Text(tool.active ? '先切换版本再删除' : '删除版本'),
+          child: Text(
+            tool.active
+                ? context.strings.switchVersionsBeforeDeleting
+                : context.strings.deleteVersion,
+          ),
         ),
       ],
     ),

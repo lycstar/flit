@@ -23,7 +23,7 @@ class FlitWorkPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "start" -> {
-                val title = call.argument<String>("title") ?: "Flit 工作中"
+                val title = call.argument<String>("title") ?: nativeText(context, R.string.flit_work_0)
                 runCatching { WorkForegroundService.start(context, title) }
                 result.success(true)
             }

@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 
 import 'theme.dart';
@@ -19,14 +20,14 @@ class WorkbenchKey extends StatelessWidget {
     final icon = switch (label) {
       '↵' => Icons.keyboard_return,
       '⌫' => Icons.backspace_outlined,
-      '空格' => Icons.space_bar,
+      final value when value == context.strings.space => Icons.space_bar,
       '⇧' => Icons.keyboard_capslock,
       _ => null,
     };
     final tooltip = switch (label) {
-      '↵' => '换行',
-      '⌫' => '退格',
-      '⇧' => '大写',
+      '↵' => context.strings.enter,
+      '⌫' => context.strings.backspace,
+      '⇧' => context.strings.capsLock,
       _ => label,
     };
     return Tooltip(
@@ -87,11 +88,16 @@ class WorkbenchButton extends StatelessWidget {
     required this.tooltip,
     this.onPressed,
     this.active = false,
+    this.foreground,
   });
   final IconData icon;
   final String tooltip;
   final VoidCallback? onPressed;
   final bool active;
+
+  /// 语义色(如运行=绿/停止=红)。仅在可点时上色, 禁用态维持灰,
+  /// 避免看起来能点。
+  final Color? foreground;
 
   @override
   Widget build(BuildContext context) => IconButton(
@@ -99,7 +105,6 @@ class WorkbenchButton extends StatelessWidget {
     onPressed: onPressed,
     isSelected: active,
     style: IconButton.styleFrom(
-      foregroundColor: active ? AppColors.accent : AppColors.textSecondary,
       backgroundColor: active
           ? AppColors.accent.withValues(alpha: .12)
           : Colors.transparent,
@@ -107,6 +112,14 @@ class WorkbenchButton extends StatelessWidget {
       padding: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    ).copyWith(
+      foregroundColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.disabled)) {
+          return AppColors.textSecondary;
+        }
+        if (active) return AppColors.accent;
+        return foreground ?? AppColors.textSecondary;
+      }),
     ),
     icon: Icon(icon, size: 19),
   );

@@ -64,7 +64,7 @@ class FlitDocumentsProvider : DocumentsProvider() {
             newRow()
                 .add(Root.COLUMN_ROOT_ID, ROOT_ID)
                 .add(Root.COLUMN_DOCUMENT_ID, ROOT_ID)
-                .add(Root.COLUMN_TITLE, "Flit 工程")
+                .add(Root.COLUMN_TITLE, nativeText(requireNotNull(context), R.string.flit_files_0))
                 .add(Root.COLUMN_SUMMARY, "~/projects")
                 .add(Root.COLUMN_ICON, R.drawable.flit_documents_root)
                 .add(
@@ -83,7 +83,7 @@ class FlitDocumentsProvider : DocumentsProvider() {
         sortOrder: String?,
     ): Cursor {
         val parent = fileFor(parentDocumentId)
-        val children = parent.listFiles() ?: throw FileNotFoundException("无法列出 $parentDocumentId")
+        val children = parent.listFiles() ?: throw FileNotFoundException(nativeText(requireNotNull(context), R.string.flit_files_1, parentDocumentId))
         val cursor = MatrixCursor(projection ?: DOCUMENT_PROJECTION)
         // 目录在前, 再按名(忽略大小写), 与文件管理器习惯一致
         children
@@ -111,27 +111,27 @@ class FlitDocumentsProvider : DocumentsProvider() {
         val created = try {
             if (mimeType == Document.MIME_TYPE_DIR) target.mkdir() else target.createNewFile()
         } catch (e: IOException) {
-            throw FileNotFoundException("无法创建 ${target.name}: ${e.message}")
+            throw FileNotFoundException(nativeText(requireNotNull(context), R.string.flit_files_2, target.name, e.message))
         }
-        if (!created) throw FileNotFoundException("无法创建 ${target.name}")
+        if (!created) throw FileNotFoundException(nativeText(requireNotNull(context), R.string.flit_files_3, target.name))
         changed(parentDocumentId)
         return docIdFor(target)
     }
 
     override fun deleteDocument(documentId: String) {
         val file = fileFor(documentId)
-        if (file == root) throw FileNotFoundException("不能删除工程根")
+        if (file == root) throw FileNotFoundException(nativeText(requireNotNull(context), R.string.flit_files_4))
         val deleted = if (file.isDirectory) file.deleteRecursively() else file.delete()
-        if (!deleted) throw FileNotFoundException("删除失败 ${file.name}")
+        if (!deleted) throw FileNotFoundException(nativeText(requireNotNull(context), R.string.flit_files_5, file.name))
         changed(parentIdOf(documentId))
     }
 
     override fun renameDocument(documentId: String, displayName: String): String {
         val file = fileFor(documentId)
-        if (file == root) throw FileNotFoundException("不能重命名工程根")
+        if (file == root) throw FileNotFoundException(nativeText(requireNotNull(context), R.string.flit_files_6))
         val target = File(file.parentFile, safeName(displayName))
         if (target.exists() || !file.renameTo(target)) {
-            throw FileNotFoundException("重命名失败 ${file.name}")
+            throw FileNotFoundException(nativeText(requireNotNull(context), R.string.flit_files_7, file.name))
         }
         changed(parentIdOf(documentId))
         return docIdFor(target)
@@ -150,7 +150,7 @@ class FlitDocumentsProvider : DocumentsProvider() {
         }
         cursor.newRow()
             .add(Document.COLUMN_DOCUMENT_ID, docIdFor(file))
-            .add(Document.COLUMN_DISPLAY_NAME, if (isRoot) "Flit 工程" else file.name)
+            .add(Document.COLUMN_DISPLAY_NAME, if (isRoot) nativeText(requireNotNull(context), R.string.flit_files_0) else file.name)
             .add(Document.COLUMN_MIME_TYPE, mimeOf(file))
             .add(Document.COLUMN_FLAGS, flags)
             .add(Document.COLUMN_SIZE, if (dir) null else file.length())
@@ -167,7 +167,7 @@ class FlitDocumentsProvider : DocumentsProvider() {
     private fun safeName(displayName: String): String {
         val name = displayName.trim()
         if (name.isEmpty() || name == "." || name == ".." || name.contains('/')) {
-            throw FileNotFoundException("非法名称 $displayName")
+            throw FileNotFoundException(nativeText(requireNotNull(context), R.string.flit_files_8, displayName))
         }
         return name
     }
@@ -179,13 +179,13 @@ class FlitDocumentsProvider : DocumentsProvider() {
 
     private fun fileFor(documentId: String): File {
         if (documentId != ROOT_ID && !documentId.startsWith("$ROOT_ID/")) {
-            throw FileNotFoundException("未知文档 $documentId")
+            throw FileNotFoundException(nativeText(requireNotNull(context), R.string.flit_files_9, documentId))
         }
         val file = File(root, documentId.removePrefix(ROOT_ID).trimStart('/')).canonicalFile
         if (file != root && !file.path.startsWith(root.path + File.separator)) {
-            throw FileNotFoundException("越界 $documentId")
+            throw FileNotFoundException(nativeText(requireNotNull(context), R.string.flit_files_10, documentId))
         }
-        if (!file.exists()) throw FileNotFoundException("不存在 $documentId")
+        if (!file.exists()) throw FileNotFoundException(nativeText(requireNotNull(context), R.string.flit_files_11, documentId))
         return file
     }
 

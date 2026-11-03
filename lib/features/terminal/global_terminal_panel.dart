@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -10,12 +11,12 @@ import '../../core/workbench_controls.dart';
 import 'pty_session.dart';
 import 'console_session.dart';
 import 'terminal_theme.dart';
-import 'terminal_zoom.dart';
+import '../../core/pinch_zoom.dart';
 import 'terminal_settings.dart';
 import '../settings/appearance_preferences.dart';
 
 /// Terminal chrome and input surface. Parent supplies bounded space; selection
-/// actions float above the viewport and never change its row count.
+/// actions occupy the existing header and never cover selection handles.
 class GlobalTerminalPanel extends StatefulWidget {
   const GlobalTerminalPanel({
     super.key,
@@ -83,9 +84,13 @@ class _GlobalTerminalPanelState extends State<GlobalTerminalPanel> {
       await context.read<AppearancePreferences>().update(terminal: size);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('字号已应用，但保存失败：$error')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.strings.fontSizeAppliedButSavingFailedP(error),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted && generation == _zoomGeneration) {
@@ -106,13 +111,14 @@ class _GlobalTerminalPanelState extends State<GlobalTerminalPanel> {
           top: false,
           child: Column(
             children: [
+              const SheetHandle(),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+                padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
                 child: Row(
                   children: [
-                    const Expanded(child: Text('终端外观')),
+                    Expanded(child: Text(context.strings.terminalAppearance)),
                     IconButton(
-                      tooltip: '关闭终端设置',
+                      tooltip: context.strings.closeTerminalSettings,
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.close),
                     ),
@@ -178,23 +184,46 @@ class _GlobalTerminalPanelState extends State<GlobalTerminalPanel> {
             return Column(
               mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
               children: [
-                if (bounded && constraints.maxHeight < 44)
-                  SizedBox(
-                    height: constraints.maxHeight,
-                    child: ClipRect(
-                      child: OverflowBox(
-                        minHeight: 44,
-                        maxHeight: 44,
-                        child: _header(),
-                      ),
-                    ),
-                  )
-                else
-                  _header(),
-                if (widget.expanded &&
-                    widget.sessionsBar != null &&
-                    (!bounded || constraints.maxHeight > 140))
-                  widget.sessionsBar!,
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onVerticalDragUpdate: widget.onResize == null
+                      ? null
+                      : (details) => widget.onResize!(details.delta.dy),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (bounded && constraints.maxHeight < 44)
+                        SizedBox(
+                          height: constraints.maxHeight,
+                          child: ClipRect(
+                            child: OverflowBox(
+                              minHeight: 44,
+                              maxHeight: 44,
+                              child: _header(),
+                            ),
+                          ),
+                        )
+                      else
+                        SizedBox(
+                          height: 44,
+                          child: AnimatedBuilder(
+                            animation: _session.controller,
+                            builder: (_, __) =>
+                                !widget.expanded ||
+                                    _session.controller.selection == null
+                                ? _header()
+                                : ExcludeFocus(
+                                    child: _SelectionToolbar(session: _session),
+                                  ),
+                          ),
+                        ),
+                      if (widget.expanded &&
+                          widget.sessionsBar != null &&
+                          (!bounded || constraints.maxHeight > 140))
+                        widget.sessionsBar!,
+                    ],
+                  ),
+                ),
                 if (widget.expanded) ...[
                   if (bounded)
                     Expanded(child: _surface())
@@ -224,84 +253,91 @@ class _GlobalTerminalPanelState extends State<GlobalTerminalPanel> {
           icon: Icon(icon, size: 18, color: AppColors.textSecondary),
         );
     return ExcludeFocus(
-      child: GestureDetector(
-        onVerticalDragUpdate: widget.onResize == null
-            ? null
-            : (details) => widget.onResize!(details.delta.dy),
-        child: SizedBox(
-          height: 44,
-          child: Row(
-            children: [
-              if (widget.consumeSafeArea)
-                button(
-                  widget.expanded ? Icons.expand_more : Icons.expand_less,
-                  widget.expanded ? '收起终端' : '展开终端',
-                  widget.onToggle,
-                )
-              else
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Icon(
-                    Icons.drag_handle,
-                    size: 18,
-                    color: AppColors.textFaint,
-                  ),
-                ),
-              Icon(
-                Icons.circle,
-                size: 8,
-                color: widget.running
-                    ? AppColors.accent
-                    : _session.alive
-                    ? AppColors.success
-                    : AppColors.warn,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '${_session.title} · ${_session.alive
-                      ? '运行中'
-                      : _session.exitCode == null
-                      ? '就绪'
-                      : '已结束'}',
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textPrimary,
-                  ),
+      child: SizedBox(
+        height: 44,
+        child: Row(
+          children: [
+            if (widget.consumeSafeArea)
+              button(
+                widget.expanded ? Icons.expand_more : Icons.expand_less,
+                widget.expanded
+                    ? context.strings.collapseTerminal
+                    : context.strings.expandTerminal,
+                widget.onToggle,
+              )
+            else
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                child: Icon(
+                  Icons.drag_handle,
+                  size: 18,
+                  color: AppColors.textFaint,
                 ),
               ),
-              if (widget.expanded) ...[
-                // 默认 shell 永远在; run 能停(⏹, 输出留着)能删; 临时只能删。
-                // ✕ 在跑则终止再移除, 之后面板回落默认 shell
-                if (_session.stoppable)
-                  button(
-                    Icons.stop_circle_outlined,
-                    _session.stopRequested ? '正在停止…' : '停止当前任务',
-                    _session.stopRequested ? () {} : () => _session.stop(),
-                  ),
-                if (_session.kind != SessionKind.shell)
-                  button(
-                    Icons.close,
-                    _session.alive ? '终止并关闭' : '关闭',
-                    () => _session.close(),
-                  ),
-                if (context.read<AppearancePreferences?>() != null)
-                  button(Icons.text_fields, '终端字体与缩放', _appearance),
-                button(
-                  Icons.delete_sweep_outlined,
-                  '清空终端',
-                  _session.clearScreen,
+            Icon(
+              Icons.circle,
+              size: 8,
+              color: widget.running
+                  ? AppColors.accent
+                  : _session.alive
+                  ? AppColors.success
+                  : AppColors.warn,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${_session.title} · ${_session.alive
+                    ? context.strings.running
+                    : _session.exitCode == null
+                    ? context.strings.ready
+                    : context.strings.exited}',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
                 ),
-              ],
-              if (widget.onFullscreen != null)
+              ),
+            ),
+            if (widget.expanded) ...[
+              // 默认 shell 永远在; run 能停(⏹, 输出留着)能删; 临时只能删。
+              // ✕ 在跑则终止再移除, 之后面板回落默认 shell
+              if (_session.stoppable)
                 button(
-                  widget.fullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                  widget.fullscreen ? '退出全屏终端' : '全屏终端',
-                  widget.onFullscreen!,
+                  Icons.stop_circle_outlined,
+                  _session.stopRequested
+                      ? context.strings.stopping
+                      : context.strings.stopCurrentTask,
+                  _session.stopRequested ? () {} : () => _session.stop(),
                 ),
+              if (_session.kind != SessionKind.shell)
+                button(
+                  Icons.close,
+                  _session.alive
+                      ? context.strings.terminateAndClose
+                      : context.strings.close,
+                  () => _session.close(),
+                ),
+              if (context.read<AppearancePreferences?>() != null)
+                button(
+                  Icons.text_fields,
+                  context.strings.terminalFontAndZoom,
+                  _appearance,
+                ),
+              button(
+                Icons.delete_sweep_outlined,
+                context.strings.clearTerminal,
+                _session.clearScreen,
+              ),
             ],
-          ),
+            if (widget.onFullscreen != null)
+              button(
+                widget.fullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                widget.fullscreen
+                    ? context.strings.exitFullScreen
+                    : context.strings.fullScreenTerminal,
+                widget.onFullscreen!,
+              ),
+          ],
         ),
       ),
     );
@@ -340,33 +376,13 @@ class _GlobalTerminalPanelState extends State<GlobalTerminalPanel> {
                         2,
               );
               if (preferences == null) return view;
-              return TerminalZoom(
+              return PinchZoom(
                 onStart: _zoomStart,
                 onScale: _zoom,
                 onEnd: () => unawaited(_saveZoom()),
                 child: view,
               );
             },
-          ),
-        ),
-        Positioned(
-          // 钉在终端底部: 选择时顶部滚动历史不被遮挡(底部只盖会再生的提示符行)
-          bottom: 4,
-          left: 8,
-          right: 8,
-          child: AnimatedBuilder(
-            animation: _session.controller,
-            builder: (_, __) => _session.controller.selection == null
-                ? const SizedBox.shrink()
-                : ExcludeFocus(
-                    child: Material(
-                      elevation: 8,
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
-                      clipBehavior: Clip.antiAlias,
-                      child: _SelectionToolbar(session: _session),
-                    ),
-                  ),
           ),
         ),
       ],
@@ -433,7 +449,11 @@ class _ExtraKeysBarState extends State<_ExtraKeysBar> {
             // 按键条直接发 \r, 保证任何输入法下都能执行命令
             key('ENTER', () => _send('\r'), wide: true),
             // 长按选择后用工具条复制; 粘贴独立常驻(多数时候无选区也要粘贴)
-            key('粘贴', () => widget.session.pasteClipboard(), wide: true),
+            key(
+              context.strings.paste,
+              () => widget.session.pasteClipboard(),
+              wide: true,
+            ),
           ],
         ),
       ),
@@ -492,30 +512,30 @@ class _SelectionToolbar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          action('复制', Icons.copy_outlined, () {
+          action(context.strings.copy, Icons.copy_outlined, () {
             final text = session.copySelection();
             if (text == null || text.isEmpty) return;
             Clipboard.setData(ClipboardData(text: text));
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('已复制'),
+              SnackBar(
+                content: Text(context.strings.copied),
                 duration: Duration(seconds: 1),
               ),
             );
           }),
           divider(),
-          action('全选', Icons.select_all, () {
+          action(context.strings.selectAll, Icons.select_all, () {
             session.selectAll();
           }),
           // 只读会话不接受输入: 粘贴只对默认 shell 有意义
           if (session.interactive) ...[
             divider(),
-            action('粘贴', Icons.paste, () {
+            action(context.strings.paste, Icons.paste, () {
               session.pasteClipboard();
             }),
           ],
           divider(),
-          action('取消', Icons.close, () {
+          action(context.strings.cancel, Icons.close, () {
             session.controller.clearSelection();
           }),
         ],

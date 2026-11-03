@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import '../../services/shell.dart';
 import 'setup_runner.dart';
 import 'environment_controller.dart'
@@ -20,10 +21,10 @@ class EnvironmentStatus {
       bootstrapped && !checkFailed && completed == readyStageIds.length;
 
   String get label {
-    if (checkFailed) return '检测失败 · 进入开发环境查看';
-    if (!bootstrapped) return '尚未安装 · 配置开发环境';
-    if (ready) return '组件全部就绪';
-    return '已就绪 $completed/${readyStageIds.length} 个组件';
+    if (checkFailed) return strings.checkFailedOpenDevelopmentEnvironment;
+    if (!bootstrapped) return strings.notInstalledSetUpDevelopmentEnvironment;
+    if (ready) return strings.allComponentsReady;
+    return strings.pPComponentsReady(completed, readyStageIds.length);
   }
 
   factory EnvironmentStatus.fromCheck({

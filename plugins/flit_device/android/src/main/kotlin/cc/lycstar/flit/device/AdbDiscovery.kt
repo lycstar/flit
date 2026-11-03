@@ -15,7 +15,7 @@ import java.net.ServerSocket
  * Local ownership requires BOTH a local interface address and an occupied port,
  * as in Shizuku; an unrelated LAN device with the same port is not this device. */
 internal class AdbDiscovery(
-    context: Context,
+    private val context: Context,
     private val type: String,
     private val onFound: (NsdServiceInfo) -> Unit,
     private val onLost: (String) -> Unit = {},
@@ -31,7 +31,7 @@ internal class AdbDiscovery(
         if (active) return
         active = true
         runCatching { nsd.discoverServices(type, NsdManager.PROTOCOL_DNS_SD, this) }
-            .onFailure { fail("无法开始端口扫描：${it.message}") }
+            .onFailure { fail(nativeText(context, R.string.flit_device_2 , it.message)) }
     }
 
     fun stop() {
@@ -57,7 +57,7 @@ internal class AdbDiscovery(
     override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) { main.post {
         // Some implementations register the listener even if startup fails.
         runCatching { nsd.stopServiceDiscovery(this) }
-        fail("端口扫描失败（NSD $errorCode）")
+        fail(nativeText(context, R.string.flit_device_3 , errorCode))
     } }
     override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {}
     override fun onServiceLost(info: NsdServiceInfo) { main.post {
@@ -76,7 +76,7 @@ internal class AdbDiscovery(
                 if (attempt < 2) main.postDelayed({
                     if (active && present.contains(info.serviceName)) resolve(info, attempt + 1)
                 }, 300L * (attempt + 1))
-                else fail("端口解析失败（NSD $code），请重新扫描")
+                else fail(nativeText(context, R.string.flit_device_4 , code))
                 return@submit
             }
             val host = resolved.host ?: return@submit

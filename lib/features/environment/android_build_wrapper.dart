@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -85,16 +86,18 @@ class AndroidBuildWrapper {
   }) async {
     final generation = ++_generation;
     bool current() => !_closed && generation == _generation;
-    if (installing) throw StateError('工具链正在安装，请稍后重试');
+    if (installing) {
+      throw StateError(strings.aToolchainIsBeingInstalledPleaseWait);
+    }
     await save();
     final declared = await (_requirements?.call() ?? _readRequirements());
     final missing = await _check(declared, baseline: true, device: device);
-    if (!current()) throw StateError('项目已关闭或任务已取消');
+    if (!current()) throw StateError(strings.projectClosedOrTaskCancelled);
     if (missing.isNotEmpty &&
         !await _repair(missing, confirm, current, afterFailure: false)) {
-      throw StateError('组件未补齐，构建未启动');
+      throw StateError(strings.requiredComponentsAreMissingBuildNotStarted);
     }
-    if (!current()) throw StateError('项目已关闭或任务已取消');
+    if (!current()) throw StateError(strings.projectClosedOrTaskCancelled);
     final diagnostics = AndroidBuildDiagnostics();
     final session = await launch(configuration, diagnostics.add);
     // 返回首个会话，让控制台立即显示；后续流程的异常写回原控制台，不能成为
@@ -141,7 +144,9 @@ class AndroidBuildWrapper {
       // 不再包裹第二次启动：新缺失/其他错误保持原始输出，由用户决定下一步。
       await launch(configuration, null);
     } catch (error) {
-      if (!session.disposed) session.log.err('组件修复未完成：$error');
+      if (!session.disposed) {
+        session.log.err(strings.componentRepairIncompleteP(error));
+      }
     }
   }
 
@@ -181,7 +186,9 @@ class AndroidBuildWrapper {
     );
     if (result['exitCode'] != 0) {
       throw StateError(
-        'Android 环境检查失败，请先在开发环境页完成初始化。\n${result['output'] ?? ''}',
+        strings.androidEnvironmentCheckFailedCompleteSetupIn(
+          result['output'] ?? '',
+        ),
       );
     }
     final missing = _unique([
@@ -225,7 +232,8 @@ class AndroidBuildWrapper {
           AndroidRepairRequest(
             missing,
             afterFailure: afterFailure,
-            error: '安装组件需要修改共用开发环境。请先结束正在运行的任务，再重试。',
+            error: strings
+                .installingComponentsChangesTheSharedDevelopmentEnvironment,
           ),
         );
       }
@@ -262,7 +270,9 @@ class AndroidBuildWrapper {
           AndroidRepairRequest(
             _unique(requested),
             afterFailure: afterFailure,
-            error: '未找到可安装的对应版本或无法获取下载信息：$error',
+            error: strings.matchingVersionOrDownloadInformationUnavailableP(
+              error,
+            ),
           ),
         );
       }
@@ -276,14 +286,14 @@ class AndroidBuildWrapper {
       return false;
     }
     if (installing || executions.active != null || executions.starting) {
-      throw StateError('已有任务正在运行，请结束后重试');
+      throw StateError(strings.aTaskIsRunningStopItAnd);
     }
     installing = true;
     try {
       final repair = await executions.start(
         RunConfiguration(
           id: 'android-components',
-          title: '安装 Android 构建组件',
+          title: strings.installAndroidBuildComponents,
           command: commands.join(' && '),
           exclusive: true,
         ),
@@ -295,7 +305,11 @@ class AndroidBuildWrapper {
       // 安装器验证包内版本和二进制；再从 SDK 路径复查，防止软链接或残包误报成功。
       final remaining = await _check(missing);
       if (remaining.isNotEmpty) {
-        throw StateError('安装后仍不可用：${remaining.map((c) => c.title).join('、')}');
+        throw StateError(
+          strings.stillUnavailableAfterInstallationP(
+            remaining.map((c) => c.title).join('、'),
+          ),
+        );
       }
       return current();
     } finally {
@@ -311,7 +325,9 @@ class AndroidBuildWrapper {
       'cmake' => 'cmake-$version',
       'ndk' => ndkTag(version),
       'platform-tools' || 'cmdline-tools' => null,
-      _ => throw StateError('不支持自动安装 ${component.title}'),
+      _ => throw StateError(
+        strings.automaticInstallationIsNotSupportedForP(component.title),
+      ),
     };
     final entry = await catalog.resolve(component.id, tag: tag);
     final command = SetupRunner.installCommand(entry);
@@ -322,10 +338,10 @@ class AndroidBuildWrapper {
   static String ndkTag(String version) {
     final parts = version.split('.');
     if (!RegExp(r'^\d+\.\d+\.\d+$').hasMatch(version)) {
-      throw StateError('无效的 NDK 版本');
+      throw StateError(strings.invalidNdkVersion);
     }
     final minor = int.parse(parts[1]);
-    if (minor > 25) throw StateError('无法定位 NDK $version');
+    if (minor > 25) throw StateError(strings.unableToLocateNdkP(version));
     return 'ndk-r${parts[0]}${minor == 0 ? '' : String.fromCharCode(97 + minor)}';
   }
 
@@ -410,15 +426,13 @@ class AndroidBuildDiagnostics {
       r'licen[cs]es?.*(?:not accepted|not been accepted|not been agreed|not accepted)',
       caseSensitive: false,
     ).hasMatch(line)) {
-      blocker =
-          r'Android SDK 许可证尚未接受。请在开发环境终端运行 $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses，接受所需许可证后重试。';
+      blocker = strings.androidSdkLicensesHaveNotBeenAccepted;
     }
     if (RegExp(
       r'(?:sdk\.dir|ndk\.dir|ndkPath|cmake\.dir).*(?:does not exist|not a valid|invalid|does not contain)',
       caseSensitive: false,
     ).hasMatch(line)) {
-      blocker =
-          '项目配置的 SDK/NDK/CMake 路径无效。请检查 local.properties 或 Gradle 中的路径；安装到默认目录不会修复自定义路径。';
+      blocker = strings.theSdkNdkCmakePathInThe;
     }
     // AGP 的部分错误把包 ID/完整 NDK 版本放在下一行；只在明确失败标题
     // 后的短窗口内解析，普通 SDK 安装列表或 Flutter 版本建议不会触发补包。

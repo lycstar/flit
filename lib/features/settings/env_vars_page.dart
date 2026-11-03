@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -46,12 +47,14 @@ class _EnvVarsPageState extends State<EnvVarsPage> {
         timeoutMs: 15000,
       );
       if (result['exitCode'] != 0) {
-        throw StateError('环境命令执行失败（退出码 ${result['exitCode']}）');
+        throw StateError(
+          strings.environmentCommandFailedExitCodeP(result['exitCode']),
+        );
       }
       final values = parseEnvironment(result['output'] as String? ?? '');
       if (mounted) setState(() => _vars = values);
     } catch (error) {
-      if (mounted) setState(() => _error = '读取失败：$error');
+      if (mounted) setState(() => _error = context.strings.readFailedP(error));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -87,10 +90,10 @@ class _EnvVarsPageState extends State<EnvVarsPage> {
     final path = vars.where((v) => v.$1 == 'PATH').firstOrNull;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('环境变量'),
+        title: Text(context.strings.environmentVariables),
         actions: [
           IconButton(
-            tooltip: '刷新快照',
+            tooltip: context.strings.refreshSnapshot,
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
@@ -103,8 +106,8 @@ class _EnvVarsPageState extends State<EnvVarsPage> {
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
               child: TextField(
                 onChanged: (value) => setState(() => _filter = value.trim()),
-                decoration: const InputDecoration(
-                  hintText: '搜索变量或值',
+                decoration: InputDecoration(
+                  hintText: context.strings.searchVariablesOrValues,
                   prefixIcon: Icon(Icons.search),
                 ),
               ),
@@ -120,14 +123,14 @@ class _EnvVarsPageState extends State<EnvVarsPage> {
                         TextButton.icon(
                           onPressed: _load,
                           icon: const Icon(Icons.refresh),
-                          label: const Text('重试'),
+                          label: Text(context.strings.retry),
                         ),
                       ],
                     )
                   : vars.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
-                        '没有匹配的变量',
+                        context.strings.noMatchingVariables,
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
                     )
@@ -137,25 +140,33 @@ class _EnvVarsPageState extends State<EnvVarsPage> {
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                       children: [
                         if (query.isEmpty)
-                          const StatusNotice(
-                            '新任务的环境变量快照（只读）\n不包含终端中临时 export 的值。展开变量可查看完整值。',
+                          StatusNotice(
+                            context
+                                .strings
+                                .readOnlyEnvironmentSnapshotForNewTasks,
                           ),
                         if (query.isNotEmpty) ...[
-                          SectionLabel('搜索结果 · ${vars.length}'),
+                          SectionLabel(
+                            context.strings.searchResultsP(vars.length),
+                          ),
                           _card(vars),
                         ] else ...[
                           if (toolVars.isNotEmpty) ...[
-                            const SectionLabel('工具链'),
+                            SectionLabel(context.strings.toolchains),
                             _card(toolVars),
                           ],
                           if (path != null) ...[
-                            const SectionLabel('PATH · 按顺序查找命令'),
+                            SectionLabel(
+                              context.strings.pathCommandLookupOrder,
+                            ),
                             SurfaceCard(
                               padding: EdgeInsets.zero,
                               child: ExpansionTile(
-                                title: const Text('命令搜索路径'),
+                                title: Text(context.strings.commandSearchPaths),
                                 subtitle: Text(
-                                  '${path.$2.split(':').length} 个目录 · 按顺序查找',
+                                  context.strings.pDirectoriesInLookupOrder(
+                                    path.$2.split(':').length,
+                                  ),
                                 ),
                                 children: [
                                   for (final (index, part)
@@ -168,7 +179,9 @@ class _EnvVarsPageState extends State<EnvVarsPage> {
                                         ),
                                       ),
                                       title: SelectableText(
-                                        part.isEmpty ? '(当前目录)' : part,
+                                        part.isEmpty
+                                            ? context.strings.currentDirectory
+                                            : part,
                                         style: AppColors.mono,
                                       ),
                                       trailing: _copy(part),
@@ -178,11 +191,13 @@ class _EnvVarsPageState extends State<EnvVarsPage> {
                             ),
                           ],
                           if (dirVars.isNotEmpty) ...[
-                            const SectionLabel('目录与缓存'),
+                            SectionLabel(context.strings.directoriesAndCaches),
                             _card(dirVars),
                           ],
                           if (rest.isNotEmpty) ...[
-                            SectionLabel('其他变量 · ${rest.length}'),
+                            SectionLabel(
+                              context.strings.otherVariablesP(rest.length),
+                            ),
                             _card(rest),
                           ],
                         ],
@@ -196,14 +211,14 @@ class _EnvVarsPageState extends State<EnvVarsPage> {
   }
 
   Widget _copy(String value) => IconButton(
-    tooltip: '复制值',
+    tooltip: context.strings.copyValue,
     icon: const Icon(Icons.copy_outlined, size: 18),
     onPressed: () async {
       await Clipboard.setData(ClipboardData(text: value));
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('已复制变量值')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.strings.variableValueCopied)),
+        );
       }
     },
   );
@@ -218,7 +233,7 @@ class _EnvVarsPageState extends State<EnvVarsPage> {
             key: ValueKey(value.$1),
             title: Text(value.$1, style: AppColors.mono),
             subtitle: Text(
-              value.$2.isEmpty ? '(空)' : value.$2,
+              value.$2.isEmpty ? context.strings.empty : value.$2,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -234,7 +249,7 @@ class _EnvVarsPageState extends State<EnvVarsPage> {
                   children: [
                     Expanded(
                       child: SelectableText(
-                        value.$2.isEmpty ? '(空)' : value.$2,
+                        value.$2.isEmpty ? context.strings.empty : value.$2,
                         style: AppColors.mono,
                       ),
                     ),

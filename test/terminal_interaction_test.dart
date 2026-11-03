@@ -2,11 +2,14 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:flit/core/app_scope.dart';
 import 'package:flit/features/terminal/global_terminal_panel.dart';
 import 'package:flit/features/terminal/console_session.dart';
 import 'package:flit/features/terminal/pty_session.dart';
 import 'package:flit/features/terminal/terminal_host.dart';
+import 'package:flit/features/terminal/terminal_session_tabs.dart';
+import 'package:flit/features/terminal/run_sessions.dart';
 import 'package:xterm/xterm.dart';
 
 import 'support/app_scope.dart';
@@ -142,15 +145,104 @@ void main() {
     await gesture.up();
     expect(terminal.buffer.getText(controller.selection!), 'hello world');
     // A first tap dismisses the selection; the next tap opens input.
-    await tester.tapAt(cell(tester, 2, 2));
+    await tester.tapAt(cell(tester, 25, 5));
     await tester.pump(kDoubleTapTimeout);
     expect(controller.selection, isNull);
     expect(tester.testTextInput.isVisible, false);
-    await tester.tapAt(cell(tester, 2, 2));
+    await tester.tapAt(cell(tester, 25, 5));
     await tester.pump(kDoubleTapTimeout);
     expect(tester.testTextInput.isVisible, true);
     await tester.pumpWidget(const SizedBox());
     controller.dispose();
+  });
+
+  testWidgets(
+    'selection handles can extend and shrink after releasing long press',
+    (tester) async {
+      phone(tester);
+      final terminal = Terminal()..write('hello world again\r\n');
+      final controller = TerminalController();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: TerminalView(terminal, controller: controller)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.longPressAt(cell(tester, 7, 0));
+      await tester.pumpAndSettle();
+      final start = find.byKey(const ValueKey('terminal-selection-start'));
+      final end = find.byKey(const ValueKey('terminal-selection-end'));
+      expect(start, findsOneWidget);
+      expect(end, findsOneWidget);
+      expect(terminal.buffer.getText(controller.selection!), 'world');
+      final width = tester
+          .state<TerminalViewState>(find.byType(TerminalView))
+          .renderTerminal
+          .cellSize
+          .width;
+      await tester.drag(start, Offset(-6 * width, 0));
+      await tester.pumpAndSettle();
+      expect(terminal.buffer.getText(controller.selection!), 'hello world');
+      await tester.drag(end, Offset(6 * width, 0));
+      await tester.pumpAndSettle();
+      expect(
+        terminal.buffer.getText(controller.selection!),
+        'hello world again',
+      );
+      await tester.drag(end, Offset(-6 * width, 0));
+      await tester.pumpAndSettle();
+      expect(terminal.buffer.getText(controller.selection!), 'hello world');
+      expect(tester.testTextInput.isVisible, false);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+    },
+  );
+
+  testWidgets('dragging a selection handle at the edge scrolls until release', (
+    tester,
+  ) async {
+    phone(tester);
+    final terminal = Terminal();
+    final controller = TerminalController();
+    final scroll = ScrollController();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TerminalView(
+            terminal,
+            controller: controller,
+            scrollController: scroll,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    terminal.write(List.generate(100, (i) => 'line$i words').join('\r\n'));
+    await tester.pumpAndSettle();
+    scroll.jumpTo(0);
+    await tester.pumpAndSettle();
+    await tester.longPressAt(cell(tester, 2, 1));
+    await tester.pumpAndSettle();
+    final handle = find.byKey(const ValueKey('terminal-selection-end'));
+    final gesture = await tester.startGesture(tester.getCenter(handle));
+    final viewport = tester.getRect(find.byType(TerminalView));
+    await gesture.moveTo(Offset(viewport.center.dx, viewport.bottom - 2));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    expect(scroll.offset, greaterThan(0));
+    expect(terminal.buffer.getText(controller.selection!), contains('line20'));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    final position = scroll.offset;
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(scroll.offset, position);
+    expect(controller.selection, isNotNull);
+    expect(tester.testTextInput.isVisible, isFalse);
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+    scroll.dispose();
   });
 
   testWidgets('selection toolbar and copy keep viewport and focus unchanged', (
@@ -168,6 +260,10 @@ void main() {
     expect(session.copySelection(), 'copy');
     expect(tester.getRect(find.byType(TerminalView)), before);
     expect(session.terminal.viewHeight, rows);
+    expect(
+      tester.getRect(find.text('复制')).bottom,
+      lessThanOrEqualTo(before.top),
+    );
     await tester.tap(find.text('复制'));
     await tester.pump();
     expect(copiedText, 'copy');
@@ -255,11 +351,13 @@ void main() {
     );
     expect(processes[0].writes, isEmpty);
     expect(processes[1].writes.join(), 'a');
-    await tester.longPressAt(cell(tester, 2, 0));
+    await tester.longPressAt(cell(tester, 2, 1));
     await tester.pumpAndSettle();
     await tester.tap(find.text('复制'));
     await tester.pump();
     expect(copiedText, 'second');
+    await tester.tap(find.text('取消'));
+    await tester.pump();
     await tester.tap(find.byTooltip('清空终端'));
     await tester.pump();
     sessions[1].selectAll();
@@ -280,6 +378,64 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await closeConsole(sessions[0]);
+  });
+
+  testWidgets('entire terminal chrome drags, including selection and tabs', (
+    tester,
+  ) async {
+    phone(tester);
+    var resized = 0.0;
+    await tester.pumpWidget(
+      AppScope(
+        services: services,
+        child: MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                height: 320,
+                child: GlobalTerminalPanel(
+                  expanded: true,
+                  onToggle: () {},
+                  onResize: (delta) => resized += delta,
+                  sessionsBar: ChangeNotifierProvider<RunSessions>(
+                    create: (_) => RunSessions(
+                      projectPath: '/project',
+                      launcher: noProcess,
+                    ),
+                    child: const TerminalSessionTabs(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final top = tester.getTopLeft(find.byType(GlobalTerminalPanel));
+    Future<void> dragAt(Offset position) async {
+      resized = 0;
+      await tester.dragFrom(position, const Offset(0, -60));
+      await tester.pumpAndSettle();
+      expect(resized, lessThan(0));
+    }
+
+    // Blank header space, action button, blank tab area, and a tab itself.
+    await dragAt(top + const Offset(160, 42));
+    await dragAt(tester.getCenter(find.byTooltip('清空终端')));
+    await dragAt(top + const Offset(350, 62));
+    await dragAt(tester.getCenter(find.text('bash')));
+    shell.terminal.write('selectable output\r\n');
+    shell.selectAll();
+    await tester.pumpAndSettle();
+    await dragAt(top + const Offset(160, 42));
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(shell.controller.selection, isNull);
+    await tester.tap(find.byTooltip('清空终端'));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('dock, keyboard, fullscreen and back retain the same view', (
@@ -492,7 +648,10 @@ void main() {
   ) async {
     // 回归: 长按跨屏滚动时, 起点曾用视口坐标反复重建, 选区随视口滑走;
     // 现在起点固定在缓冲坐标, 滚动后选区应包含最初选中的那行。
-    final lines = List.generate(200, (i) => 'line${i.toString().padLeft(3, '0')}');
+    final lines = List.generate(
+      200,
+      (i) => 'line${i.toString().padLeft(3, '0')}',
+    );
     final terminal = Terminal()..write('${lines.join('\r\n')}\r\n');
     final controller = TerminalController();
     await tester.pumpWidget(

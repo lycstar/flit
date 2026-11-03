@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'core/theme.dart';
 import 'features/projects/workbench_page.dart';
 import 'services/auto_proxy.dart';
+import 'features/settings/appearance_preferences.dart';
+import 'l10n/app_localizations.dart';
+import 'l10n/strings.dart';
 
 class FlitApp extends StatefulWidget {
   const FlitApp({super.key});
@@ -29,6 +31,11 @@ class _FlitAppState extends State<FlitApp> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeLocales(List<Locale>? locales) {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -36,11 +43,19 @@ class _FlitAppState extends State<FlitApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final language = context.watch<AppearancePreferences>().language;
+    final locale = resolveAppLocale(
+      language,
+      WidgetsBinding.instance.platformDispatcher.locales,
+    );
+    strings = lookupAppLocalizations(locale);
     return MaterialApp(
       title: 'Flit',
-      locale: const Locale('zh', 'CN'),
-      supportedLocales: const [Locale('zh', 'CN')],
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      locale: language == 'system' ? null : locale,
+      localeListResolutionCallback: (locales, supported) =>
+          resolveAppLocale(language, locales ?? const []),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       debugShowCheckedModeBanner: false,
       navigatorObservers: [context.read<RouteObserver<PageRoute<dynamic>>>()],
       theme: flitTheme(),

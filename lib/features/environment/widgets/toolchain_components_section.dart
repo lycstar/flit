@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
@@ -32,10 +33,10 @@ class ToolchainComponentsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              '组件管理',
+              context.strings.componentManager,
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ),
@@ -44,8 +45,10 @@ class ToolchainComponentsSection extends StatelessWidget {
             child: Text(
               env.installedError ??
                   (initialized
-                      ? '按组件管理本地版本、下载与修复。SDK 整包仅用于初始化。'
-                      : '先完成基础环境初始化，再按项目需要管理组件。'),
+                      ? context
+                            .strings
+                            .manageInstalledVersionsDownloadsAndRepairsBy
+                      : context.strings.setUpTheBaseEnvironmentFirstThen),
               style: TextStyle(
                 fontSize: 12,
                 color: env.installedError == null
@@ -61,16 +64,26 @@ class ToolchainComponentsSection extends StatelessWidget {
                 final damaged = local.where((t) => !t.complete).length;
                 final active = local.where((t) => t.active).firstOrNull;
                 final installedSummary = local.length == 1
-                    ? '${damaged == 0 ? '已安装' : '需修复'} · ${local.single.displayVersion}${active == null ? '' : ' · 当前'}'
-                    : '${local.length} 个版本${active == null ? '' : ' · 当前 ${active.version}'}${damaged == 0 ? '' : ' · $damaged 个需修复'}';
+                    ? '${damaged == 0 ? context.strings.installed : context.strings.needsRepair} · ${local.single.displayVersion}${active == null ? '' : context.strings.currentSuffix}'
+                    : context.strings.pVersionsPP(
+                        local.length,
+                        active == null
+                            ? ''
+                            : context.strings.currentVersionSuffix(
+                                active.version,
+                              ),
+                        damaged == 0
+                            ? ''
+                            : context.strings.repairCountSuffix(damaged),
+                      );
                 final status = !initialized
-                    ? '初始化后可管理'
+                    ? context.strings.availableAfterSetup
                     : env.checking
-                    ? '正在检测…'
+                    ? context.strings.checking372
                     : !known
-                    ? '安装状态待确认'
+                    ? context.strings.installationStatusUnconfirmed
                     : local.isEmpty
-                    ? '未安装'
+                    ? context.strings.notInstalled
                     : installedSummary;
                 return ListTile(
                   dense: true,

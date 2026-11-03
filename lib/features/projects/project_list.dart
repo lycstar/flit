@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../services/file_ops.dart';
@@ -23,28 +24,30 @@ class ProjectEntry {
   bool get isProject => kind != null;
 
   String get kindLabel => switch (kind) {
-    ProjectKind.flutter => 'Flutter 工程',
-    ProjectKind.dart => 'Dart 工程',
-    null => '文件夹',
+    ProjectKind.flutter => strings.flutterProject,
+    ProjectKind.dart => strings.dartProject,
+    null => strings.folder,
   };
 }
 
 /// 工程目录名校验: 不能含路径分隔符, 不能是 . 或 ..
 String? validateProjectName(String raw) {
   final name = raw.trim();
-  if (name.isEmpty) return '名称不能为空';
-  if (name.contains('/') || name.contains('\\')) return '名称不能包含路径分隔符';
-  if (name == '.' || name == '..') return '名称不能是 . 或 ..';
+  if (name.isEmpty) return strings.nameCannotBeEmpty;
+  if (name.contains('/') || name.contains('\\')) {
+    return strings.nameCannotContainPathSeparators;
+  }
+  if (name == '.' || name == '..') return strings.nameCannotBeOr;
   return null;
 }
 
 /// 列表副标题用的相对时间
 String relativeTime(DateTime time, {DateTime? now}) {
   final diff = (now ?? DateTime.now()).difference(time);
-  if (diff.inMinutes < 1) return '刚刚';
-  if (diff.inHours < 1) return '${diff.inMinutes} 分钟前';
-  if (diff.inDays < 1) return '${diff.inHours} 小时前';
-  if (diff.inDays < 30) return '${diff.inDays} 天前';
+  if (diff.inMinutes < 1) return strings.justNow;
+  if (diff.inHours < 1) return strings.pMinutesAgo(diff.inMinutes);
+  if (diff.inDays < 1) return strings.pHoursAgo(diff.inHours);
+  if (diff.inDays < 30) return strings.pDaysAgo(diff.inDays);
   String two(int n) => n.toString().padLeft(2, '0');
   return '${time.year}-${two(time.month)}-${two(time.day)}';
 }
@@ -128,10 +131,13 @@ class ProjectList extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      final res = await Shell.instance.exec(scanCommand(root), timeoutMs: 30000);
+      final res = await Shell.instance.exec(
+        scanCommand(root),
+        timeoutMs: 30000,
+      );
       if (_disposed || request != _request) return;
       if (res['exitCode'] != 0) {
-        error = '工程目录不可读';
+        error = strings.projectDirectoryIsNotReadable;
         entries = const [];
       } else {
         entries = List.unmodifiable(

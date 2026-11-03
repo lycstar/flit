@@ -164,6 +164,30 @@ void main() {
     expect(tester.takeException(), isNull);
   }
 
+  testWidgets('USB activation is first and marked recommended', (tester) async {
+    await open(tester, manual: false);
+    expect(find.text('推荐'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('通过电脑 USB 激活')).dy,
+      lessThan(tester.getTopLeft(find.text('通过无线调试连接')).dy),
+    );
+    await close(tester);
+  });
+
+  testWidgets('local USB scan alias appears as one connection', (tester) async {
+    readDevices = () async => deviceList(
+      '127.0.0.1:5555 device model:Phone\n'
+      'emulator-5554 device model:Phone\n',
+    );
+    await open(tester, manual: false);
+    expect(find.text('本机 · Phone'), findsOneWidget);
+    expect(find.text('127.0.0.1:5555 · 已连接'), findsOneWidget);
+    expect(find.textContaining('emulator-5554'), findsNothing);
+    expect(find.text('设备状态'), findsNothing);
+    expect(find.textContaining('台在线'), findsNothing);
+    await close(tester);
+  });
+
   testWidgets('USB card connects directly and never starts discovery', (
     tester,
   ) async {
@@ -372,7 +396,8 @@ void main() {
           deviceList('127.0.0.1:32100 device model:Phone\n');
       await tester.pump(const Duration(milliseconds: 400));
       await settle(tester);
-      expect(find.textContaining('✓ 已连接 127.0.0.1:32100'), findsOneWidget);
+      expect(find.text('127.0.0.1:32100 · 已连接'), findsOneWidget);
+      expect(find.textContaining('✓ 已连接 127.0.0.1:32100'), findsNothing);
       expect(tester.widget<FilledButton>(button('连接')).onPressed, isNotNull);
       await close(tester);
     },
@@ -517,7 +542,8 @@ void main() {
     processes.last.emit('List of devices attached\n127.0.0.1:43210 device\n');
     await processes.last.finish();
     await settle(tester);
-    expect(find.textContaining('已自动连接本机'), findsOneWidget);
+    expect(find.text('127.0.0.1:43210 · 已连接'), findsOneWidget);
+    expect(find.textContaining('已自动连接本机'), findsNothing);
     expect(prefs.adbPaired, true);
     expect(prefs.adbPairingRevision, 10);
     await close(tester);

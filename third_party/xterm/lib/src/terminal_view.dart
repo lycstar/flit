@@ -7,6 +7,7 @@ import 'package:xterm/src/core/buffer/cell_offset.dart';
 import 'package:xterm/src/core/input/keys.dart';
 import 'package:xterm/src/terminal.dart';
 import 'package:xterm/src/ui/controller.dart';
+import 'package:xterm/src/ui/selection_handles.dart';
 import 'package:xterm/src/ui/cursor_type.dart';
 import 'package:xterm/src/ui/custom_text_edit.dart';
 import 'package:xterm/src/ui/gesture/gesture_handler.dart';
@@ -306,6 +307,14 @@ class TerminalViewState extends State<TerminalView> {
       onSecondaryTapUp:
           widget.onSecondaryTapUp != null ? _onSecondaryTapUp : null,
       readOnly: widget.readOnly,
+      child: child,
+    );
+
+    child = TerminalSelectionHandles(
+      view: this,
+      terminal: widget.terminal,
+      controller: _controller,
+      scrollController: _scrollController,
       child: child,
     );
 

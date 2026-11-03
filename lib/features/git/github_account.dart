@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -98,7 +99,7 @@ class GithubAccount extends ChangeNotifier {
   Future<bool> login() async {
     if (busy) return false;
     if (auth == GithubAuth.missing) {
-      error = '尚未安装 gh，请先在开发环境页完成 Flutter 阶段安装';
+      error = strings.ghIsNotInstalledCompleteTheFlutter708;
       notifyListeners();
       return false;
     }
@@ -107,7 +108,7 @@ class GithubAccount extends ChangeNotifier {
     deviceCode.value = null;
     notifyListeners();
     final console = _console = ConsoleSession(
-      title: 'GitHub 登录',
+      title: strings.githubSignIn,
       launcher: _launcher,
     );
     var output = '';
@@ -138,12 +139,15 @@ class GithubAccount extends ChangeNotifier {
             .where((l) => l.isNotEmpty)
             .lastOrNull;
         error = console.stopRequested
-            ? '已取消登录'
-            : '登录未完成（退出码 $code）${tail == null ? '' : '：$tail'}';
+            ? strings.signInCancelled
+            : strings.signInIncompleteExitCodePP(
+                code,
+                tail == null ? '' : '：$tail',
+              );
       }
       return code == 0;
     } catch (e) {
-      error = '登录失败：$e';
+      error = strings.signInFailedP(e);
       return false;
     } finally {
       await watch.cancel();
@@ -163,16 +167,19 @@ class GithubAccount extends ChangeNotifier {
     busy = true;
     error = null;
     notifyListeners();
-    final console = ConsoleSession(title: '退出 GitHub 登录', launcher: _launcher);
+    final console = ConsoleSession(
+      title: strings.githubSignOut,
+      launcher: _launcher,
+    );
     try {
       final code = await console.run(
         logoutCommand,
         timeout: const Duration(seconds: 30),
       );
-      if (code != 0) error = '退出 GitHub 登录未完成（退出码 $code）';
+      if (code != 0) error = strings.githubSignOutIncompleteExitCodeP(code);
       return code == 0;
     } catch (e) {
-      error = '退出 GitHub 登录失败：$e';
+      error = strings.githubSignOutFailedP(e);
       return false;
     } finally {
       unawaited(console.close());

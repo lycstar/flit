@@ -133,15 +133,9 @@ class _MarkdownPreviewState extends State<MarkdownPreview> {
       _ => src.startsWith('/') ? src : '${widget.projectRoot}/$src',
     };
     if (path == null) {
-      return Image.network(
-        src,
-        errorBuilder: (_, _, _) => placeholder,
-      );
+      return Image.network(src, errorBuilder: (_, _, _) => placeholder);
     }
-    return Image.file(
-      File(path),
-      errorBuilder: (_, _, _) => placeholder,
-    );
+    return Image.file(File(path), errorBuilder: (_, _, _) => placeholder);
   }
 }
 

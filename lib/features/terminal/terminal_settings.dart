@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -11,10 +12,13 @@ class TerminalSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('终端设置')),
-    body: const PageList(
+    appBar: AppBar(title: Text(context.strings.terminalSettings)),
+    body: PageList(
       children: [
-        PageIntro('终端外观', '所有终端共用设置，自动保存。也可在终端内容区双指缩放。'),
+        PageIntro(
+          context.strings.terminalAppearance,
+          context.strings.sharedByAllTerminalsAndSavedAutomatically,
+        ),
         TerminalAppearanceSettings(),
       ],
     ),
@@ -43,9 +47,13 @@ class _TerminalAppearanceSettingsState
       );
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('设置已应用，但保存失败：$error')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.strings.settingsAppliedButSavingFailedP(error),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -70,9 +78,9 @@ class _TerminalAppearanceSettingsState
             padding: const EdgeInsets.fromLTRB(16, 12, 8, 0),
             child: Row(
               children: [
-                const Expanded(child: Text('终端字号')),
+                Expanded(child: Text(context.strings.terminalFontSize)),
                 IconButton(
-                  tooltip: '缩小终端字号',
+                  tooltip: context.strings.decreaseTerminalFontSize,
                   icon: const Icon(Icons.remove, size: 18),
                   onPressed: size <= AppearancePreferences.terminalMinSize
                       ? null
@@ -82,7 +90,7 @@ class _TerminalAppearanceSettingsState
                   size.toStringAsFixed(size == size.roundToDouble() ? 0 : 1),
                 ),
                 IconButton(
-                  tooltip: '放大终端字号',
+                  tooltip: context.strings.increaseTerminalFontSize,
                   icon: const Icon(Icons.add, size: 18),
                   onPressed: size >= AppearancePreferences.terminalMaxSize
                       ? null
@@ -95,7 +103,11 @@ class _TerminalAppearanceSettingsState
             value: size,
             min: AppearancePreferences.terminalMinSize,
             max: AppearancePreferences.terminalMaxSize,
-            divisions: 38,
+            divisions:
+                ((AppearancePreferences.terminalMaxSize -
+                            AppearancePreferences.terminalMinSize) *
+                        2)
+                    .round(),
             onChanged: (v) => setState(() => _size = v),
             onChangeEnd: (v) => _apply(size: v),
           ),
@@ -106,7 +118,9 @@ class _TerminalAppearanceSettingsState
               key: ValueKey(preferences.terminalFont),
               isExpanded: true,
               initialValue: preferences.terminalFont,
-              decoration: const InputDecoration(labelText: '等宽字体'),
+              decoration: InputDecoration(
+                labelText: context.strings.monospaceFont,
+              ),
               items: [
                 for (final font in AppearancePreferences.terminalFonts.entries)
                   DropdownMenuItem(
@@ -126,8 +140,8 @@ class _TerminalAppearanceSettingsState
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                const Expanded(child: Text('行高')),
-                Text('${height.toStringAsFixed(1)} 倍'),
+                Expanded(child: Text(context.strings.lineHeight)),
+                Text(context.strings.p(height.toStringAsFixed(1))),
               ],
             ),
           ),
@@ -150,7 +164,7 @@ class _TerminalAppearanceSettingsState
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Text(
-                'flit ~ \$ flutter build apk\n✓ 构建完成  Build complete\n0123456789  []{} <> !=',
+                context.strings.flitFlutterBuildApkBuildComplete,
                 style: flitTerminalStyle
                     .copyWith(
                       fontSize: size,
@@ -164,7 +178,7 @@ class _TerminalAppearanceSettingsState
           TextButton(
             onPressed: () =>
                 _apply(size: 13, height: 1.2, font: 'JetBrainsMono'),
-            child: const Text('恢复终端默认外观'),
+            child: Text(context.strings.resetTerminalAppearance),
           ),
         ],
       ),

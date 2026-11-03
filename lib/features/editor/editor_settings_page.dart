@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -26,9 +27,13 @@ class _EditorSettingsPageState extends State<EditorSettingsPage> {
       await change(context.read<AppearancePreferences>());
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('设置已应用，但保存失败：$error')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.strings.settingsAppliedButSavingFailedP(error),
+            ),
+          ),
+        );
       }
     }
   }
@@ -37,17 +42,20 @@ class _EditorSettingsPageState extends State<EditorSettingsPage> {
   Widget build(BuildContext context) {
     final preferences = context.watch<AppearancePreferences>();
     return Scaffold(
-      appBar: AppBar(title: const Text('编辑器设置')),
+      appBar: AppBar(title: Text(context.strings.editorSettings)),
       body: PageList(
         children: [
-          const PageIntro('编辑器选项', '设置自动保存并应用到编辑器。'),
-          const SectionLabel('显示'),
+          PageIntro(
+            context.strings.editorOptions,
+            context.strings.settingsSaveAutomaticallyPinchInTheCode,
+          ),
+          SectionLabel(context.strings.display),
           _card([
             SettingsSlider(
-              title: '字号',
+              title: context.strings.fontSize,
               value: _draggingSize ?? preferences.editorSize,
-              min: 12,
-              max: 20,
+              min: AppearancePreferences.editorMinSize,
+              max: AppearancePreferences.editorMaxSize,
               onChanged: (value) => setState(() => _draggingSize = value),
               onChangeEnd: (value) {
                 setState(() => _draggingSize = null);
@@ -56,28 +64,34 @@ class _EditorSettingsPageState extends State<EditorSettingsPage> {
             ),
             const Divider(height: 1),
             ListTile(
-              title: const Text('字体'),
+              title: Text(context.strings.font),
               subtitle: const Text(
                 'JetBrains Mono',
                 style: TextStyle(fontFamily: 'JetBrainsMono'),
               ),
               enabled: false,
-              trailing: const Text(
-                '内置',
+              trailing: Text(
+                context.strings.builtIn,
                 style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
             ),
           ]),
-          const SectionLabel('配色方案'),
+          SectionLabel(context.strings.colorScheme),
           _card([
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: SizedBox(
                 width: double.infinity,
                 child: SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'dark', label: Text('深色')),
-                    ButtonSegment(value: 'light', label: Text('浅色')),
+                  segments: [
+                    ButtonSegment(
+                      value: 'dark',
+                      label: Text(context.strings.dark),
+                    ),
+                    ButtonSegment(
+                      value: 'light',
+                      label: Text(context.strings.light),
+                    ),
                   ],
                   selected: {preferences.editorTheme},
                   onSelectionChanged: (s) =>
@@ -86,14 +100,18 @@ class _EditorSettingsPageState extends State<EditorSettingsPage> {
               ),
             ),
           ]),
-          const SectionLabel('终端'),
+          SectionLabel(context.strings.terminal),
           const TerminalAppearanceSettings(),
-          const SectionLabel('编辑行为'),
+          SectionLabel(context.strings.editing),
           _card([
             SwitchListTile(
-              title: const Text('软换行'),
+              title: Text(context.strings.softWraps),
               subtitle: Text(
-                preferences.editorWrap ? '长行自动折行显示，不插入换行符' : '长行横向滚动，行号保持可见',
+                preferences.editorWrap
+                    ? context.strings.wrapLongLinesWithoutInsertingLineBreaks
+                    : context
+                          .strings
+                          .scrollLongLinesHorizontallyLineNumbersStay,
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,

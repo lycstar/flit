@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'shell.dart';
 
 /// File operation result.
@@ -58,19 +59,19 @@ class FileOps {
     required String destinationRoot,
   }) async {
     final name = src.split('/').where((part) => part.isNotEmpty).lastOrNull;
-    if (name == null) return fail('源路径无效');
+    if (name == null) return fail(strings.invalidSourcePath);
     final target = _join(destDir, name);
     final fromRoot = sourceRoot ?? destinationRoot;
     final toRoot = destinationRoot;
     if (move &&
         (!_within(src, fromRoot) || _normalize(src) == _normalize(fromRoot))) {
-      return fail('不能将文件移出它所属的项目目录');
+      return fail(strings.filesCannotBeMovedOutsideTheirProject);
     }
     if (!_within(destDir, toRoot) || !_within(target, toRoot)) {
-      return fail('目标必须位于当前项目目录内');
+      return fail(strings.destinationMustBeInsideTheCurrentProject);
     }
     if (_within(destDir, src)) {
-      return fail('不能将目录复制或移动到它自己内部');
+      return fail(strings.cannotCopyOrMoveADirectoryInto);
     }
 
     final gates = <(String, String)>[(destDir, toRoot), (target, toRoot)];
@@ -90,7 +91,7 @@ class FileOps {
   Future<OpResult> delete(String path, {required String allowedRoot}) async {
     final root = allowedRoot;
     if (!_within(path, root) || _normalize(path) == _normalize(root)) {
-      return fail('只能删除当前项目目录中的条目');
+      return fail(strings.onlyEntriesInsideTheCurrentProjectCan);
     }
     return _exec(
       '${_gate([(path, root)])}${_protectRoot(path, root)}rm -rf -- ${shQuote(path)} && echo OK',
@@ -102,14 +103,14 @@ class FileOps {
     String newName, {
     required String allowedRoot,
   }) async {
-    if (!_validName(newName)) return fail('名称无效');
+    if (!_validName(newName)) return fail(strings.invalidName);
     final root = allowedRoot;
     final parent = path.substring(0, path.lastIndexOf('/'));
     final target = _join(parent, newName);
     if (!_within(path, root) ||
         !_within(target, root) ||
         _normalize(path) == _normalize(root)) {
-      return fail('只能在当前项目目录内重命名');
+      return fail(strings.renameIsOnlyAllowedWithinTheCurrent);
     }
     final command =
         "${_gate([(path, root), (target, root)])}${_protectRoot(path, root)}"
@@ -137,11 +138,11 @@ class FileOps {
     required bool dir,
     required String allowedRoot,
   }) async {
-    if (!_validName(name)) return fail('名称无效');
+    if (!_validName(name)) return fail(strings.invalidName);
     final root = allowedRoot;
     final target = _join(parent, name);
     if (!_within(parent, root) || !_within(target, root)) {
-      return fail('只能在当前项目目录中创建文件或目录');
+      return fail(strings.filesAndDirectoriesCanOnlyBeCreated);
     }
     final command =
         "${_gate([(parent, root), (target, root)])}"
@@ -211,11 +212,13 @@ class FileOps {
     try {
       final result = await Shell.instance.exec(command, timeoutMs: 600000);
       final code = result['exitCode'] as int? ?? -1;
-      if (code == 0) return ok('完成');
+      if (code == 0) return ok(strings.done);
       final output = (result['output'] as String? ?? '').trim();
-      return fail(output.isEmpty ? '操作失败（退出码 $code）' : output);
+      return fail(
+        output.isEmpty ? strings.operationFailedExitCodeP(code) : output,
+      );
     } catch (error) {
-      return fail('操作失败：$error');
+      return fail(strings.operationFailedP(error));
     }
   }
 }

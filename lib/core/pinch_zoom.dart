@@ -1,10 +1,10 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
-/// 只在第二根手指落下时接管手势。单指滚动、点击输入和长按选择仍由 xterm
+/// 只在第二根手指落下时接管手势。单指滚动、点击输入和长按选择仍由子组件
 /// 处理；缩放结束后继续消费剩余手指，避免抬指时误触键盘或滚动。
-class TerminalZoom extends StatelessWidget {
-  const TerminalZoom({
+class PinchZoom extends StatelessWidget {
+  const PinchZoom({
     super.key,
     required this.child,
     required this.onStart,
@@ -19,22 +19,20 @@ class TerminalZoom extends StatelessWidget {
   @override
   Widget build(BuildContext context) => RawGestureDetector(
     gestures: {
-      _TerminalPinchRecognizer:
-          GestureRecognizerFactoryWithHandlers<_TerminalPinchRecognizer>(
-            () => _TerminalPinchRecognizer(),
-            (instance) => instance
-              ..onStart = onStart
-              ..onScale = onScale
-              ..onEnd = onEnd,
-          ),
+      _PinchRecognizer: GestureRecognizerFactoryWithHandlers<_PinchRecognizer>(
+        () => _PinchRecognizer(),
+        (instance) => instance
+          ..onStart = onStart
+          ..onScale = onScale
+          ..onEnd = onEnd,
+      ),
     },
     child: child,
   );
 }
 
-class _TerminalPinchRecognizer extends OneSequenceGestureRecognizer {
-  _TerminalPinchRecognizer()
-    : super(supportedDevices: {PointerDeviceKind.touch});
+class _PinchRecognizer extends OneSequenceGestureRecognizer {
+  _PinchRecognizer() : super(supportedDevices: {PointerDeviceKind.touch});
   late VoidCallback onStart;
   late ValueChanged<double> onScale;
   late VoidCallback onEnd;
@@ -110,5 +108,5 @@ class _TerminalPinchRecognizer extends OneSequenceGestureRecognizer {
   }
 
   @override
-  String get debugDescription => 'terminal two-finger zoom';
+  String get debugDescription => 'two-finger zoom';
 }

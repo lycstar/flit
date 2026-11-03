@@ -13,6 +13,14 @@ class FlitDevice {
 
   static const channel = MethodChannel('flit/device');
 
+  static Future<void> setLanguage(String language) async {
+    try {
+      await channel.invokeMethod<void>('setLanguage', {'language': language});
+    } on MissingPluginException {
+      return;
+    }
+  }
+
   /// 无线调试的连接服务(常驻广播); 配对服务仅在系统配对弹窗开着时广播
   static const adbConnectService = '_adb-tls-connect._tcp';
   static const adbPairingService = '_adb-tls-pairing._tcp';

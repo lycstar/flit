@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -63,7 +64,9 @@ class ProjectDocuments extends ChangeNotifier {
 
   /// Explicitly discard a cached buffer after the user confirms reloading.
   Future<void> reload(String path) async {
-    if (_closed || synchronizing) throw StateError('文件正在同步，请稍后重试');
+    if (_closed || synchronizing) {
+      throw StateError(strings.filesAreSyncingPleaseRetryShortly);
+    }
     final doc = _documents[path];
     if (doc == null) return;
     synchronizing = true;
@@ -104,7 +107,7 @@ class ProjectDocuments extends ChangeNotifier {
   }
 
   Future<String?> _readFile(String path) async {
-    if (_relativePath(path) == null) throw StateError('文件路径无效');
+    if (_relativePath(path) == null) throw StateError(strings.invalidFilePath);
     final result = await Shell.instance.exec(
       'root=\$(realpath -e -- ${shQuote(projectPath)}) || exit 64; '
       'if [ ! -e ${shQuote(path)} ] && [ ! -L ${shQuote(path)} ]; then exit 44; fi; '
@@ -113,7 +116,9 @@ class ProjectDocuments extends ChangeNotifier {
       r'base64 < "$file"',
     );
     if (result['exitCode'] == 44) return null;
-    if (result['exitCode'] != 0) throw StateError('文件不可读或位于项目目录之外');
+    if (result['exitCode'] != 0) {
+      throw StateError(strings.fileIsUnreadableOrOutsideTheProject);
+    }
     return utf8.decode(
       base64.decode(
         (result['output'] as String? ?? '').replaceAll(RegExp(r'\s'), ''),
@@ -173,7 +178,7 @@ class ProjectDocuments extends ChangeNotifier {
     required Future<void> Function() apply,
   }) async {
     if (!_validRelativePath(oldPath) || !_validRelativePath(newPath)) {
-      throw StateError('文件路径无效');
+      throw StateError(strings.invalidFilePath);
     }
     final documentsToMove = _documents.values
         .where((doc) => _matchesPath(doc.path, oldPath))
@@ -189,7 +194,7 @@ class ProjectDocuments extends ChangeNotifier {
               _documents.containsKey(path) &&
               !documentsToMove.any((doc) => doc.path == path),
         )) {
-      throw StateError('目标路径已有打开的文件');
+      throw StateError(strings.aFileIsAlreadyOpenAtThe);
     }
 
     return withFileChange(() async {
@@ -218,7 +223,7 @@ class ProjectDocuments extends ChangeNotifier {
     String path, {
     required Future<void> Function() apply,
   }) async {
-    if (!_validRelativePath(path)) throw StateError('文件路径无效');
+    if (!_validRelativePath(path)) throw StateError(strings.invalidFilePath);
     final documentsToRemove = _documents.values
         .where((doc) => _matchesPath(doc.path, path))
         .toList();
@@ -248,7 +253,9 @@ class ProjectDocuments extends ChangeNotifier {
     Future<T> Function() action, {
     List<EditorDocument>? removed,
   }) async {
-    if (_closed || synchronizing) throw StateError('文件正在同步，请稍后重试');
+    if (_closed || synchronizing) {
+      throw StateError(strings.filesAreSyncingPleaseRetryShortly);
+    }
     final removedDocuments = removed ?? <EditorDocument>[];
     synchronizing = true;
     ++_openSequence;
@@ -257,7 +264,9 @@ class ProjectDocuments extends ChangeNotifier {
     }
     notifyListeners();
     try {
-      if (!await _flush()) throw StateError('保存失败，已取消文件操作');
+      if (!await _flush()) {
+        throw StateError(strings.saveFailedFileOperationCancelled);
+      }
       return await action();
     } finally {
       synchronizing = false;
@@ -286,12 +295,12 @@ class ProjectDocuments extends ChangeNotifier {
 
   Future<bool> open(String path) async {
     if (synchronizing || _closed) return false;
-    if (!_validRelativePath(path)) throw StateError('文件路径无效');
+    if (!_validRelativePath(path)) throw StateError(strings.invalidFilePath);
     final sequence = ++_openSequence;
     var document = _documents[path];
     if (document == null || !document.dirty) {
       final text = await _read('$projectPath/$path');
-      if (text == null) throw StateError('文件不存在： $path');
+      if (text == null) throw StateError(strings.fileDoesNotExistP(path));
       if (_closed || sequence != _openSequence) return false;
       if (document == null) {
         document = EditorDocument(path, text);
@@ -394,7 +403,7 @@ class ProjectDocuments extends ChangeNotifier {
           try {
             text = await _read('$projectPath/${doc.path}');
           } catch (_) {
-            readError = '无法重新读取 ${doc.path}，已关闭此文件，请从“项目”工具窗口重新打开';
+            readError = strings.unableToReloadPTheFileWas(doc.path);
             // A saved buffer that cannot be reread must not overwrite the disk.
             text = null;
           }

@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 import 'dart:collection';
 
@@ -5,6 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import 'console_session.dart';
 import 'pty_session.dart';
+import 'flutter_log_formatter.dart';
 
 export 'console_session.dart' show SessionKind;
 
@@ -22,6 +24,7 @@ class RunConfiguration {
     this.target,
     this.artifactPath,
     this.installAfterBuild = false,
+    this.flutterLogs = false,
   }) : assert(kind != SessionKind.shell, '任务不会是默认 shell');
   final String id;
   final String title;
@@ -39,6 +42,7 @@ class RunConfiguration {
   final String? target;
   final String? artifactPath;
   final bool installAfterBuild;
+  final bool flutterLogs;
 }
 
 class RunSession extends ConsoleSession {
@@ -94,12 +98,12 @@ class RunSessions extends ChangeNotifier {
         continue; // 重复点击只选中已有任务。
       }
       if (configuration.exclusive || other.exclusive) {
-        return '“${other.title}”与该操作需要独占项目，请结束后重试';
+        return strings.pRequiresExclusiveProjectAccessStopIt(other.title);
       }
       if (other.kind == SessionKind.temp &&
           !other.readOnly &&
           (configuration.kind == SessionKind.run || !configuration.readOnly)) {
-        return '“${other.title}”正在更新依赖或构建文件，请等待完成';
+        return strings.pIsUpdatingDependenciesOrBuildFiles(other.title);
       }
     }
     return null;
@@ -137,12 +141,13 @@ class RunSessions extends ChangeNotifier {
     RunConfiguration configuration, {
     void Function(String)? onText,
     String Function(String)? outputFormatter,
+    String Function()? finishOutput,
   }) {
-    if (_closed) return Future.error(StateError('项目已关闭'));
+    if (_closed) return Future.error(StateError(strings.projectIsClosed));
     final pending = _pending[configuration.id];
     if (pending != null) return pending;
     if (_pending.isNotEmpty) {
-      return Future.error(StateError('当前已有任务正在启动，请稍后重试'));
+      return Future.error(StateError(strings.aTaskIsAlreadyStartingPleaseWait));
     }
     final existing = forConfiguration(configuration.id);
     // Repeated clicks on a running temporary task select its existing output.
@@ -152,7 +157,12 @@ class RunSessions extends ChangeNotifier {
       return Future.value(existing);
     }
     return _pending[configuration.id] =
-        _start(configuration, onText, outputFormatter).whenComplete(() {
+        _start(
+          configuration,
+          onText,
+          outputFormatter,
+          finishOutput,
+        ).whenComplete(() {
           _pending.remove(configuration.id);
           if (!_closed) notifyListeners();
         });
@@ -162,6 +172,7 @@ class RunSessions extends ChangeNotifier {
     RunConfiguration configuration,
     void Function(String)? onText,
     String Function(String)? outputFormatter,
+    String Function()? finishOutput,
   ) async {
     final conflict = conflictFor(configuration);
     if (conflict != null) throw StateError(conflict);
@@ -179,7 +190,7 @@ class RunSessions extends ChangeNotifier {
     if (old != null) {
       await close(old.id, graceful: true);
     }
-    if (_closed) throw StateError('项目已关闭');
+    if (_closed) throw StateError(strings.projectIsClosed);
     final session = RunSession(
       id: '$projectPath#${++_nextId}',
       projectPath: projectPath,
@@ -193,10 +204,14 @@ class RunSessions extends ChangeNotifier {
     final subscription = onText == null
         ? null
         : session.textStream.listen(onText);
+    final formatter = configuration.flutterLogs && outputFormatter == null
+        ? FlutterLogFormatter()
+        : null;
     await session.start(
       command: configuration.command,
       workingDirectory: projectPath,
-      outputFormatter: outputFormatter,
+      outputFormatter: outputFormatter ?? formatter?.call,
+      finishOutput: finishOutput ?? formatter?.finish,
     );
     if (subscription != null) {
       unawaited(session.done.then((_) => subscription.cancel()));

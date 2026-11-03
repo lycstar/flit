@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -149,7 +150,7 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
     }
     final granted = await SharedStorageAccess.request(
       context,
-      purpose: '浏览共享存储，选择需要复制到当前项目的文件。此浏览器仅用于导入文件。',
+      purpose: context.strings.browseSharedStorageAndSelectFilesTo,
     );
     if (!mounted || !granted) return;
     setState(() {
@@ -184,9 +185,9 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
     } catch (e) {
       if (!mounted || request != _browseRequest) return;
       setState(() => _browseLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('无法读取目录： $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.strings.unableToReadDirectoryP(e))),
+      );
     }
   }
 
@@ -215,7 +216,7 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
       await operation();
       if (!mounted) return;
       await _projectFiles.refresh();
-      _snack('完成');
+      _snack(strings.done);
       if (mounted) setState(() {});
     } catch (error) {
       _snack('$error');
@@ -248,52 +249,64 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
     final abs = _abs(n);
     showActionMenu(context, [
       if (n.isDir && _ops.hasClip)
-        ('paste', Icons.content_paste, '粘贴到此处', () => _pasteInto(abs)),
+        (
+          'paste',
+          Icons.content_paste,
+          context.strings.pasteHere,
+          () => _pasteInto(abs),
+        ),
       if (n.isDir)
         (
           'newfile',
           Icons.post_add,
-          '新建文件',
+          context.strings.newFile,
           () => _createDialog(abs, dir: false),
         ),
       if (n.isDir)
         (
           'newdir',
           Icons.create_new_folder,
-          '新建目录',
+          context.strings.newDirectory,
           () => _createDialog(abs, dir: true),
         ),
       (
         'copy',
         Icons.copy_all_outlined,
-        '复制',
+        context.strings.copy,
         () {
           _ops.clipPath = abs;
           _ops.clipRoot = _project.path;
           _ops.clipCut = false;
           setState(() {});
-          _snack('已复制 ${n.name}，长按目标目录可粘贴');
+          _snack(
+            context.strings.copiedPLongPressTheDestinationDirectory(n.name),
+          );
         },
       ),
       (
         'cut',
         Icons.content_cut,
-        '剪切',
+        context.strings.cut,
         () {
           _ops.clipPath = abs;
           _ops.clipRoot = _project.path;
           _ops.clipCut = true;
           setState(() {});
-          _snack('已剪切 ${n.name}，长按目标目录可粘贴');
+          _snack(context.strings.cutPLongPressTheDestinationDirectory(n.name));
         },
       ),
       (
         'rename',
         Icons.drive_file_rename_outline,
-        '重命名',
+        context.strings.rename,
         () => _renameDialog(abs, n.name),
       ),
-      ('delete', Icons.delete_outline, '删除', () => _confirmDelete(abs, n.name)),
+      (
+        'delete',
+        Icons.delete_outline,
+        context.strings.delete,
+        () => _confirmDelete(abs, n.name),
+      ),
     ]);
   }
 
@@ -303,13 +316,13 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
       (
         'copy',
         Icons.copy_all_outlined,
-        '复制',
+        context.strings.copy,
         () {
           _ops.clipPath = e.path;
           _ops.clipRoot = null;
           _ops.clipCut = false;
           setState(() {});
-          _snack('已复制 $name，返回项目后长按目标目录可粘贴');
+          _snack(context.strings.copiedPReturnToTheProjectAnd(name));
         },
       ),
     ]);
@@ -355,8 +368,8 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
 
   Widget _header() {
     final label = switch (_loc) {
-      _Loc.project => '项目',
-      _Loc.storage => '共享存储（仅导入）',
+      _Loc.project => context.strings.project,
+      _Loc.storage => context.strings.sharedStorageImportOnly,
     };
     final title = _loc == _Loc.project
         ? _project.name
@@ -380,12 +393,18 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
         children: [
           if (_loc == _Loc.project)
             PopupMenuButton<bool>(
-              tooltip: '新建',
+              tooltip: context.strings.newItem,
               icon: const Icon(Icons.add, size: 18),
               onSelected: (dir) => _createDialog(_project.path, dir: dir),
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: false, child: Text('新建文件')),
-                PopupMenuItem(value: true, child: Text('新建目录')),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: false,
+                  child: Text(context.strings.newFile),
+                ),
+                PopupMenuItem(
+                  value: true,
+                  child: Text(context.strings.newDirectory),
+                ),
               ],
             ),
           IconButton(
@@ -401,12 +420,18 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
                 : _reloadEntries,
           ),
           PopupMenuButton<_Loc>(
-            tooltip: '切换位置',
+            tooltip: context.strings.switchLocation,
             icon: const Icon(Icons.drive_file_move_outline, size: 18),
             onSelected: _switchLoc,
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: _Loc.project, child: Text('项目')),
-              PopupMenuItem(value: _Loc.storage, child: Text('从共享存储复制…')),
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: _Loc.project,
+                child: Text(context.strings.project),
+              ),
+              PopupMenuItem(
+                value: _Loc.storage,
+                child: Text(context.strings.copyFromSharedStorage),
+              ),
             ],
           ),
         ],
@@ -435,7 +460,7 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              '${ops.clipCut ? '剪切' : '复制'}：${ops.clipName}',
+              '${ops.clipCut ? context.strings.cut : context.strings.copy}：${ops.clipName}',
               style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
               overflow: TextOverflow.ellipsis,
             ),
@@ -448,7 +473,10 @@ class _FileTreeDrawerState extends State<FileTreeDrawer> {
                 visualDensity: VisualDensity.compact,
               ),
               onPressed: () => _pasteInto(target),
-              child: const Text('粘贴', style: TextStyle(fontSize: 12)),
+              child: Text(
+                context.strings.paste,
+                style: TextStyle(fontSize: 12),
+              ),
             ),
           IconButton(
             visualDensity: VisualDensity.compact,

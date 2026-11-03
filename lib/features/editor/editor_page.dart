@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'widgets/editor_dock_toolbar.dart';
 import 'widgets/markdown_preview.dart';
 import 'widgets/svg_preview.dart';
 import 'widgets/editor_file_tabs.dart';
+import 'widgets/editor_analysis_status.dart';
 import 'widgets/editor_surface.dart';
 import 'widgets/editor_run_controls.dart';
 import 'widgets/file_card.dart';
@@ -115,10 +117,10 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
         SnackBar(
           content: Text(
             ok
-                ? '已保存'
+                ? context.strings.saved
                 : _project.documents.conflictPath != null
-                ? '文件已被外部修改，保存已停止。点击标题下方状态可重新载入。'
-                : '保存失败，请重试',
+                ? context.strings.fileChangedExternallySavingStoppedTapThe
+                : context.strings.saveFailedPleaseRetry,
           ),
         ),
       );
@@ -135,16 +137,18 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
     final accepted = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('文件已被外部修改'),
-        content: Text('$path\n\n为避免覆盖磁盘上的修改，已停止保存。重新载入将丢弃此文件尚未保存的编辑内容。'),
+        title: Text(context.strings.fileChangedExternally),
+        content: Text(
+          context.strings.pSavingStoppedToAvoidOverwritingDisk(path),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(context.strings.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('重新载入'),
+            child: Text(context.strings.reloadFromDisk),
           ),
         ],
       ),
@@ -224,9 +228,9 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
       _tabs.showDocument(document, at: at);
     } catch (_) {
       if (mounted && seq == _fileSeq) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('无法读取 $rel')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.strings.unableToReadP(rel))),
+        );
       }
     } finally {
       if (mounted && seq == _fileSeq) setState(() => _loadingFile = false);
@@ -250,7 +254,7 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
   /// 关代码 tab = 释放缓冲(先落盘, 失败则留着并提示); 缓冲没了 tab 自动消失
   Future<void> _closeTab(OpenItem item) async {
     if (_project.documents.synchronizing) {
-      _showMessage('文件操作正在进行，请稍后再关闭');
+      _showMessage(context.strings.aFileOperationIsInProgressWait);
       return;
     }
     if (item is CodeTab) {
@@ -268,7 +272,7 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
 
   Future<void> _closeOthers(OpenItem keep) async {
     if (_project.documents.synchronizing) {
-      _showMessage('文件操作正在进行，请稍后再关闭');
+      _showMessage(context.strings.aFileOperationIsInProgressWait);
       return;
     }
     for (final item in _tabs.items) {
@@ -321,11 +325,11 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
 
   Future<void> _closeProject() async {
     if (_project.git.busy) {
-      _showMessage('Git 操作正在进行，请等待完成或在终端停止');
+      _showMessage(context.strings.aGitOperationIsRunningWaitOr);
       return;
     }
     if (_project.documents.synchronizing) {
-      _showMessage('文件操作正在进行，请等待完成后再关闭项目');
+      _showMessage(context.strings.aFileOperationIsInProgressWait552);
       return;
     }
     final workspace = context.read<ProjectWorkspace>();
@@ -409,6 +413,12 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
               : PreferredSize(
                   preferredSize: const Size.fromHeight(EditorFileTabs.height),
                   child: EditorFileTabs(
+                    trailing: _current is CodeTab
+                        ? EditorAnalysisStatus(
+                            controller: _codeCtrl,
+                            focusNode: _editorFocus,
+                          )
+                        : null,
                     onSelect: _selectTab,
                     onClose: _closeTab,
                     onCloseOthers: _closeOthers,
@@ -525,13 +535,13 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
       final documents = _project.documents;
       final status = documents.saveFailed
           ? documents.conflictPath != null
-                ? '文件已变更 · 点击处理'
-                : '保存失败 · 点击重试'
+                ? context.strings.fileChangedTapToResolve
+                : context.strings.saveFailedTapToRetry
           : documents.saving
-          ? '正在保存…'
+          ? context.strings.saving
           : documents.dirty
-          ? '未保存'
-          : '已保存';
+          ? context.strings.unsaved
+          : context.strings.saved;
       final hasCode = tabs.items.any((item) => item is CodeTab);
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -580,9 +590,9 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
                 unselectedLabelColor: AppColors.textSecondary,
                 indicatorColor: AppColors.accent,
                 dividerColor: AppColors.border,
-                tabs: const [
-                  Tab(text: '项目'),
-                  Tab(text: '版本控制'),
+                tabs: [
+                  Tab(text: context.strings.project),
+                  Tab(text: context.strings.versionControl),
                 ],
               ),
             ),
@@ -601,7 +611,10 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
             ListTile(
               dense: true,
               leading: const Icon(Icons.settings_outlined, size: 20),
-              title: const Text('设置', style: TextStyle(fontSize: 13)),
+              title: Text(
+                context.strings.settings,
+                style: TextStyle(fontSize: 13),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.of(
@@ -612,7 +625,10 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
             ListTile(
               dense: true,
               leading: const Icon(Icons.logout, size: 20),
-              title: const Text('关闭项目', style: TextStyle(fontSize: 13)),
+              title: Text(
+                context.strings.closeProject,
+                style: TextStyle(fontSize: 13),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _closeProject();
@@ -631,15 +647,15 @@ class _EditorPageState extends State<EditorPage> with WidgetsBindingObserver {
         children: [
           const Icon(Icons.code, size: 56, color: AppColors.textDisabled),
           const SizedBox(height: 10),
-          const Text(
-            '从“项目”工具窗口选择文件以开始编辑',
+          Text(
+            context.strings.selectAFileFromTheProjectTool,
             style: TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 14),
           FilledButton.icon(
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             icon: const Icon(Icons.folder_open),
-            label: const Text('打开项目工具窗口'),
+            label: Text(context.strings.openProjectToolWindow),
           ),
         ],
       ),

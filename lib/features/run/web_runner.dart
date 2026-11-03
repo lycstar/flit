@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -5,6 +6,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import '../terminal/run_sessions.dart';
+import '../terminal/flutter_log_formatter.dart';
 
 enum WebRunState { idle, starting, serving, stopped, failed }
 
@@ -25,6 +27,7 @@ class WebRunController extends ChangeNotifier {
   bool _clientReady = false;
   String? _appId;
   String _buffer = '';
+  FlutterLogFormatter _logs = FlutterLogFormatter();
   int _epoch = 0;
   int _requestId = 0;
   int? _port;
@@ -53,7 +56,7 @@ class WebRunController extends ChangeNotifier {
   Future<void> _start() async {
     if (_disposed) return;
     final epoch = ++_epoch;
-    _finishRequests('Web 服务已重新运行');
+    _finishRequests(strings.webServerRestarted);
     _startupTimer?.cancel();
     session = null;
     url = null;
@@ -61,11 +64,12 @@ class WebRunController extends ChangeNotifier {
     _appId = null;
     _clientReady = false;
     _buffer = '';
+    _logs = FlutterLogFormatter();
     state = WebRunState.starting;
     notifyListeners();
     _startupTimer = Timer(const Duration(minutes: 6), () {
       if (_disposed || epoch != _epoch || !starting) return;
-      _fail('Web 启动超时，请查看运行日志');
+      _fail(strings.webStartupTimedOutCheckRunLogs);
       unawaited(session?.stop());
     });
     try {
@@ -89,6 +93,11 @@ class WebRunController extends ChangeNotifier {
         ),
         outputFormatter: (chunk) =>
             epoch == _epoch && !_disposed ? _readOutput(chunk) : chunk,
+        finishOutput: () {
+          final remaining = _buffer;
+          _buffer = '';
+          return _logs.call(remaining) + _logs.finish();
+        },
       );
       if (_disposed || epoch != _epoch) {
         await launched.stop();
@@ -102,7 +111,7 @@ class WebRunController extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      if (!_disposed && epoch == _epoch) _fail('Web 启动失败：$e');
+      if (!_disposed && epoch == _epoch) _fail(strings.webStartupFailedP(e));
     }
   }
 
@@ -111,9 +120,10 @@ class WebRunController extends ChangeNotifier {
   String _readOutput(String chunk) {
     _buffer += chunk;
     final output = StringBuffer();
-    void printLine(Object? text) {
+    void printLine(Object? text, {String? color}) {
+      final message = (text ?? '').toString();
       output.write(
-        '${(text ?? '').toString().replaceAll(RegExp(r'\r?\n'), '\r\n')}\r\n',
+        '${(color == null ? message : FlutterLogFormatter.color(message, color)).replaceAll(RegExp(r'\r?\n'), '\r\n')}\r\n',
       );
     }
 
@@ -159,22 +169,36 @@ class WebRunController extends ChangeNotifier {
             }
           case 'app.stop':
             if (params['error'] != null) {
-              _fail('Web 运行失败：${params['error']}');
+              _fail(strings.webRunFailedP(params['error']));
             }
           case 'app.log':
-            printLine(params['log']);
+            printLine(
+              params['log'],
+              color: params['error'] == true ? '31' : null,
+            );
           case 'app.progress':
             if (params['message'] != null) {
-              printLine(params['message']);
+              printLine(params['message'], color: '36');
             }
           case 'daemon.logMessage':
-            printLine(params['message']);
+            printLine(
+              params['message'],
+              color: switch (params['level']) {
+                'error' => '31',
+                'warning' => '33',
+                'trace' => '90',
+                _ => null,
+              },
+            );
+            if (params['stackTrace'] != null) {
+              printLine(params['stackTrace']);
+            }
         }
         final completer = _requests.remove(event['id']);
         if (completer != null) completer.complete(event);
       }
     }
-    return output.toString();
+    return _logs.call(output.toString());
   }
 
   void setClientReady(bool ready) {
@@ -207,13 +231,13 @@ class WebRunController extends ChangeNotifier {
       final result = response['result'];
       if (response['error'] != null || result is! Map || result['code'] != 0) {
         throw StateError(
-          '${response['error'] ?? (result is Map ? result['message'] : '编译失败')}',
+          '${response['error'] ?? (result is Map ? result['message'] : strings.compilationFailed)}',
         );
       }
       return !_disposed && epoch == _epoch;
     } catch (e) {
       if (!_disposed && epoch == _epoch) {
-        error = '更新失败：$e';
+        error = strings.updateFailedP(e);
         session?.log.err(error!);
       }
       return false;
@@ -234,11 +258,11 @@ class WebRunController extends ChangeNotifier {
           ? WebRunState.stopped
           : WebRunState.failed;
       error = state == WebRunState.failed
-          ? 'Web 进程已退出（退出码 ${session!.exitCode}），请查看运行日志'
+          ? strings.webProcessExitedCodePCheckRun(session!.exitCode)
           : null;
     }
     _clientReady = false;
-    _finishRequests('Web 服务已停止');
+    _finishRequests(strings.webServerStopped);
     notifyListeners();
   }
 
@@ -265,7 +289,7 @@ class WebRunController extends ChangeNotifier {
     ++_epoch;
     _startupTimer?.cancel();
     executions.removeListener(_executionChanged);
-    _finishRequests('项目已关闭');
+    _finishRequests(strings.projectIsClosed);
     super.dispose();
   }
 }

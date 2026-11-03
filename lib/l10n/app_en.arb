@@ -1,0 +1,1783 @@
+{
+  "@@locale": "en",
+  "addWebSupport": "Add Web support?",
+  "addWebSupportDescription": "This project has no web directory. Flit will run flutter create --platforms web . to add Web support before starting the preview.",
+  "addAndRun": "Add and Run",
+  "recommended": "Recommended",
+  "space": "Space",
+  "enter": "Enter",
+  "backspace": "Backspace",
+  "capsLock": "Caps Lock",
+  "environmentCommandFailedExitCodeP": "Environment command failed (exit code {p0})",
+  "@environmentCommandFailedExitCodeP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "readFailedP": "Read failed: {p0}",
+  "@readFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "environmentVariables": "Environment Variables",
+  "refreshSnapshot": "Refresh snapshot",
+  "searchVariablesOrValues": "Search variables or values",
+  "retry": "Retry",
+  "noMatchingVariables": "No matching variables",
+  "readOnlyEnvironmentSnapshotForNewTasks": "Read-only environment snapshot for new tasks\nDoes not include temporary exports in terminals. Expand a variable to view its full value.",
+  "searchResultsP": "Search results · {p0}",
+  "@searchResultsP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "toolchains": "Toolchains",
+  "pathCommandLookupOrder": "PATH · Command lookup order",
+  "commandSearchPaths": "Command search paths",
+  "pDirectoriesInLookupOrder": "{p0} directories · In lookup order",
+  "@pDirectoriesInLookupOrder": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "currentDirectory": "(Current directory)",
+  "directoriesAndCaches": "Directories and caches",
+  "otherVariablesP": "Other variables · {p0}",
+  "@otherVariablesP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "copyValue": "Copy value",
+  "variableValueCopied": "Variable value copied",
+  "empty": "(Empty)",
+  "allowInstallationFromUnknownSourcesThenTap": "Allow installation from unknown sources, then tap Install again",
+  "downloadCompleteP": "Download complete: {p0}",
+  "@downloadCompleteP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "downloadFailedP": "Download failed: {p0}",
+  "@downloadFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "appUpdates": "App Updates",
+  "compareThisBuildWithGithubReleasesOr": "Compare this build with GitHub releases, or download a previous version.",
+  "failedToFetchReleasesP": "Failed to fetch releases: {p0}",
+  "@failedToFetchReleasesP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unknown": "Unknown",
+  "localBuildVersionComparisonUnavailable": "Local build; version comparison unavailable",
+  "upToDate": "Up to date",
+  "updateAvailableP": "Update available: {p0}",
+  "@updateAvailableP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "currentBuild": "Current build",
+  "latestRelease": "Latest release",
+  "noAssets": "No assets",
+  "downloadAndInstall": "Download and install",
+  "download": "Download",
+  "systemMonospace": "System monospace",
+  "settingsStorageUnavailable": "Settings storage unavailable",
+  "checking": "Checking…",
+  "failedToSaveOrLoadSettingsP": "Failed to save or load settings: {p0}",
+  "@failedToSaveOrLoadSettingsP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToRequestPermissionYouCanChange": "Unable to request permission. You can change it later in system app settings.",
+  "proxySettingsUpdatedAppliesToNewTerminals": "Proxy settings updated; applies to new terminals and tasks",
+  "settings": "Settings",
+  "ideSettings": "IDE Settings",
+  "configureDevelopmentToolsDeviceConnectionsAndThe": "Configure development tools, device connections, and the editor.",
+  "account": "Account",
+  "developmentEnvironment": "Development Environment",
+  "viewToolchainPathsAndCommandEnvironmentSnapshots": "View toolchain paths and command environment snapshots",
+  "connectDevice": "Connect Device",
+  "wirelessDebuggingPairingAndAuthorization": "Wireless debugging · Pairing and authorization",
+  "useSystemProxy": "Use system proxy",
+  "noSystemProxyDetectedItWillBe": "No system proxy detected; it will be used when available",
+  "backgroundAndNotifications": "Background and Notifications",
+  "foregroundService": "Foreground service",
+  "showBuildAndTaskStatusInA": "Show build and task status in a persistent notification",
+  "backgroundExecution": "Background execution",
+  "ignoreBatteryOptimizationToReduceBackgroundTask": "Ignore battery optimization to reduce background task interruptions",
+  "editorAndTerminal": "Editor and Terminal",
+  "editorSettings": "Editor Settings",
+  "fontColorSchemeSoftWraps": "Font · Color scheme · Soft wraps",
+  "terminalSettings": "Terminal Settings",
+  "pinchToZoomFontSizeMonospaceFont": "Pinch to zoom · Font size · Monospace font · Line height",
+  "aboutFlit": "About Flit",
+  "checkForUpdatesDownloadPreviousVersions": "Check for updates · Download previous versions",
+  "buildCommit": "Build commit",
+  "platform": "Platform",
+  "enabled": "Enabled",
+  "denied": "Denied",
+  "disabled": "Disabled",
+  "allowed": "Allowed",
+  "notConfigured": "Not configured",
+  "flutterProject": "Flutter project",
+  "dartProject": "Dart project",
+  "folder": "Folder",
+  "nameCannotBeEmpty": "Name cannot be empty",
+  "nameCannotContainPathSeparators": "Name cannot contain path separators",
+  "nameCannotBeOr": "Name cannot be . or ..",
+  "justNow": "Just now",
+  "pMinutesAgo": "{p0} minutes ago",
+  "@pMinutesAgo": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pHoursAgo": "{p0} hours ago",
+  "@pHoursAgo": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pDaysAgo": "{p0} days ago",
+  "@pDaysAgo": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "projectDirectoryIsNotReadable": "Project directory is not readable",
+  "aToolchainTaskIsRunningWaitBefore": "A toolchain task is running. Wait before opening a project.",
+  "closeThisProjectBeforeRenamingOrDeleting": "Close this project before renaming or deleting it",
+  "whereAreProjectsStored": "Where are projects stored?",
+  "projectDirectoryP": "Project directory\n{p0}\n\n",
+  "@projectDirectoryP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "uninstallingTheAppOrClearingItsData": "Uninstalling the app or clearing its data also deletes projects. Back up using:\n",
+  "pushToGithubFromVersionControl": "• Push to GitHub from Version Control\n",
+  "openFilesFlitProjectsAndCopyThe": "• Open Files → Flit Projects and copy the directory to shared storage or another location\n",
+  "longPressAFileInTheEditor": "• Long-press a file in the editor tree → Share",
+  "gotIt": "Got it",
+  "deleteProjectP": "Delete project “{p0}”?",
+  "@deleteProjectP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "theDirectoryAndAllItsFilesWill": "The directory and all its files will be permanently deleted.",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "cloneProject": "Clone Project",
+  "createProject": "Create Project",
+  "clone": "Clone",
+  "create": "Create",
+  "pPSucceeded": "✓ {p0}: {p1} succeeded",
+  "@pPSucceeded": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pCancelled": "{p0} cancelled",
+  "@pCancelled": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "cloneFailedSignInToGithubFirst": "Clone failed: sign in to GitHub first for private repositories (Clone → GitHub Account → Sign In)",
+  "pFailedExitCodePSeeTerminal": "✗ {p0} failed (exit code {p1}); see terminal output",
+  "@pFailedExitCodePSeeTerminal": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "newProject": "New Project",
+  "cloneRepository": "Clone Repository",
+  "projectsAreStoredInTheAppAnd": "Projects are stored in the app and deleted on uninstall · Backup options",
+  "checkingDevelopmentEnvironment": "Checking development environment",
+  "openDevelopmentEnvironmentForDetails": "Open Development Environment for details.",
+  "viewDevelopmentEnvironment": "View Development Environment",
+  "developmentEnvironmentIsNotReady": "Development environment is not ready",
+  "yourProjectsWillAppearHereAfterSetup": "Your projects will appear here after setup",
+  "setUpDevelopmentEnvironment": "Set Up Development Environment",
+  "failedToReadProjectDirectory": "Failed to read project directory",
+  "noProjectsYet": "No projects yet",
+  "createAProjectOrCloneAGit": "Create a project or clone a Git repository",
+  "projectsP": "Projects · {p0}",
+  "@projectsP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "more": "More",
+  "rename": "Rename",
+  "renameProject": "Rename Project",
+  "projectDirectoryName": "Project directory name",
+  "ok": "OK",
+  "pAlreadyExistsChooseAnotherDirectoryName": "{p0} already exists. Choose another directory name.",
+  "@pAlreadyExistsChooseAnotherDirectoryName": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToCheckDestinationCheckTheDevelopment": "Unable to check destination. Check the development environment and retry.",
+  "clonePreflightFailedP": "Clone preflight failed: {p0}",
+  "@clonePreflightFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "getFromVersionControl": "Get from Version Control",
+  "cloneARemoteRepositoryToLocalStorage": "Clone a remote repository to local storage, then open the project.",
+  "repository": "Repository",
+  "repositoryUrl": "Repository URL",
+  "directoryNameOptional": "Directory name (optional)",
+  "leaveEmptyToUseTheRepositoryName": "Leave empty to use the repository name",
+  "branchOptional": "Branch (optional)",
+  "leaveEmptyToUseTheRemoteDefault": "Leave empty to use the remote default branch",
+  "shallowClone": "Shallow clone",
+  "fetchOnlyTheLatestCommitUseGit": "Fetch only the latest commit. Use git fetch --unshallow to get the full history.",
+  "clonePreflight": "Clone preflight",
+  "signInToGithubBeforeCloningA": "Sign in to GitHub before cloning a private repository.",
+  "ready": "Ready",
+  "gitNotFoundCheckItsInstallationAnd": "Git not found. Check its installation and PATH.",
+  "unableToRunP": "Unable to run: {p0}",
+  "@unableToRunP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "location": "Location",
+  "startWithALowercaseLetterUseOnly": "Start with a lowercase letter; use only lowercase letters, numbers, and underscores",
+  "dartReservedWordsAndToolNamesCannot": "Dart reserved words and tool names cannot be used",
+  "useAReverseDomainNameSuchAs": "Use a reverse domain name, such as com.example",
+  "projectPAlreadyExistsChooseAnotherName": "Project {p0} already exists. Choose another name.",
+  "@projectPAlreadyExistsChooseAnotherName": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToCheckDestinationCheckTheDevelopment146": "Unable to check destination. Check the development environment and retry.",
+  "projectPreflightFailedP": "Project preflight failed: {p0}",
+  "@projectPreflightFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "projectConfiguration": "Project Configuration",
+  "chooseTheProjectTypeNameAndTarget": "Choose the project type, name, and target platforms. Open it after creation.\nLocation: {p0}",
+  "@chooseTheProjectTypeNameAndTarget": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "projectDetails": "Project Details",
+  "projectName": "Project name",
+  "lowercaseLettersNumbersAndUnderscores": "Lowercase letters, numbers, and underscores",
+  "organizationOptional": "Organization (optional)",
+  "targetPlatforms": "Target Platforms",
+  "projectTemplate": "Project template",
+  "consoleApplication": "Console application",
+  "dartPackage": "Dart package",
+  "serverApplication": "Server application",
+  "runConsoleProjectsUsingDartRunIn": "Run console projects using dart run in the terminal.",
+  "selectAtLeastOnePlatform": "Select at least one platform.",
+  "buildAndroidAndPreviewWebOnThis": "Build Android and preview Web on this device. Other platforms require their respective operating systems.",
+  "advancedSettings": "Advanced Settings",
+  "emptyProject": "Empty project",
+  "excludeTheCounterExample": "Exclude the counter example",
+  "androidSourceLanguage": "Android source language",
+  "projectDescriptionOptional": "Project description (optional)",
+  "projectPreflight": "Project preflight",
+  "checkAgain": "Check Again",
+  "buildApkDebug": "Build APK (Debug)",
+  "buildApkRelease": "Build APK (Release)",
+  "buildWebRelease": "Build Web (Release)",
+  "getDependencies": "Get Dependencies",
+  "upgradeDependencies": "Upgrade Dependencies",
+  "checkOutdatedDependencies": "Check Outdated Dependencies",
+  "cleanBuildOutputs": "Clean Build Outputs",
+  "analyzeCode": "Analyze Code",
+  "runTests": "Run Tests",
+  "environmentDiagnostics": "Environment Diagnostics",
+  "projectIsClosed": "Project is closed",
+  "theDevelopmentEnvironmentIsBeingInstalledOr": "The development environment is being installed or switched. Please wait.",
+  "aGitOperationIsInProgressPlease": "A Git operation is in progress. Please wait.",
+  "saveFailedPleaseRetry": "Save failed. Please retry.",
+  "aTaskIsAlreadyStartingPleaseWait": "A task is already starting. Please wait.",
+  "targetPIsNotConnected": "Target {p0} is not connected",
+  "@targetPIsNotConnected": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "runDart": "Run Dart",
+  "compileExecutable": "Compile Executable",
+  "waitForTheBuildOrDependencyUpdate": "Wait for the build or dependency update before hot reload",
+  "filesAreSyncingPleaseRetryShortly": "Files are syncing. Please retry shortly.",
+  "invalidFilePath": "Invalid file path",
+  "fileIsUnreadableOrOutsideTheProject": "File is unreadable or outside the project directory",
+  "aFileIsAlreadyOpenAtThe": "A file is already open at the destination path",
+  "saveFailedFileOperationCancelled": "Save failed; file operation cancelled",
+  "fileDoesNotExistP": "File does not exist: {p0}",
+  "@fileDoesNotExistP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToReloadPTheFileWas": "Unable to reload {p0}. The file was closed; reopen it from the Project tool window.",
+  "@unableToReloadPTheFileWas": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToReadProjectDirectoryP": "Unable to read project directory: {p0}",
+  "@unableToReadProjectDirectoryP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "fileIsOutsideTheCurrentProject": "File is outside the current project",
+  "noFilesToPaste": "No files to paste",
+  "filesCanOnlyBeMovedWithinThe": "Files can only be moved within the current project. Use Copy instead.",
+  "aGitOperationIsRunningWaitOr": "A Git operation is running. Wait or stop it in the terminal.",
+  "aFileOperationIsRunningWaitBefore": "A file operation is running. Wait before switching projects.",
+  "failedToSaveTheCurrentProjectRetry": "Failed to save the current project. Retry before switching projects.",
+  "fontSizeAppliedButSavingFailedP": "Font size applied, but saving failed: {p0}",
+  "@fontSizeAppliedButSavingFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "terminalAppearance": "Terminal Appearance",
+  "closeTerminalSettings": "Close terminal settings",
+  "collapseTerminal": "Collapse terminal",
+  "expandTerminal": "Expand terminal",
+  "stopping": "Stopping…",
+  "stopCurrentTask": "Stop current task",
+  "terminateAndClose": "Terminate and Close",
+  "close": "Close",
+  "terminalFontAndZoom": "Terminal Font and Zoom",
+  "clearTerminal": "Clear Terminal",
+  "exitFullScreen": "Exit Full Screen",
+  "fullScreenTerminal": "Full Screen Terminal",
+  "paste": "Paste",
+  "copy": "Copy",
+  "copied": "Copied",
+  "selectAll": "Select All",
+  "closePSession": "Close {p0} session",
+  "@closePSession": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "developmentEnvironmentIsNotReadyCompleteSetup": "Development environment is not ready. Complete setup first.",
+  "aTaskCannotBeTheDefaultShell": "A task cannot be the default shell",
+  "pRequiresExclusiveProjectAccessStopIt": "“{p0}” requires exclusive project access. Stop it and retry.",
+  "@pRequiresExclusiveProjectAccessStopIt": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pIsUpdatingDependenciesOrBuildFiles": "“{p0}” is updating dependencies or build files. Please wait.",
+  "@pIsUpdatingDependenciesOrBuildFiles": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "sessionIsClosed": "Session is closed",
+  "theCurrentTaskHasNotFinished": "The current task has not finished",
+  "failedToReadOutputP": "Failed to read output: {p0}",
+  "@failedToReadOutputP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "failedToStartP": "Failed to start: {p0}",
+  "@failedToStartP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "stopped": "Stopped",
+  "processExitedWithCode": "Process exited with code 0",
+  "processExitedWithCodeP": "Process exited with code {p0}",
+  "@processExitedWithCodeP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "executionTimedOutStopping": "Execution timed out; stopping",
+  "sharedByAllTerminalsAndSavedAutomatically": "Shared by all terminals and saved automatically. Pinch in the terminal to zoom.",
+  "settingsAppliedButSavingFailedP": "Settings applied, but saving failed: {p0}",
+  "@settingsAppliedButSavingFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "terminalFontSize": "Terminal font size",
+  "decreaseTerminalFontSize": "Decrease terminal font size",
+  "increaseTerminalFontSize": "Increase terminal font size",
+  "monospaceFont": "Monospace font",
+  "lineHeight": "Line height",
+  "p": "{p0}×",
+  "@p": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "flitFlutterBuildApkBuildComplete": "flit ~ $ flutter build apk\n✓ Build complete\n0123456789  []'{''}' <> !=",
+  "resetTerminalAppearance": "Reset Terminal Appearance",
+  "thisAssetHasNoShaDigest": "This asset has no SHA-256 digest",
+  "unsupportedComponentP": "Unsupported component: {p0}",
+  "@unsupportedComponentP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "aToolchainIsBeingInstalledPleaseWait": "A toolchain is being installed. Please wait.",
+  "projectClosedOrTaskCancelled": "Project closed or task cancelled",
+  "requiredComponentsAreMissingBuildNotStarted": "Required components are missing; build not started",
+  "componentRepairIncompleteP": "Component repair incomplete: {p0}",
+  "@componentRepairIncompleteP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "androidEnvironmentCheckFailedCompleteSetupIn": "Android environment check failed. Complete setup in Development Environment.\n{p0}",
+  "@androidEnvironmentCheckFailedCompleteSetupIn": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installingComponentsChangesTheSharedDevelopmentEnvironment": "Installing components changes the shared development environment. Stop running tasks and retry.",
+  "matchingVersionOrDownloadInformationUnavailableP": "Matching version or download information unavailable: {p0}",
+  "@matchingVersionOrDownloadInformationUnavailableP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "aTaskIsRunningStopItAnd": "A task is running. Stop it and retry.",
+  "installAndroidBuildComponents": "Install Android Build Components",
+  "stillUnavailableAfterInstallationP": "Still unavailable after installation: {p0}",
+  "@stillUnavailableAfterInstallationP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "automaticInstallationIsNotSupportedForP": "Automatic installation is not supported for {p0}",
+  "@automaticInstallationIsNotSupportedForP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "invalidNdkVersion": "Invalid NDK version",
+  "unableToLocateNdkP": "Unable to locate NDK {p0}",
+  "@unableToLocateNdkP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "androidSdkLicensesHaveNotBeenAccepted": "Android SDK licenses have not been accepted. Run $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses in the environment terminal, accept the licenses, and retry.",
+  "theSdkNdkCmakePathInThe": "The SDK/NDK/CMake path in the project is invalid. Check local.properties or Gradle settings; installing into the default directory will not fix a custom path.",
+  "unknownComponentP": "Unknown component: {p0}",
+  "@unknownComponentP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "noValidPReleaseConfiguredP": "No valid {p0} release configured: {p1}",
+  "@noValidPReleaseConfiguredP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "releaseUnavailableP": "Release unavailable: {p0}",
+  "@releaseUnavailableP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "noUniquePFoundInP": "No unique {p1} found in {p0}",
+  "@noUniquePFoundInP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pPIsMissingAValidDownload": "{p0} / {p1} is missing a valid download URL or SHA-256 digest",
+  "@pPIsMissingAValidDownload": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "invalidGithubReleasesResponse": "Invalid GitHub Releases response",
+  "baseEnvironment": "Base Environment",
+  "bashPackageManager": "Bash · Package manager",
+  "androidToolchain": "Android Toolchain",
+  "openjdkAndroidSdkNdkCmakeGradleConfiguration": "OpenJDK 17 · Android SDK · NDK · CMake · Gradle configuration",
+  "flutterToolchain": "Flutter Toolchain",
+  "flutterSdkGitAndGhWarmUp": "Flutter SDK · Git and gh · Warm-up",
+  "gradleConfiguration": "Gradle Configuration",
+  "gitAndGh": "Git and gh",
+  "warmUp": "Warm-up",
+  "projectTasksAreUsingTheDevelopmentEnvironment": "Project tasks are using the development environment. Stop them before installing, switching, or deleting components.",
+  "aTaskIsRunningWaitBeforeInstalling": "A task is running. Wait before installing another version.",
+  "installTheBaseEnvironmentBeforeAddingOther": "Install the base environment before adding other versions",
+  "installP": "Install {p0}",
+  "@installP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "fetchingDownloadInformationForP": "Fetching download information for {p0}…",
+  "@fetchingDownloadInformationForP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pInstalled": "✓ {p0} installed",
+  "@pInstalled": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installationFailedExitCodePSeeOutput": "Installation failed, exit code {p0} (see output above)",
+  "@installationFailedExitCodePSeeOutput": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installationFailedP": "Installation failed: {p0}",
+  "@installationFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "operationFailedExitCodePSeeOutput": "Operation failed, exit code {p0} (see output above)",
+  "@operationFailedExitCodePSeeOutput": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installTheBaseEnvironmentBeforeCheckingThe": "Install the base environment before checking the network",
+  "networkCheck": "Network Check",
+  "environmentCheckFailedP": "Environment check failed: {p0}",
+  "@environmentCheckFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "environmentCheck": "Environment Check",
+  "environmentCheckIncompleteExitCodeP": "Environment check incomplete, exit code {p0}",
+  "@environmentCheckIncompleteExitCodeP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "componentsAreNotReadyCheckAgain": "Components are not ready. Check again.",
+  "componentDirectoryCheckFailed": "Component directory check failed",
+  "unableToReadInstalledComponentsCheckAgain": "Unable to read installed components. Check again: {p0}",
+  "@unableToReadInstalledComponentsCheckAgain": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "environmentSetup": "Environment Setup",
+  "baseEnvironmentInstallationFailedP": "✗ Base environment installation failed: {p0}",
+  "@baseEnvironmentInstallationFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pInstallationFailedRemainingStepsSkipped": "✗ {p0} installation failed; remaining steps skipped",
+  "@pInstallationFailedRemainingStepsSkipped": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pComplete": "✓ {p0} complete",
+  "@pComplete": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installationCompleteDevelopmentEnvironmentReady": "✓ Installation complete; development environment ready",
+  "environmentVerificationFailedCheckMissingOrFailed": "Environment verification failed. Check missing or failed components.",
+  "stoppedYouCanResumeInstallationLater": "Stopped; you can resume installation later",
+  "preparingP": "Preparing {p0}…",
+  "@preparingP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "failedToFetchInstallationInformationP": "Failed to fetch installation information: {p0}",
+  "@failedToFetchInstallationInformationP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "keepMultipleVersionsAndChooseTheActive": "Keep multiple versions and choose the active one. Installing a new version switches to it automatically.",
+  "matchesTheProjectCompilesdkMultipleApiVersions": "Matches the project compileSdk. Multiple API versions can coexist.",
+  "androidPackagingToolsInstallAndKeepVersions": "Android packaging tools. Install and keep versions required by your projects.",
+  "nativeCompilerToolsTheProjectSelectsThe": "Native compiler tools. The project selects the version; multiple versions can coexist.",
+  "nativeBuildToolsTheProjectSelectsThe": "Native build tools. The project selects the version; multiple versions can coexist.",
+  "adbAndOtherSharedDeviceToolsInstalling": "ADB and other shared device tools. Installing the bundled version replaces existing tools.",
+  "sdkmanagerAndOtherSharedSdkManagementTools": "sdkmanager and other shared SDK management tools. Installing the bundled version replaces existing tools.",
+  "companionToolsP": "Companion tools · {p0}",
+  "@companionToolsP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unknownVersion": "Unknown version",
+  "closeTheProjectBeforeChangingSdksOr": "Close the project before changing SDKs or toolchains",
+  "back": "Back",
+  "proxySettings": "Proxy Settings",
+  "sdksAndToolchains": "SDKs and Toolchains",
+  "manageSdksAndBuildToolsViewInstallation": "Manage SDKs and build tools. View installation output in the terminal.",
+  "setupDetails": "Setup Details",
+  "checkingEnvironment": "Checking Environment",
+  "managingToolchains": "Managing Toolchains",
+  "environmentReady": "Environment Ready",
+  "installingComponents": "Installing Components",
+  "installationFailed": "Installation Failed",
+  "environmentNotReady": "Environment Not Ready",
+  "checkingLocalComponentsPleaseWait": "Checking local components. Please wait.",
+  "seeTerminalForDetails": "See terminal for details",
+  "componentsReadyYouCanCreateProjectsAnd": "Components ready. You can create projects and build APKs.",
+  "pPReady": "{p0}/{p1} ready",
+  "@pPReady": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "done": "Done",
+  "resumeInstallation": "Resume Installation",
+  "startInstallation": "Start Installation",
+  "networkP": "Network: {p0}",
+  "@networkP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "baseEnvironmentDownloadConfigurationIsIncompleteUpdate": "Base environment download configuration is incomplete. Update the app and retry.",
+  "downloadingBaseEnvironment": "Downloading base environment…",
+  "downloadUrlP": "Download URL: {p0}",
+  "@downloadUrlP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "downloadFailedHttpPCheckTheUrl": "Download failed: HTTP {p0}. Check the URL and network, then retry.",
+  "@downloadFailedHttpPCheckTheUrl": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "downloadedPPMb": "Downloaded {p0}% ({p1} MB)",
+  "@downloadedPPMb": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "downloadCompletePMb": "Download complete ({p0} MB)",
+  "@downloadCompletePMb": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "verifyingShaP": "Verifying SHA-256: {p0}",
+  "@verifyingShaP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "baseEnvironmentChecksumMismatchExpectedPActual": "Base environment checksum mismatch:\nExpected: {p0}\nActual: {p1}",
+  "@baseEnvironmentChecksumMismatchExpectedPActual": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "shaVerified": "SHA-256 verified",
+  "installingBaseEnvironmentExtractingAndConfiguring": "Installing base environment (extracting and configuring)…",
+  "nativeInstallerDidNotConfirmASuccessful": "Native installer did not confirm a successful installation",
+  "baseEnvironmentReady": "Base environment ready",
+  "checkFailedOpenDevelopmentEnvironment": "Check failed · Open Development Environment",
+  "notInstalledSetUpDevelopmentEnvironment": "Not installed · Set up Development Environment",
+  "allComponentsReady": "All components ready",
+  "pPComponentsReady": "{p0}/{p1} components ready",
+  "@pPComponentsReady": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "manageVersions": "Manage Versions",
+  "deleteP": "Delete {p0}?",
+  "@deleteP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "projectsUsingThisVersionWillNeedIt": "Projects using this version will need it reinstalled. Removing a required version also requires environment repair.",
+  "repairInstallation": "Repair Installation",
+  "useThisVersion": "Use This Version",
+  "switchVersionsBeforeDeleting": "Switch versions before deleting",
+  "deleteVersion": "Delete Version",
+  "replaceP": "Replace {p0}?",
+  "@replaceP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installTheCompanionToolsFromPReplacing": "Install the companion tools from {p0}, replacing the current shared tools.",
+  "@installTheCompanionToolsFromPReplacing": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "replace": "Replace",
+  "refreshAvailableVersions": "Refresh available versions",
+  "localVersions": "Local Versions",
+  "checkingLocalComponents": "Checking local components…",
+  "installationStatusUnconfirmed": "Installation status unconfirmed",
+  "notInstalled": "Not installed",
+  "companionTools": "Companion Tools",
+  "availableVersions": "Available Versions",
+  "failedToFetchVersionsPP": "Failed to fetch versions: {p0}.\n{p1}",
+  "@failedToFetchVersionsPP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "noDownloadableCompanionVersionsInTheRepository": "No downloadable companion versions in the repository.",
+  "allCatalogVersionsAreInstalledUseThe": "All catalog versions are installed. Use the management menu to reinstall versions needing repair.",
+  "installingTheSameNdkVersionKeepsThe": "Installing the same NDK version keeps the existing usable version.",
+  "componentManager": "Component Manager",
+  "manageInstalledVersionsDownloadsAndRepairsBy": "Manage installed versions, downloads, and repairs by component. The full SDK bundle is only used for setup.",
+  "setUpTheBaseEnvironmentFirstThen": "Set up the base environment first, then manage components as your projects need them.",
+  "pVersionsPP": "{p0} versions{p1}{p2}",
+  "@pVersionsPP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      },
+      "p2": {
+        "type": "Object?"
+      }
+    }
+  },
+  "availableAfterSetup": "Available after setup",
+  "checking372": "Checking…",
+  "installing": "Installing",
+  "failed": "Failed",
+  "waitingForDependencies": "Waiting for dependencies",
+  "pendingInstallation": "Pending installation",
+  "pInstalling": "{p0} · Installing",
+  "@pInstalling": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pFailed": "{p0} · Failed",
+  "@pFailed": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pWaitingForPreviousSteps": "{p0} · Waiting for previous steps",
+  "@pWaitingForPreviousSteps": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pPendingInstallation": "{p0} · Pending installation",
+  "@pPendingInstallation": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "deviceConnection": "Device Connection",
+  "enterAnIpAddressOrHostnameWithout": "Enter an IP address or hostname without a protocol or port",
+  "portMustBeBetweenAnd": "Port must be between 1 and 65535",
+  "unableToReadDevicesSeeTerminalOutput": "Unable to read devices. See terminal output.",
+  "adbFailedToStartCheckTheDevelopment": "ADB failed to start. Check the development environment.",
+  "operationFailedPSeeTerminalForDetails": "Operation failed: {p0}. See terminal for details.",
+  "@operationFailedPSeeTerminalForDetails": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "enterADigitPairingCode": "Enter a 6-digit pairing code",
+  "pairingFailedKeepTheSystemPairingDialog": "Pairing failed. Keep the system pairing dialog open and check the port and code. See terminal for details.",
+  "pairedSuccessfully": "Paired successfully",
+  "unableToConfirmDeviceIsOnlineRefresh": "Unable to confirm device is online. Refresh devices or check logs.",
+  "connectedToLocalWirelessDebugging": "✓ Connected to local wireless debugging",
+  "allowUsbDebuggingOnThePhoneThen": "Allow USB debugging on the phone, then retry",
+  "pairingRequiredTapNotificationPairing": "Pairing required. Tap Notification Pairing.",
+  "connectionFailedCheckLogsOrConnectManually": "Connection failed. Check logs or connect manually using the current port.",
+  "noWirelessPortFoundScanAgainEnter": "No wireless port found. Scan again, enter the port manually, or activate via USB from a computer.",
+  "connectedLocallyUsbActivatedYouCanUnplug": "✓ Connected locally · USB activated; you can unplug the cable",
+  "unableToConfirmConnectionInstallAdbFirst": "Unable to confirm connection. Install ADB first.",
+  "unableToConfirmConnectionFailedToRead": "✗ Unable to confirm connection: failed to read devices. See terminal output.",
+  "connectedToP": "✓ Connected to {p0}",
+  "@connectedToP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "deviceUnauthorizedAllowUsbDebuggingOnThe": "Device unauthorized. Allow USB debugging on the phone, then connect again.",
+  "localAdbIsOfflineRunTheActivation": "Local ADB is offline. Run the activation command on the computer and retry.",
+  "adbAuthenticationFailedConfirmUsbDebuggingAuthorization": "ADB authentication failed. Confirm USB debugging authorization and connect again.",
+  "notActivatedConnectViaUsbAndRun": "Not activated. Connect via USB and run the activation command on a computer. Reactivate after a phone restart.",
+  "unableToConnectToLocalPortCheck": "Unable to connect to local port 5555. Check activation and phone authorization; some systems restrict this method.",
+  "deviceUnauthorizedConfirmAuthorizationOnTheTarget": "Device unauthorized. Confirm authorization on the target device. For wireless debugging, pair again and use the connection port.",
+  "deviceOfflineEnableWirelessDebuggingThenDisconnect": "Device offline. Enable wireless debugging, then disconnect and reconnect using the current connection port.",
+  "adbAuthenticationFailedPairAgainInWireless": "ADB authentication failed. Pair again in wireless debugging, then connect.",
+  "connectionRefusedEnableWirelessDebuggingAndUse": "Connection refused. Enable wireless debugging and use its connection port.",
+  "connectionTimedOutCheckTheAddressNetwork": "Connection timed out. Check the address, network, and wireless debugging status.",
+  "deviceIsNotOnlineCheckTerminalOutput": "Device is not online. Check terminal output and the wireless connection port.",
+  "disconnectedFromPPairingAuthorizationIsRetained": "Disconnected from {p0}; pairing authorization is retained.",
+  "@disconnectedFromPPairingAuthorizationIsRetained": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToConfirmDisconnectionCheckTerminalOutput": "Unable to confirm disconnection. Check terminal output and refresh devices.",
+  "connectedButFailedToSaveDeviceSettings": "Connected, but failed to save device settings: {p0}",
+  "@connectedButFailedToSaveDeviceSettings": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToReadAdbDeviceStatus": "Unable to read ADB device status",
+  "tryingPreviousConnectionPortP": "Trying previous connection port {p0}",
+  "@tryingPreviousConnectionPortP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "scanningLocalWirelessDebuggingPorts": "Scanning local wireless debugging ports…",
+  "foundConnectionPortP": "Found connection port {p0}",
+  "@foundConnectionPortP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "scanOrConnectionFailedP": "Scan or connection failed: {p0}",
+  "@scanOrConnectionFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "connectedLocallyYouCanUnplugTheCable": "Connected locally. You can unplug the cable.",
+  "waitTimedOutCheckTheComputerCommand": "Wait timed out. Check the computer command output, then reconnect.",
+  "allowUsbDebuggingOnThePhoneFlit": "Allow USB debugging on the phone. Flit will continue automatically.",
+  "unableToReadAdbStatusCheckThe": "Unable to read ADB status. Check the development environment. Retrying…",
+  "waitingForComputerActivationFlitWillConnect": "Waiting for computer activation… Flit will connect automatically.",
+  "activateViaComputerUsb": "Activate via Computer USB",
+  "enableUsbDebuggingConnectThePhoneTo": "1. Enable USB debugging, connect the phone to a computer, and authorize debugging. Connect only this phone.",
+  "downloadAndExtractPlatformToolsOnThe": "2. Download and extract Platform Tools on the computer. Open a terminal in that directory.",
+  "unableToOpenTheDownloadPage": "Unable to open the download page",
+  "onTheComputerVisitDeveloperAndroidCom": "On the computer, visit developer.android.com/tools/releases/platform-tools",
+  "platformToolsWebsite": "Platform Tools Website",
+  "runThisCommandOnTheComputerKeep": "3. Run this command on the computer. Keep this guide open and wait for connection.",
+  "computerOs": "Computer OS",
+  "copyFailedLongPressTheCommandTo": "Copy failed. Long-press the command to copy it.",
+  "copyCommand": "Copy Command",
+  "afterTheComputerShowsRestartingInTcp": "After the computer shows restarting in TCP mode port: 5555, Flit will try to connect. Allow any new debugging authorization prompt.",
+  "waitsAutomaticallyForUpToMinutesClosing": "Waits automatically for up to 2 minutes; closing this guide stops checks. You can still tap Connect Locally on the device page. Reactivation is usually needed after a phone restart.",
+  "tcpDebuggingMayAlsoListenOnNetwork": "TCP debugging may also listen on network interfaces. Reconnect to the computer and run {p0} -d usb to disable it. Disconnect in Flit only disconnects the client.",
+  "@tcpDebuggingMayAlsoListenOnNetwork": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "reconnect": "Reconnect",
+  "connectNow": "Connect Now",
+  "unableToReadPairingStatusGoBack": "Unable to read pairing status. Go back and retry.",
+  "systemOperationFailed": "System operation failed",
+  "openTheSystemPairingDialogAndEnter": "Open the system pairing dialog and enter the code in the notification",
+  "noPairingPortFoundKeepTheSystem": "No pairing port found. Keep the system pairing dialog open.",
+  "refreshDevices": "Refresh Devices",
+  "manualConnectionOtherDevices": "Manual Connection / Other Devices",
+  "deviceAddress": "Device address",
+  "connectionPort": "Connection port",
+  "connect": "Connect",
+  "pairingRecorded": "Pairing recorded",
+  "keepTheSystemPairingDialogOpenIn": "Keep the system pairing dialog open in split screen for manual pairing.",
+  "pairingPort": "Pairing port",
+  "pairingCodeDigits": "Pairing code (6 digits)",
+  "scanning": "Scanning…",
+  "scanPairingPorts": "Scan Pairing Ports",
+  "pair": "Pair",
+  "wirelessPairingGuide": "Wireless Pairing Guide",
+  "notificationStylePairingStepsAndTroubleshooting": "Notification style, pairing steps, and troubleshooting",
+  "connectViaWirelessDebugging": "Connect via Wireless Debugging",
+  "androidPairAndConnectOverWiFi": "Android 11+ · Pair and connect over Wi-Fi",
+  "wirelessDebuggingSettings": "Wireless Debugging Settings",
+  "notificationPairing": "Notification Pairing",
+  "scanAndConnect": "Scan and Connect",
+  "searchingForPairingPort": "Searching for pairing port…",
+  "cancelPairing": "Cancel Pairing",
+  "activateFromAComputerThenUnplugThe": "Activate from a computer, then unplug the cable",
+  "viewSteps": "View Steps",
+  "connecting": "Connecting…",
+  "connectLocally": "Connect Locally",
+  "deviceStatus": "Device Status",
+  "pOnline": "{p0} online",
+  "@pOnline": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "adbNotFoundInstallTheAndroidToolchain": "ADB not found. Install the Android toolchain in Development Environment.",
+  "noConnections": "No connections",
+  "disconnectP": "Disconnect {p0}",
+  "@disconnectP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToReadNotificationStatus": "Unable to read notification status",
+  "unableToReadNotificationStatusRetry": "Unable to read notification status. Retry.",
+  "unableToOpenSystemSettings": "Unable to open system settings",
+  "unableToOpenRetryLater": "Unable to open. Retry later.",
+  "enterThePairingCodeInTheNotification": "Enter the Pairing Code in the Notification",
+  "androidPhoneMustBeConnectedToWi": "Android 11+ · Phone must be connected to Wi-Fi",
+  "checkingNotificationPermission": "Checking notification permission…",
+  "wirelessPairingIsNotSupportedOnThis": "Wireless pairing is not supported on this system",
+  "pairingNotificationsEnabled": "Pairing notifications enabled",
+  "allowFlitNotificationsFirst": "Allow Flit notifications first",
+  "notificationStatusUnknown": "Notification status unknown",
+  "wirelessPairingRequiresAndroidOrLaterGo": "Wireless pairing requires Android 11 or later. Go back to activate via USB from a computer.",
+  "allowFlitNotificationsIncludingTheWirelessDebugging": "Allow Flit notifications, including the Wireless Debugging Pairing category if present. Enter the pairing code from the notification.",
+  "notificationSettings": "Notification Settings",
+  "checkAgain487": "Check Again",
+  "xiaomiPocoSomeMiuiVersionsRequireThe": "Xiaomi / POCO: some MIUI versions require the Native notification style to enter a pairing code. See instructions below.",
+  "finishTheCurrentDeviceOperationOrInstall": "Finish the current device operation or install ADB before pairing.",
+  "startPairing": "Start Pairing",
+  "tapStartPairingBelowFlitStartsThe": "Tap Start Pairing below. Flit starts the pairing notification and opens Developer options. Enable Developer options and USB debugging first.",
+  "openThePairingCodeDialog": "Open the Pairing Code Dialog",
+  "enableWirelessDebuggingTapItsLabelTo": "Enable Wireless debugging, tap its label to open details, then tap Pair device with pairing code. Keep the 6-digit code dialog open.",
+  "enablingTheSwitchAloneIsNotEnough": "Enabling the switch alone is not enough; open the wireless debugging details.",
+  "expandTheNotificationAndEnterTheDigit": "Expand the Notification and Enter the 6-Digit Code",
+  "expandTheFlitPairingNotificationTapEnter": "Expand the Flit pairing notification, tap Enter Pairing Code, enter the code from the system dialog, and send. Do not switch back to Flit; doing so may close the pairing dialog.",
+  "theEnterPairingCodeButtonAppearsOnce": "The Enter Pairing Code button appears once the pairing port is found.",
+  "returnToFlitToConnect": "Return to Flit to Connect",
+  "returnToFlitAfterSuccessfulPairingIt": "Return to Flit after successful pairing; it will try connecting automatically. If already paired, use Scan and Connect. The connection port may change when wireless debugging restarts.",
+  "noNotificationInputEnteringTheCodeFails": "No notification input / Entering the code fails",
+  "expandTheNotificationAndCheckThatEnter": "Expand the notification and check that Enter Pairing Code is shown. If it is still searching for a port, see the next item.",
+  "someXiaomiRedmiAndPocoMiuiVersions": "Some Xiaomi, Redmi, and POCO MIUI versions: in system Settings → Notifications → Notification display settings, select the Native notification style, then pair again.",
+  "namesAndLocationsVaryAcrossHyperosAnd": "Names and locations vary across HyperOS and other systems. Try Android or Native style if offered. Flit cannot detect or change this setting automatically.",
+  "ifThisOptionIsUnavailableKeepThe": "If this option is unavailable, keep the system pairing dialog open in split screen and enter the port and code under Manual Connection / Other Devices.",
+  "keepsSearchingNoResponseAfterOpeningSettings": "Keeps searching / No response after opening settings",
+  "enableWiFiAndWirelessDebuggingAnd": "Enable Wi-Fi and wireless debugging, and keep Pair device with pairing code open. The pairing port is advertised only while that dialog is open.",
+  "someSystemsRestrictLocalNetworkAccessFor": "Some systems restrict local network access for background apps. Allow Flit to run in the background and access Wi-Fi / local networks in system settings, if available.",
+  "allowBackgroundExecution": "Allow Background Execution",
+  "ifNothingIsFoundToggleWirelessDebugging": "If nothing is found, toggle wireless debugging and retry. Flit searches for up to 3 minutes. Restart after timeout or activate via USB from a computer.",
+  "pairedButCannotConnect": "Paired, but cannot connect",
+  "pairingAndConnectionPortsDifferForManual": "Pairing and connection ports differ. For manual connection, use the port on the main wireless debugging page, not the pairing dialog port.",
+  "tapScanAndConnectOnTheDevice": "Tap Scan and Connect on the device page. If needed, enter the port manually or activate via USB from a computer. A pairing record does not mean the device is online.",
+  "unableToOpenReferencePage": "Unable to open reference page",
+  "referenceShizukuGuide": "Reference: Shizuku Guide",
+  "webServerRestarted": "Web server restarted",
+  "webStartupTimedOutCheckRunLogs": "Web startup timed out. Check run logs.",
+  "webStartupFailedP": "Web startup failed: {p0}",
+  "@webStartupFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "webRunFailedP": "Web run failed: {p0}",
+  "@webRunFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "updateFailedP": "Update failed: {p0}",
+  "@updateFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "webProcessExitedCodePCheckRun": "Web process exited (code {p0}). Check run logs.",
+  "@webProcessExitedCodePCheckRun": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "webServerStopped": "Web server stopped",
+  "runWebToPreviewHere": "Run Web to preview here",
+  "compilingAndStartingTheWebServer": "Compiling and starting the Web server",
+  "webStartupFailed": "Web startup failed",
+  "viewRunLogs": "View Run Logs",
+  "thePageHasNotRenderedYetCheck": "The page has not rendered yet. Check run logs or reload.",
+  "pageLoadFailedP": "Page load failed: {p0}",
+  "@pageLoadFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pageRequestFailedHttpP": "Page request failed: HTTP {p0}",
+  "@pageRequestFailedHttpP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToLoadPreviewP": "Unable to load preview: {p0}",
+  "@unableToLoadPreviewP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "reloadPageResetPageState": "Reload Page (Reset Page State)",
+  "loadingPreview": "Loading preview…",
+  "reload": "Reload",
+  "updating": "Updating…",
+  "document": "Document",
+  "symbol": "Symbol",
+  "keyword": "Keyword",
+  "method": "Method",
+  "type": "Type",
+  "variable": "Variable",
+  "module": "Module",
+  "property": "Property",
+  "dartLanguageServiceCouldNotStart": "Dart language service could not start",
+  "initializationFailed": "Initialization failed",
+  "languageServiceDisconnected": "Language service disconnected",
+  "saved": "Saved",
+  "fileChangedExternallySavingStoppedTapThe": "File changed externally; saving stopped. Tap the status below the title to reload.",
+  "fileChangedExternally": "File Changed Externally",
+  "pSavingStoppedToAvoidOverwritingDisk": "{p0}\n\nSaving stopped to avoid overwriting disk changes. Reloading discards unsaved edits to this file.",
+  "@pSavingStoppedToAvoidOverwritingDisk": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "reloadFromDisk": "Reload from Disk",
+  "unableToReadP": "Unable to read {p0}",
+  "@unableToReadP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "aFileOperationIsInProgressWait": "A file operation is in progress. Wait before closing.",
+  "aFileOperationIsInProgressWait552": "A file operation is in progress. Wait before closing the project.",
+  "fileChangedTapToResolve": "File changed · Tap to resolve",
+  "saveFailedTapToRetry": "Save failed · Tap to retry",
+  "saving": "Saving…",
+  "unsaved": "Unsaved",
+  "project": "Project",
+  "versionControl": "Version Control",
+  "closeProject": "Close Project",
+  "selectAFileFromTheProjectTool": "Select a file from the Project tool window to start editing",
+  "openProjectToolWindow": "Open Project Tool Window",
+  "editorOptions": "Editor Options",
+  "settingsSaveAutomaticallyPinchInTheCode": "Settings save automatically. Pinch in the code area to zoom.",
+  "display": "Display",
+  "fontSize": "Font size",
+  "font": "Font",
+  "builtIn": "Built-in",
+  "colorScheme": "Color Scheme",
+  "dark": "Dark",
+  "light": "Light",
+  "terminal": "Terminal",
+  "editing": "Editing",
+  "softWraps": "Soft wraps",
+  "wrapLongLinesWithoutInsertingLineBreaks": "Wrap long lines without inserting line breaks",
+  "scrollLongLinesHorizontallyLineNumbersStay": "Scroll long lines horizontally; line numbers stay visible",
+  "deleteP576": "Delete “{p0}”?",
+  "@deleteP576": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "permanentlyDeleteTheSelectedFileOrDirectory": "Permanently delete the selected file or directory and its contents? This cannot be undone.",
+  "name": "Name",
+  "newDirectory": "New Directory",
+  "newFile": "New File",
+  "installMissingAndroidBuildComponents": "Install Missing Android Build Components?",
+  "componentsCurrentlyUnavailable": "Components Currently Unavailable",
+  "theBuildFailedBecauseTheseComponentsAre": "The build failed because these components are missing or unusable:",
+  "preflightFoundTheseMissingOrUnusableComponents": "Preflight found these missing or unusable components:",
+  "theBuildWillPAfterInstallationDownload": "The build will {p0} after installation. Download progress appears in the console.",
+  "@theBuildWillPAfterInstallationDownload": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installAndRetry": "Install and Retry",
+  "installAndContinue": "Install and Continue",
+  "starting": "Starting",
+  "rerun": "Rerun",
+  "run": "Run",
+  "hotReload": "Hot Reload",
+  "stopRun": "Stop Run",
+  "switchRunTarget": "Switch Run Target?",
+  "stopTheCurrentRunAndStartThe": "Stop the current run and start the project on the new target.",
+  "switchAndRun": "Switch and Run",
+  "tasks": "Tasks",
+  "currentProjectP": "Current project: {p0}",
+  "@currentProjectP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "currentTaskP": "Current task: {p0}",
+  "@currentTaskP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "tasksUseSeparateTerminalsConflictingActionsAre": "Tasks use separate terminals. Conflicting actions are temporarily unavailable.",
+  "dependencies": "Dependencies",
+  "fetchDependenciesAndWritePackageConfig": "Fetch dependencies and write package_config",
+  "upgradeDependenciesWithinConstraints": "Upgrade dependencies within constraints",
+  "listOutdatedDependencies": "List outdated dependencies",
+  "build": "Build",
+  "buildThenInstallOnTheSelectedAndroid": "Build, then install on the selected Android device via ADB",
+  "buildAReleaseApkThenChooseAdb": "Build a release APK; then choose ADB or the system installer",
+  "outputDirectoryBuildWeb": "Output directory: build/web",
+  "dartCompileExeOutputBuildPackageName": "dart compile exe; output: build/<package-name>. Run it in the terminal when complete.",
+  "code": "Code",
+  "runBatchAnalysisAndShowResultsIn": "Run batch analysis and show results in the terminal",
+  "runTestsInTheTestDirectory": "Run tests in the test/ directory",
+  "maintenance": "Maintenance",
+  "deleteBuildAndDartToolCaches": "Delete build/ and .dart_tool caches",
+  "checkFlutterAndAndroidToolchainHealth": "Check Flutter and Android toolchain health",
+  "failedToReadDevicesP": "Failed to read devices: {p0}",
+  "@failedToReadDevicesP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "selectPlatform": "Select Platform",
+  "webPreview": "Web Preview",
+  "runTarget": "Run Target",
+  "refresh": "Refresh",
+  "previewInsideTheIdeWithoutADevice": "Preview inside the IDE without a device connection",
+  "connectAndroidDevice": "Connect Android Device",
+  "closeOthers": "Close Others",
+  "closeP": "Close {p0}",
+  "@closeP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "fileDoesNotExist": "File does not exist",
+  "cannotInstallAllowFlitToInstallUnknown": "Cannot install. Allow Flit to install unknown apps in system settings first.",
+  "installLocally": "Install Locally",
+  "noApplicationCanOpenThisFile": "No application can open this file",
+  "openWith": "Open With",
+  "unableToShareThisFile": "Unable to share this file",
+  "share": "Share",
+  "linePPIssues": "Line {p0} · {p1} issues",
+  "@linePPIssues": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "quickFix": "Quick Fix",
+  "completionItemExpiredTypeAgain": "Completion item expired. Type again.",
+  "problemsCurrentFile": "Problems · Current File",
+  "noProblems": "No problems",
+  "linePColumnP": "Line {p0} · Column {p1}",
+  "@linePColumnP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "syntaxHighlighting": "Syntax Highlighting",
+  "startingDartAnalyzer": "Starting Dart analyzer…",
+  "dartAnalysisReady": "Dart · Analysis ready",
+  "dartBasicCompletion": "Dart · Basic completion",
+  "problemsP": "Problems {p0}",
+  "@problemsP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "browseSharedStorageAndSelectFilesTo": "Browse shared storage and select files to copy into the project. This browser is for importing only.",
+  "unableToReadDirectoryP": "Unable to read directory: {p0}",
+  "@unableToReadDirectoryP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pasteHere": "Paste Here",
+  "copiedPLongPressTheDestinationDirectory": "Copied {p0}. Long-press the destination directory to paste.",
+  "@copiedPLongPressTheDestinationDirectory": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "cut": "Cut",
+  "cutPLongPressTheDestinationDirectory": "Cut {p0}. Long-press the destination directory to paste.",
+  "@cutPLongPressTheDestinationDirectory": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "copiedPReturnToTheProjectAnd": "Copied {p0}. Return to the project and long-press the destination directory to paste.",
+  "@copiedPReturnToTheProjectAnd": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "sharedStorageImportOnly": "Shared Storage (Import Only)",
+  "newItem": "New",
+  "switchLocation": "Switch Location",
+  "copyFromSharedStorage": "Copy from Shared Storage…",
+  "svgPreviewFromEditorBuffer": "SVG Preview (From Editor Buffer)",
+  "emptyFile": "Empty file",
+  "unableToRenderSvgContentIsNot": "Unable to render SVG: content is not valid SVG",
+  "unableToRenderSvgP": "Unable to render SVG: {p0}",
+  "@unableToRenderSvgP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "preview": "Preview",
+  "undo": "Undo",
+  "redo": "Redo",
+  "commitStagedChanges": "Commit Staged Changes",
+  "commitMessage": "Commit message",
+  "showStagedDiff": "Show Staged Diff",
+  "showUnstagedDiff": "Show Unstaged Diff",
+  "markConflictResolvedStage": "Mark Conflict Resolved (Stage)",
+  "stageFile": "Stage File",
+  "unstage": "Unstage",
+  "rollbackUnstagedChanges": "Rollback Unstaged Changes",
+  "rollbackChanges": "Rollback Changes?",
+  "discardUnstagedChangesInPStagedChanges": "Discard unstaged changes in {p0}? Staged changes will be kept. This cannot be undone.",
+  "@discardUnstagedChangesInPStagedChanges": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "branches": "Branches",
+  "createAndSwitchBranch": "Create and Switch Branch",
+  "newBranch": "New Branch",
+  "branchName": "Branch name",
+  "commitHistory": "Commit History",
+  "remoteOrigin": "Remote · origin",
+  "commitAuthorThisRepository": "Commit Author (This Repository)",
+  "email": "Email",
+  "detachedHead": "Detached HEAD",
+  "refreshVersionControlStatus": "Refresh Version Control Status",
+  "repositorySettings": "Repository Settings",
+  "remotes": "Remotes",
+  "commitAuthor": "Commit Author",
+  "pull": "Pull",
+  "push": "Push",
+  "operationInProgressViewProgressOrStop": "Operation in progress. View progress or stop it in the terminal.",
+  "thisProjectHasNoGitRepositoryYet": "This project has no Git repository yet.",
+  "initializeRepository": "Initialize Repository",
+  "noLocalChanges": "No local changes",
+  "conflictsFoundResolveThemInTheEditor": "Conflicts found. Resolve them in the editor, then stage each file.",
+  "conflicts": "Conflicts",
+  "untracked": "Untracked",
+  "stagedWithAdditionalUnstagedChanges": "Staged with additional unstaged changes",
+  "staged": "Staged",
+  "stageAllChanges": "Stage All Changes",
+  "commitChangesP": "Commit Changes · {p0}",
+  "@commitChangesP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "signOutOfGithub": "Sign Out of GitHub?",
+  "removeGithubComCredentialsFromThisDevice": "Remove github.com credentials from this device.",
+  "signOut": "Sign Out",
+  "ghIsNotInstalledCompleteTheFlutter": "gh is not installed. Complete the Flutter setup stage in Development Environment first.",
+  "notSignedInSignInToClone": "Not signed in. Sign in to clone and push private repositories.",
+  "signedInGitCredentialHelperConfigured": "Signed in · Git credential helper configured",
+  "githubAccount": "GitHub Account",
+  "working": "Working…",
+  "waitingForBrowserAuthorization": "Waiting for browser authorization…",
+  "signedInP": "Signed in · {p0}",
+  "@signedInP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "viewAuthorizationCode": "View Authorization Code",
+  "signIn": "Sign In",
+  "ghIsNotInstalledCompleteTheFlutter708": "gh is not installed. Complete the Flutter setup stage in Development Environment first.",
+  "githubSignIn": "GitHub Sign-In",
+  "signInCancelled": "Sign-in cancelled",
+  "signInIncompleteExitCodePP": "Sign-in incomplete (exit code {p0}){p1}",
+  "@signInIncompleteExitCodePP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "signInFailedP": "Sign-in failed: {p0}",
+  "@signInFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "githubSignOut": "GitHub Sign-Out",
+  "githubSignOutIncompleteExitCodeP": "GitHub sign-out incomplete (exit code {p0})",
+  "@githubSignOutIncompleteExitCodeP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "githubSignOutFailedP": "GitHub sign-out failed: {p0}",
+  "@githubSignOutFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToOpenBrowserVisitGithubCom": "Unable to open browser. Visit github.com/login/device.",
+  "failedToOpenBrowserP": "Failed to open browser: {p0}",
+  "@failedToOpenBrowserP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "signInToGithub": "Sign In to GitHub",
+  "copyTheDeviceCodeAndAuthorizeIn": "Copy the device code and authorize in your browser. Sign-in status updates automatically.",
+  "later": "Later",
+  "cancelSignIn": "Cancel Sign-In",
+  "copyAndOpenBrowser": "Copy and Open Browser",
+  "openTheGitRepositoryRootToUse": "Open the Git repository root to use version control",
+  "aTaskIsRunningStopItBefore": "A task is running. Stop it before performing Git operations.",
+  "saveFailedGitOperationCancelled": "Save failed; Git operation cancelled",
+  "pIncompleteExitCodePSeeTerminal": "{p0} incomplete (exit code {p1}); see terminal output",
+  "@pIncompleteExitCodePSeeTerminal": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "enterACommitMessage": "Enter a commit message",
+  "resolveConflictsAndStageTheFilesFirst": "Resolve conflicts and stage the files first",
+  "stageTheFilesToCommitFirst": "Stage the files to commit first",
+  "commit": "Commit",
+  "theCurrentFileStatusDoesNotSupport": "The current file status does not support rollback",
+  "commitOrRollbackChangesBeforeSwitchingBranches": "Commit or rollback changes before switching branches",
+  "switchBranch": "Switch Branch",
+  "commitOrRollbackChangesBeforePulling": "Commit or rollback changes before pulling",
+  "thisBranchHasNoUpstreamPushAnd": "This branch has no upstream. Push and track a remote branch first.",
+  "switchToABranchAndCreateA": "Switch to a branch and create a commit first",
+  "resolveConflictsFirst": "Resolve conflicts first",
+  "firstPushRequiresARemoteConfigureOrigin": "First push requires a remote. Configure origin in Remotes.",
+  "firstPush": "First Push",
+  "enterAValidRepositoryUrl": "Enter a valid repository URL",
+  "enterTheCommitAuthorNameAndEmail": "Enter the commit author name and email",
+  "invalidSourcePath": "Invalid source path",
+  "filesCannotBeMovedOutsideTheirProject": "Files cannot be moved outside their project",
+  "destinationMustBeInsideTheCurrentProject": "Destination must be inside the current project",
+  "cannotCopyOrMoveADirectoryInto": "Cannot copy or move a directory into itself",
+  "onlyEntriesInsideTheCurrentProjectCan": "Only entries inside the current project can be deleted",
+  "invalidName": "Invalid name",
+  "renameIsOnlyAllowedWithinTheCurrent": "Rename is only allowed within the current project",
+  "filesAndDirectoriesCanOnlyBeCreated": "Files and directories can only be created within the current project",
+  "operationFailedExitCodeP": "Operation failed (exit code {p0})",
+  "@operationFailedExitCodeP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "operationFailedP": "Operation failed: {p0}",
+  "@operationFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "connected": "Connected",
+  "unauthorized": "Unauthorized",
+  "offline": "Offline",
+  "authenticating": "Authenticating",
+  "localDevice": "Local device",
+  "localDeviceP": "Local device · {p0}",
+  "@localDeviceP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "lanP": "LAN {p0}",
+  "@lanP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "lan": "LAN",
+  "failedToReadDevices": "Failed to read devices",
+  "adbDidNotReturnADeviceList": "ADB did not return a device list: {p0}",
+  "@adbDidNotReturnADeviceList": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "backgroundExecutionAndNotifications": "Background Execution and Notifications",
+  "setupAndBuildsMayTakeAWhile": "Setup and builds may take a while. Recommended permissions:",
+  "theForegroundServiceOnlyShowsGeneralTask": "The foreground service only shows general task status. You can change notification and background settings later in Settings → Background and Notifications.",
+  "continueAction": "Continue",
+  "allowSharedStorageAccess": "Allow Shared Storage Access?",
+  "withPermissionFlitCanAccessSharedStorage": "With permission, Flit can access shared storage files. You can skip this and use app-private projects. Private files are hidden from regular file managers and deleted when Flit is uninstalled.",
+  "notNow": "Not Now",
+  "grantAccess": "Grant Access",
+  "sharedStoragePermissionDeniedAppPrivateProjects": "Shared storage permission denied. App-private projects remain available.",
+  "gitCommandFailedP": "Git command failed ({p0})",
+  "@gitCommandFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "gitUnavailableCheckTheDevelopmentEnvironment": "Git unavailable. Check the development environment.",
+  "theProjectIsInsideAParentGit": "The project is inside a parent Git repository. Open the repository root to use version control.",
+  "thisFileIsUntrackedStageItTo": "This file is untracked. Stage it to view the full diff.",
+  "noTextDiffPossiblyABinaryFile": "No text diff (possibly a binary file or mode change).",
+  "language": "Language",
+  "followSystem": "Follow System",
+  "refreshVersionsLater": "Tap Refresh to retry later",
+  "showingPreviousCatalog": "Showing the previous catalog",
+  "currentVersionSuffix": " · Current: {p0}",
+  "@currentVersionSuffix": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "repairCountSuffix": " · {p0} need repair",
+  "@repairCountSuffix": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "retryBuildVerb": "retry",
+  "continueBuildVerb": "continue",
+  "startingEllipsis": "Starting…",
+  "prereleaseSuffix": " · Pre-release",
+  "cannotRun": "Cannot run",
+  "running": "Running",
+  "exited": "Exited",
+  "switchVersion": "Switch",
+  "requestFailed": "✗ Request failed",
+  "currentSuffix": " · Current",
+  "installed": "Installed",
+  "installationIncomplete": "Installation incomplete",
+  "replaceSharedToolsSuffix": " · Replaces shared tools",
+  "needsRepair": "Needs repair",
+  "compilationFailed": "Compilation failed",
+  "unstaged": "Unstaged"
+}

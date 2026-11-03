@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -91,7 +92,9 @@ class _ProjectsPageState extends State<ProjectsPage> {
     if (path == active.path ||
         path.startsWith('${active.path}/') ||
         active.path.startsWith('$path/')) {
-      throw StateError('请先关闭该工程，再重命名或删除它');
+      throw StateError(
+        context.strings.closeThisProjectBeforeRenamingOrDeleting,
+      );
     }
   }
 
@@ -113,18 +116,18 @@ class _ProjectsPageState extends State<ProjectsPage> {
   Future<void> _showStorageInfo() => showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('工程保存在哪里？'),
+      title: Text(context.strings.whereAreProjectsStored),
       content: Text(
-        '工程目录\n${_projectsRoot ?? ''}\n\n'
-        '卸载应用或清除应用数据会连同工程一起删除。备份方式：\n'
-        '• 推送到 GitHub（版本控制面板）\n'
-        '• 系统「文件」应用 → 侧栏「Flit 工程」，可把整个目录复制到共享存储或其他位置\n'
-        '• 编辑器文件树长按文件 → 分享',
+        (context.strings.projectDirectoryP(_projectsRoot ?? '') +
+            context.strings.uninstallingTheAppOrClearingItsData +
+            context.strings.pushToGithubFromVersionControl +
+            context.strings.openFilesFlitProjectsAndCopyThe +
+            context.strings.longPressAFileInTheEditor),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('知道了'),
+          child: Text(context.strings.gotIt),
         ),
       ],
     ),
@@ -153,17 +156,17 @@ class _ProjectsPageState extends State<ProjectsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('删除工程「${entry.name}」？'),
-        content: const Text('目录及其中的所有文件会被删除，且不可恢复。'),
+        title: Text(context.strings.deleteProjectP(entry.name)),
+        content: Text(context.strings.theDirectoryAndAllItsFilesWill),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(context.strings.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
+            child: Text(context.strings.delete),
           ),
         ],
       ),
@@ -245,7 +248,9 @@ class _ProjectsPageState extends State<ProjectsPage> {
   Future<void> _runTask(String command, {required bool openOnSuccess}) async {
     final previous = _task;
     final task = ConsoleSession(
-      title: _pendingMarker == 'clone' ? '克隆项目' : '创建项目',
+      title: _pendingMarker == 'clone'
+          ? context.strings.cloneProject
+          : context.strings.createProject,
       launcher: context.read<ProcessLauncher>(),
     );
     // 临时会话从控制台头部 ✕ 关掉后, 面板回落到默认 shell
@@ -288,23 +293,25 @@ class _ProjectsPageState extends State<ProjectsPage> {
     required bool openOnSuccess,
   }) async {
     if (!mounted || !_busy) return;
-    final verb = _pendingMarker == 'clone' ? '克隆' : '创建';
+    final verb = _pendingMarker == 'clone'
+        ? context.strings.clone
+        : context.strings.create;
     setState(() => _busy = false);
     // 列表永远反映磁盘真相: 被中断的 create/clone 可能已写出目录
     await _projects?.refresh();
     if (!mounted) return;
     if (code == 0) {
-      _snack('✓ $_pendingName $verb成功');
+      _snack(context.strings.pPSucceeded(_pendingName, verb));
       if (openOnSuccess) widget.onOpenProject(_pendingProjectPath!);
     } else {
       final needsLogin =
           _pendingMarker == 'clone' && _needsLogin.hasMatch(output);
       _snack(
         stopped
-            ? '已中止$verb'
+            ? context.strings.pCancelled(verb)
             : needsLogin
-            ? '克隆失败：私有仓库需要先登录 GitHub（克隆页 → GitHub 账户 → 登录）'
-            : '✗ $verb失败（退出码 $code），详细输出见终端',
+            ? context.strings.cloneFailedSignInToGithubFirst
+            : context.strings.pFailedExitCodePSeeTerminal(verb, code),
       );
     }
   }
@@ -328,17 +335,17 @@ class _ProjectsPageState extends State<ProjectsPage> {
         ),
         actions: [
           IconButton(
-            tooltip: '新建项目',
+            tooltip: context.strings.newProject,
             icon: const Icon(Icons.add, size: 22),
             onPressed: ready ? _createProject : null,
           ),
           IconButton(
-            tooltip: '克隆仓库',
+            tooltip: context.strings.cloneRepository,
             icon: const Icon(Icons.download_outlined, size: 20),
             onPressed: ready ? _cloneProject : null,
           ),
           IconButton(
-            tooltip: '设置',
+            tooltip: context.strings.settings,
             icon: const Icon(Icons.settings_outlined, size: 20),
             onPressed: widget.onOpenSettings,
           ),
@@ -368,13 +375,13 @@ class _ProjectsPageState extends State<ProjectsPage> {
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: const Row(
+        child: Row(
           children: [
             Icon(Icons.info_outline, size: 16, color: AppColors.textSecondary),
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                '工程存在应用内部，卸载即删 · 备份方式',
+                context.strings.projectsAreStoredInTheAppAnd,
                 style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
             ),
@@ -393,12 +400,12 @@ class _ProjectsPageState extends State<ProjectsPage> {
     if (widget.environmentChecking) {
       return _message(
         icon: Icons.manage_search,
-        title: '正在检查开发环境',
-        detail: '可进入开发环境查看检测详情。',
+        title: context.strings.checkingDevelopmentEnvironment,
+        detail: context.strings.openDevelopmentEnvironmentForDetails,
         actions: [
           TextButton(
             onPressed: widget.onOpenEnvironment,
-            child: const Text('查看开发环境'),
+            child: Text(context.strings.viewDevelopmentEnvironment),
           ),
         ],
       );
@@ -406,13 +413,13 @@ class _ProjectsPageState extends State<ProjectsPage> {
     if (!widget.environmentReady) {
       return _message(
         icon: Icons.build_circle_outlined,
-        title: '开发环境未就绪',
-        detail: '完成环境配置后，这里会列出你的工程',
+        title: context.strings.developmentEnvironmentIsNotReady,
+        detail: context.strings.yourProjectsWillAppearHereAfterSetup,
         actions: [
           FilledButton.icon(
             onPressed: widget.onOpenEnvironment,
             icon: const Icon(Icons.build_circle_outlined, size: 18),
-            label: const Text('配置开发环境'),
+            label: Text(context.strings.setUpDevelopmentEnvironment),
           ),
         ],
       );
@@ -427,12 +434,12 @@ class _ProjectsPageState extends State<ProjectsPage> {
         if (error != null) {
           return _message(
             icon: Icons.error_outline,
-            title: '读取工程目录失败',
+            title: context.strings.failedToReadProjectDirectory,
             detail: error,
             actions: [
               OutlinedButton(
                 onPressed: projects.refresh,
-                child: const Text('重试'),
+                child: Text(context.strings.retry),
               ),
             ],
           );
@@ -440,18 +447,18 @@ class _ProjectsPageState extends State<ProjectsPage> {
         if (projects.entries.isEmpty) {
           return _message(
             icon: Icons.folder_open_outlined,
-            title: '还没有工程',
-            detail: '新建工程，或从 Git 仓库克隆',
+            title: context.strings.noProjectsYet,
+            detail: context.strings.createAProjectOrCloneAGit,
             actions: [
               FilledButton.icon(
                 onPressed: _busy ? null : _createProject,
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('新建项目'),
+                label: Text(context.strings.newProject),
               ),
               OutlinedButton.icon(
                 onPressed: _busy ? null : _cloneProject,
                 icon: const Icon(Icons.download_outlined, size: 18),
-                label: const Text('克隆仓库'),
+                label: Text(context.strings.cloneRepository),
               ),
             ],
           );
@@ -464,7 +471,9 @@ class _ProjectsPageState extends State<ProjectsPage> {
             separatorBuilder: (_, index) =>
                 SizedBox(height: index == 0 ? 0 : 8),
             itemBuilder: (context, index) => index == 0
-                ? SectionLabel('工程 · ${projects.entries.length}')
+                ? SectionLabel(
+                    context.strings.projectsP(projects.entries.length),
+                  )
                 : _tile(projects.entries[index - 1]),
           ),
         );
@@ -498,14 +507,14 @@ class _ProjectsPageState extends State<ProjectsPage> {
           style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
         trailing: PopupMenuButton<String>(
-          tooltip: '更多',
+          tooltip: context.strings.more,
           icon: const Icon(Icons.more_vert, size: 20),
           onSelected: (action) => action == 'rename'
               ? _renameProject(entry)
               : _deleteProject(entry),
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'rename', child: Text('重命名')),
-            PopupMenuItem(value: 'delete', child: Text('删除')),
+          itemBuilder: (_) => [
+            PopupMenuItem(value: 'rename', child: Text(context.strings.rename)),
+            PopupMenuItem(value: 'delete', child: Text(context.strings.delete)),
           ],
         ),
         onTap: () => widget.onOpenProject(entry.path),
@@ -596,11 +605,14 @@ class _RenameDialogState extends State<_RenameDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('重命名工程'),
+    title: Text(context.strings.renameProject),
     content: TextField(
       controller: _controller,
       autofocus: true,
-      decoration: InputDecoration(labelText: '工程目录名', errorText: _error),
+      decoration: InputDecoration(
+        labelText: context.strings.projectDirectoryName,
+        errorText: _error,
+      ),
       onChanged: (_) {
         if (_error != null) setState(() => _error = null);
       },
@@ -609,9 +621,9 @@ class _RenameDialogState extends State<_RenameDialog> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: const Text('取消'),
+        child: Text(context.strings.cancel),
       ),
-      FilledButton(onPressed: _submit, child: const Text('确定')),
+      FilledButton(onPressed: _submit, child: Text(context.strings.ok)),
     ],
   );
 }

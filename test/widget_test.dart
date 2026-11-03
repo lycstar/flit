@@ -33,6 +33,8 @@ void main() {
   });
 
   testWidgets('启动后打开项目列表，未初始化时显示开发环境页', (tester) async {
+    tester.platformDispatcher.localesTestValue = const [Locale('zh', 'CN')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
     await tester.pumpWidget(
       AppScope(services: testServices(), child: const FlitApp()),
     );

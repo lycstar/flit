@@ -36,6 +36,7 @@ Application ID: `cc.lycstar.flit` · Android 7.0+ · arm64-v8a
 - Preview Flutter Web inside the workspace; use code/preview switching on phones and a split view on wide screens.
 - Stage, commit, manage branches, pull and push with Git; sign in to GitHub through its device authorization flow.
 - Share files and access projects from the system Files app through Android’s Storage Access Framework.
+- Use English or Simplified Chinese, or follow the system language from Settings.
 
 ## Start using Flit
 
@@ -53,7 +54,7 @@ Application ID: `cc.lycstar.flit` · Android 7.0+ · arm64-v8a
 
 Wireless pairing on the same device requires Android 11+ and wireless debugging enabled in Developer options. Manual host/port connection is available for an already configured ADB endpoint. Pairing history is not proof of a current connection: Flit checks the device state reported by ADB.
 
-Projects live in the app’s private `files/home/projects` directory. **Uninstalling Flit or clearing its data deletes those projects.** Back them up with Git or copy them through **Files → Flit 工程**. GitHub authentication is optional; local development does not require an account.
+Projects live in the app’s private `files/home/projects` directory. **Uninstalling Flit or clearing its data deletes those projects.** Back them up with Git or copy them through **Files → Flit Projects**. GitHub authentication is optional; local development does not require an account.
 
 ## How it works
 

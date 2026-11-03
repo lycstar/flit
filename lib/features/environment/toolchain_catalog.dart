@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -113,28 +114,29 @@ class ToolchainCatalog {
 
   CatalogSource sourceFor(String component) => component == 'bootstrap'
       ? bootstrap
-      : sources[component] ?? (throw StateError('未知组件：$component'));
+      : sources[component] ??
+            (throw StateError(strings.unknownComponentP(component)));
 
   /// Exact-tag lookup avoids depending on /latest or release ordering.
   Future<CatalogEntry> resolve(String component, {String? tag}) async {
     final source = sourceFor(component);
     final selected = tag ?? source.defaultTag;
     if (source.repo.isEmpty || !source.acceptsTag(selected)) {
-      throw StateError('未配置有效的 $component 发行版本：$selected');
+      throw StateError(strings.noValidPReleaseConfiguredP(component, selected));
     }
     final data = await fetchJson(
       'https://api.github.com/repos/${source.repo}/releases/tags/${Uri.encodeComponent(selected)}',
     );
     if (data is! Map || data['tag_name'] != selected || data['draft'] == true) {
-      throw StateError('发行版本不可用：$selected');
+      throw StateError(strings.releaseUnavailableP(selected));
     }
     final matches = _entries(component, source, data).toList();
     if (matches.length != 1) {
-      throw StateError('$selected 中未找到唯一的 ${source.asset}');
+      throw StateError(strings.noUniquePFoundInP(selected, source.asset));
     }
     final entry = matches.single;
     if (entry.sha256 == null || Uri.tryParse(entry.url)?.scheme != 'https') {
-      throw StateError('$selected / ${entry.name} 缺少有效的下载地址或 SHA-256');
+      throw StateError(strings.pPIsMissingAValidDownload(selected, entry.name));
     }
     return entry;
   }
@@ -174,7 +176,9 @@ class ToolchainCatalog {
       final data = await fetchJson(
         'https://api.github.com/repos/$repo/releases?per_page=100&page=$page',
       );
-      if (data is! List) throw const FormatException('GitHub Releases 响应无效');
+      if (data is! List) {
+        throw FormatException(strings.invalidGithubReleasesResponse);
+      }
       all.addAll(data);
       if (data.length < 100) return all;
     }

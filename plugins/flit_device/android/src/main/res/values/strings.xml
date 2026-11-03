@@ -1,0 +1,36 @@
+<resources>
+    <string name="flit_device_0">Unsupported discovery type</string>
+    <string name="flit_device_1">Notification pairing requires Android 11 or later</string>
+    <string name="flit_device_2">Unable to scan ports: %1$s</string>
+    <string name="flit_device_3">Port scan failed (NSD %1$s)</string>
+    <string name="flit_device_4">Port resolution failed (NSD %1$s). Scan again.</string>
+    <string name="flit_device_5">Pairing interrupted. Please retry.</string>
+    <string name="flit_device_6">Install Android Platform Tools first</string>
+    <string name="flit_device_7">Allow Flit notifications in system settings before pairing</string>
+    <string name="flit_device_8">Wireless Debugging Pairing</string>
+    <string name="flit_device_9">Enable Wireless Debugging Pairing in notification settings</string>
+    <string name="flit_device_10">Pairing timed out. Start again.</string>
+    <string name="flit_device_11">Pairing cancelled</string>
+    <string name="flit_device_12">Pairing port expired. Start again.</string>
+    <string name="flit_device_13">Open Pair device with pairing code in Wireless debugging</string>
+    <string name="flit_device_14">Searching for pairing port</string>
+    <string name="flit_device_15">Open the system pairing dialog; enter the code here once the port is found</string>
+    <string name="flit_device_16">Unable to start pairing notification. Check notification and background permissions.</string>
+    <string name="flit_device_17">Port %1$s found. Enter the 6-digit code in the notification.</string>
+    <string name="flit_device_18">Pairing port %1$s found</string>
+    <string name="flit_device_19">Keep the system pairing dialog open and enter the code here</string>
+    <string name="flit_device_20">Pairing dialog closed. Open it again.</string>
+    <string name="flit_device_21">Reopen the system pairing dialog</string>
+    <string name="flit_device_22">Enter the 6-digit pairing code</string>
+    <string name="flit_device_23">Find the code in the system pairing dialog</string>
+    <string name="flit_device_24">Pairing…</string>
+    <string name="flit_device_25">Pairing</string>
+    <string name="flit_device_26">Keep the system pairing dialog open</string>
+    <string name="flit_device_27">Paired. Return to Flit to connect automatically.</string>
+    <string name="flit_device_28">Pairing failed. Reopen the pairing dialog and check the code.</string>
+    <string name="flit_device_29">Paired successfully</string>
+    <string name="flit_device_30">Pairing incomplete</string>
+    <string name="flit_device_31">Cancel</string>
+    <string name="flit_device_32">Enter Pairing Code</string>
+    <string name="flit_device_33">6-digit pairing code</string>
+</resources>

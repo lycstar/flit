@@ -44,7 +44,7 @@ class WorkForegroundService : Service() {
     private fun ensureChannel() {
         if (Build.VERSION.SDK_INT >= 26) {
             val channel = NotificationChannel(
-                CHANNEL_ID, "Flit 工作中", NotificationManager.IMPORTANCE_LOW
+                CHANNEL_ID, nativeText(this, R.string.flit_work_0), NotificationManager.IMPORTANCE_LOW
             )
             (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
                 .createNotificationChannel(channel)
@@ -54,8 +54,8 @@ class WorkForegroundService : Service() {
     private fun notification(): Notification =
         NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.flit_work_notification)
-            .setContentTitle("Flit 任务运行中")
-            .setContentText("终端会话与构建运行中")
+            .setContentTitle(nativeText(this, R.string.flit_work_1))
+            .setContentText(nativeText(this, R.string.flit_work_2))
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setOngoing(true)
             .build()
@@ -65,7 +65,7 @@ class WorkForegroundService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        val title = intent?.getStringExtra(EXTRA_TITLE) ?: "Flit 工作中"
+        val title = intent?.getStringExtra(EXTRA_TITLE) ?: nativeText(this, R.string.flit_work_0)
         ensureChannel()
         val notification = notification()
         if (Build.VERSION.SDK_INT >= 29) {

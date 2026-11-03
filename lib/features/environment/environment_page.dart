@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -28,9 +29,11 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
 
   Future<bool> _prepareToolchainChange(BuildContext context) async {
     if (context.read<ProjectWorkspace>().active != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请先关闭项目，再更改 SDK 或工具链')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.strings.closeTheProjectBeforeChangingSdksOr),
+        ),
+      );
       return false;
     }
     await context.read<PtySession>().stop();
@@ -52,24 +55,24 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.close, size: 20),
-            tooltip: '返回',
+            tooltip: context.strings.back,
             onPressed: () => Navigator.of(context).pop(),
           ),
-          title: const Text('开发环境'),
+          title: Text(context.strings.developmentEnvironment),
           // 工具条直出 icon button, 不藏菜单; 停止/清空属于终端会话, 由终端头部固定提供
           actions: [
             IconButton(
-              tooltip: '重新检测',
+              tooltip: context.strings.checkAgain,
               icon: const Icon(Icons.refresh, size: 20),
               onPressed: env.busy ? null : () => env.refreshStatus(),
             ),
             IconButton(
-              tooltip: '网络检测',
+              tooltip: context.strings.networkCheck,
               icon: const Icon(Icons.network_check, size: 20),
               onPressed: env.busy ? null : () => env.probeNetwork(),
             ),
             IconButton(
-              tooltip: '代理设置',
+              tooltip: context.strings.proxySettings,
               icon: const Icon(Icons.settings_outlined, size: 20),
               onPressed: () => Navigator.of(
                 context,
@@ -82,13 +85,19 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
             // 与其他页统一: 内容边距收到 ListView 一处, 卡片不再各自为政
             final checklist = PageList(
               children: [
-                const PageIntro('SDK 与工具链', '管理 SDK 和构建工具链，在终端查看安装输出。'),
+                PageIntro(
+                  context.strings.sdksAndToolchains,
+                  context.strings.manageSdksAndBuildToolsViewInstallation,
+                ),
                 _summaryCard(env),
                 const SizedBox(height: 12),
                 if (env.allDone)
                   ExpansionTile(
                     key: const PageStorageKey('environment-setup-details'),
-                    title: const Text('初始化详情', style: TextStyle(fontSize: 13)),
+                    title: Text(
+                      context.strings.setupDetails,
+                      style: TextStyle(fontSize: 13),
+                    ),
                     children: [
                       StageTimeline(stages: env.stages, busy: env.busy),
                     ],
@@ -149,25 +158,25 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
       orElse: () => StageState(),
     );
     final title = env.checking
-        ? '正在检测环境'
+        ? context.strings.checkingEnvironment
         : env.installing
-        ? '正在管理工具链'
+        ? context.strings.managingToolchains
         : env.allDone
-        ? '环境已就绪'
+        ? context.strings.environmentReady
         : env.pipelineRunning
-        ? '正在安装组件'
+        ? context.strings.installingComponents
         : failed > 0
-        ? '安装失败'
-        : '环境未就绪';
+        ? context.strings.installationFailed
+        : context.strings.environmentNotReady;
     final subtitle = env.checking
-        ? '正在核对本地组件，请稍候'
+        ? context.strings.checkingLocalComponentsPleaseWait
         : env.installing
-        ? '详细输出见终端'
+        ? context.strings.seeTerminalForDetails
         : env.allDone
-        ? '组件已就绪，可以创建项目和构建 APK'
+        ? context.strings.componentsReadyYouCanCreateProjectsAnd
         : running.state == 'RUNNING'
-        ? '详细输出见终端'
-        : '已就绪 $done/${stageDefs.length} 项';
+        ? context.strings.seeTerminalForDetails
+        : context.strings.pPReady(done, stageDefs.length);
     return SurfaceCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -204,31 +213,7 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
                 ),
               ),
               const SizedBox(width: 10),
-              if (!env.busy)
-                FilledButton(
-                  onPressed: env.allDone
-                      ? () => Navigator.of(context).pop()
-                      : () async {
-                          if (!await _prepareToolchainChange(context)) return;
-                          await env.startPipeline();
-                        },
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(0, 36),
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    textStyle: Theme.of(context).textTheme.labelLarge!.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  child: Text(
-                    env.allDone
-                        ? '完成'
-                        : done > 0
-                        ? '继续安装'
-                        : '开始安装',
-                  ),
-                )
-              else
+              if (env.busy)
                 const SizedBox(
                   width: 20,
                   height: 20,
@@ -236,6 +221,33 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
                 ),
             ],
           ),
+          if (!env.busy)
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton(
+                onPressed: env.allDone
+                    ? () => Navigator.of(context).pop()
+                    : () async {
+                        if (!await _prepareToolchainChange(context)) return;
+                        await env.startPipeline();
+                      },
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  textStyle: Theme.of(context).textTheme.labelLarge!.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                child: Text(
+                  env.allDone
+                      ? context.strings.done
+                      : done > 0
+                      ? context.strings.resumeInstallation
+                      : context.strings.startInstallation,
+                ),
+              ),
+            ),
           const SizedBox(height: 12),
           LinearProgressIndicator(
             value: env.allDone ? 1 : done / stageDefs.length,
@@ -246,10 +258,14 @@ class _EnvironmentPageState extends State<EnvironmentPage> {
           if (env.netPaths.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
-              '网络：${env.netPaths.entries.map((e) {
-                final t = double.tryParse(e.value.detail.split('|').last);
-                return '${e.key} ${e.value.ok ? '✓ ${t?.toStringAsFixed(2) ?? "?"}s' : '✗ 请求失败'}';
-              }).join(' · ')}',
+              context.strings.networkP(
+                env.netPaths.entries
+                    .map((e) {
+                      final t = double.tryParse(e.value.detail.split('|').last);
+                      return '${e.key} ${e.value.ok ? '✓ ${t?.toStringAsFixed(2) ?? "?"}s' : context.strings.requestFailed}';
+                    })
+                    .join(' · '),
+              ),
               style: const TextStyle(
                 fontSize: 11,
                 color: AppColors.textSecondary,

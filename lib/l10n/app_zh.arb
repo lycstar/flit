@@ -1,0 +1,1783 @@
+{
+  "@@locale": "zh",
+  "addWebSupport": "添加 Web 支持？",
+  "addWebSupportDescription": "此项目没有 web 目录。Flit 将先执行 flutter create --platforms web . 添加 Web 支持，再启动预览。",
+  "addAndRun": "添加并运行",
+  "recommended": "推荐",
+  "space": "空格",
+  "enter": "换行",
+  "backspace": "退格",
+  "capsLock": "大写",
+  "environmentCommandFailedExitCodeP": "环境命令执行失败（退出码 {p0}）",
+  "@environmentCommandFailedExitCodeP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "readFailedP": "读取失败：{p0}",
+  "@readFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "environmentVariables": "环境变量",
+  "refreshSnapshot": "刷新快照",
+  "searchVariablesOrValues": "搜索变量或值",
+  "retry": "重试",
+  "noMatchingVariables": "没有匹配的变量",
+  "readOnlyEnvironmentSnapshotForNewTasks": "新任务的环境变量快照（只读）\n不包含终端中临时 export 的值。展开变量可查看完整值。",
+  "searchResultsP": "搜索结果 · {p0}",
+  "@searchResultsP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "toolchains": "工具链",
+  "pathCommandLookupOrder": "PATH · 按顺序查找命令",
+  "commandSearchPaths": "命令搜索路径",
+  "pDirectoriesInLookupOrder": "{p0} 个目录 · 按顺序查找",
+  "@pDirectoriesInLookupOrder": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "currentDirectory": "(当前目录)",
+  "directoriesAndCaches": "目录与缓存",
+  "otherVariablesP": "其他变量 · {p0}",
+  "@otherVariablesP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "copyValue": "复制值",
+  "variableValueCopied": "已复制变量值",
+  "empty": "(空)",
+  "allowInstallationFromUnknownSourcesThenTap": "需要先授权“安装未知应用”，授权后重新点击安装",
+  "downloadCompleteP": "下载完成:{p0}",
+  "@downloadCompleteP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "downloadFailedP": "下载失败:{p0}",
+  "@downloadFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "appUpdates": "App 更新",
+  "compareThisBuildWithGithubReleasesOr": "当前构建对照 GitHub 发布；历史版本的产物可下载安装。",
+  "failedToFetchReleasesP": "发布列表请求失败：{p0}",
+  "@failedToFetchReleasesP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unknown": "未知",
+  "localBuildVersionComparisonUnavailable": "本地构建，不比对版本",
+  "upToDate": "已是最新",
+  "updateAvailableP": "有更新:{p0}",
+  "@updateAvailableP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "currentBuild": "当前构建",
+  "latestRelease": "最新发布",
+  "noAssets": "无产物",
+  "downloadAndInstall": "下载并安装",
+  "download": "下载",
+  "systemMonospace": "系统等宽字体",
+  "settingsStorageUnavailable": "设置存储不可用",
+  "checking": "检测中…",
+  "failedToSaveOrLoadSettingsP": "设置保存或读取失败：{p0}",
+  "@failedToSaveOrLoadSettingsP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToRequestPermissionYouCanChange": "无法请求系统权限，可稍后在系统应用设置中调整",
+  "proxySettingsUpdatedAppliesToNewTerminals": "代理设置已更新，新终端和任务生效",
+  "settings": "设置",
+  "ideSettings": "IDE 设置",
+  "configureDevelopmentToolsDeviceConnectionsAndThe": "配置开发环境、设备连接和编辑器选项。",
+  "account": "账户",
+  "developmentEnvironment": "开发环境",
+  "viewToolchainPathsAndCommandEnvironmentSnapshots": "查看工具链路径与命令环境快照",
+  "connectDevice": "连接设备",
+  "wirelessDebuggingPairingAndAuthorization": "无线调试 · 配对与认证状态",
+  "useSystemProxy": "跟随系统代理",
+  "noSystemProxyDetectedItWillBe": "未检测到系统代理；检测到后自动使用",
+  "backgroundAndNotifications": "后台与通知",
+  "foregroundService": "前台服务",
+  "showBuildAndTaskStatusInA": "常驻通知展示构建与任务的运行状态",
+  "backgroundExecution": "后台运行",
+  "ignoreBatteryOptimizationToReduceBackgroundTask": "忽略电池优化，减少切到后台后任务被中断",
+  "editorAndTerminal": "编辑器与终端",
+  "editorSettings": "编辑器设置",
+  "fontColorSchemeSoftWraps": "字体 · 配色方案 · 软换行",
+  "terminalSettings": "终端设置",
+  "pinchToZoomFontSizeMonospaceFont": "双指缩放 · 字号 · 等宽字体 · 行高",
+  "aboutFlit": "关于 Flit",
+  "checkForUpdatesDownloadPreviousVersions": "检查更新 · 下载安装历史版本",
+  "buildCommit": "构建提交",
+  "platform": "运行平台",
+  "enabled": "已开启",
+  "denied": "已拒绝",
+  "disabled": "未开启",
+  "allowed": "已允许",
+  "notConfigured": "未设置",
+  "flutterProject": "Flutter 工程",
+  "dartProject": "Dart 工程",
+  "folder": "文件夹",
+  "nameCannotBeEmpty": "名称不能为空",
+  "nameCannotContainPathSeparators": "名称不能包含路径分隔符",
+  "nameCannotBeOr": "名称不能是 . 或 ..",
+  "justNow": "刚刚",
+  "pMinutesAgo": "{p0} 分钟前",
+  "@pMinutesAgo": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pHoursAgo": "{p0} 小时前",
+  "@pHoursAgo": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pDaysAgo": "{p0} 天前",
+  "@pDaysAgo": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "projectDirectoryIsNotReadable": "工程目录不可读",
+  "aToolchainTaskIsRunningWaitBefore": "工具链任务正在进行，请完成后再打开项目",
+  "closeThisProjectBeforeRenamingOrDeleting": "请先关闭该工程，再重命名或删除它",
+  "whereAreProjectsStored": "工程保存在哪里？",
+  "projectDirectoryP": "工程目录\n{p0}\n\n",
+  "@projectDirectoryP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "uninstallingTheAppOrClearingItsData": "卸载应用或清除应用数据会连同工程一起删除。备份方式：\n",
+  "pushToGithubFromVersionControl": "• 推送到 GitHub（版本控制面板）\n",
+  "openFilesFlitProjectsAndCopyThe": "• 系统「文件」应用 → 侧栏「Flit 工程」，可把整个目录复制到共享存储或其他位置\n",
+  "longPressAFileInTheEditor": "• 编辑器文件树长按文件 → 分享",
+  "gotIt": "知道了",
+  "deleteProjectP": "删除工程「{p0}」？",
+  "@deleteProjectP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "theDirectoryAndAllItsFilesWill": "目录及其中的所有文件会被删除，且不可恢复。",
+  "cancel": "取消",
+  "delete": "删除",
+  "cloneProject": "克隆项目",
+  "createProject": "创建项目",
+  "clone": "克隆",
+  "create": "创建",
+  "pPSucceeded": "✓ {p0} {p1}成功",
+  "@pPSucceeded": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pCancelled": "已中止{p0}",
+  "@pCancelled": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "cloneFailedSignInToGithubFirst": "克隆失败：私有仓库需要先登录 GitHub（克隆页 → GitHub 账户 → 登录）",
+  "pFailedExitCodePSeeTerminal": "✗ {p0}失败（退出码 {p1}），详细输出见终端",
+  "@pFailedExitCodePSeeTerminal": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "newProject": "新建项目",
+  "cloneRepository": "克隆仓库",
+  "projectsAreStoredInTheAppAnd": "工程存在应用内部，卸载即删 · 备份方式",
+  "checkingDevelopmentEnvironment": "正在检查开发环境",
+  "openDevelopmentEnvironmentForDetails": "可进入开发环境查看检测详情。",
+  "viewDevelopmentEnvironment": "查看开发环境",
+  "developmentEnvironmentIsNotReady": "开发环境未就绪",
+  "yourProjectsWillAppearHereAfterSetup": "完成环境配置后，这里会列出你的工程",
+  "setUpDevelopmentEnvironment": "配置开发环境",
+  "failedToReadProjectDirectory": "读取工程目录失败",
+  "noProjectsYet": "还没有工程",
+  "createAProjectOrCloneAGit": "新建工程，或从 Git 仓库克隆",
+  "projectsP": "工程 · {p0}",
+  "@projectsP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "more": "更多",
+  "rename": "重命名",
+  "renameProject": "重命名工程",
+  "projectDirectoryName": "工程目录名",
+  "ok": "确定",
+  "pAlreadyExistsChooseAnotherDirectoryName": "{p0} 已存在，请换一个目录名",
+  "@pAlreadyExistsChooseAnotherDirectoryName": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToCheckDestinationCheckTheDevelopment": "无法检查目标目录，请检查开发环境后重试",
+  "clonePreflightFailedP": "克隆前检查失败：{p0}",
+  "@clonePreflightFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "getFromVersionControl": "从版本控制获取项目",
+  "cloneARemoteRepositoryToLocalStorage": "将远程仓库克隆到本地，克隆完成后打开项目。",
+  "repository": "仓库",
+  "repositoryUrl": "仓库地址",
+  "directoryNameOptional": "目录名称（可选）",
+  "leaveEmptyToUseTheRepositoryName": "留空则使用仓库名称",
+  "branchOptional": "分支（可选）",
+  "leaveEmptyToUseTheRemoteDefault": "留空则使用远程仓库的默认分支",
+  "shallowClone": "浅克隆",
+  "fetchOnlyTheLatestCommitUseGit": "仅获取最近一次提交。可使用 git fetch --unshallow 获取完整历史。",
+  "clonePreflight": "克隆前检查",
+  "signInToGithubBeforeCloningA": "私有仓库需要先登录 GitHub，登录后即可直接克隆。",
+  "ready": "就绪",
+  "gitNotFoundCheckItsInstallationAnd": "未找到 Git，请检查安装状态和 PATH",
+  "unableToRunP": "无法运行：{p0}",
+  "@unableToRunP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "location": "保存位置",
+  "startWithALowercaseLetterUseOnly": "以小写字母开头，只能包含小写字母、数字和下划线",
+  "dartReservedWordsAndToolNamesCannot": "不能使用 Dart 保留字或工具名称",
+  "useAReverseDomainNameSuchAs": "使用反向域名格式，例如 com.example",
+  "projectPAlreadyExistsChooseAnotherName": "项目 {p0} 已存在，请换一个名称",
+  "@projectPAlreadyExistsChooseAnotherName": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToCheckDestinationCheckTheDevelopment146": "无法检查目标目录，请查看开发环境后重试",
+  "projectPreflightFailedP": "创建前检查失败：{p0}",
+  "@projectPreflightFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "projectConfiguration": "项目配置",
+  "chooseTheProjectTypeNameAndTarget": "设置项目类型、名称和目标平台。创建完成后打开项目。\n保存位置：{p0}",
+  "@chooseTheProjectTypeNameAndTarget": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "projectDetails": "项目信息",
+  "projectName": "项目名称",
+  "lowercaseLettersNumbersAndUnderscores": "小写字母、数字与下划线",
+  "organizationOptional": "组织标识（可选）",
+  "targetPlatforms": "目标平台",
+  "projectTemplate": "项目模板",
+  "consoleApplication": "控制台应用",
+  "dartPackage": "Dart 包",
+  "serverApplication": "服务端应用",
+  "runConsoleProjectsUsingDartRunIn": "控制台项目可在终端使用 dart run 运行。",
+  "selectAtLeastOnePlatform": "请至少选择一个平台。",
+  "buildAndroidAndPreviewWebOnThis": "本机可构建 Android、预览 Web；其他平台生成代码后需在对应系统构建。",
+  "advancedSettings": "高级设置",
+  "emptyProject": "空白项目",
+  "excludeTheCounterExample": "不包含计数器示例",
+  "androidSourceLanguage": "Android 源码语言",
+  "projectDescriptionOptional": "项目描述（可选）",
+  "projectPreflight": "创建前检查",
+  "checkAgain": "重新检测",
+  "buildApkDebug": "构建 APK（调试版）",
+  "buildApkRelease": "构建 APK（发布版）",
+  "buildWebRelease": "构建 Web（发布版）",
+  "getDependencies": "获取依赖",
+  "upgradeDependencies": "升级依赖",
+  "checkOutdatedDependencies": "检查过期依赖",
+  "cleanBuildOutputs": "清理构建产物",
+  "analyzeCode": "静态分析",
+  "runTests": "运行测试",
+  "environmentDiagnostics": "环境诊断",
+  "projectIsClosed": "项目已关闭",
+  "theDevelopmentEnvironmentIsBeingInstalledOr": "开发环境正在安装或切换，请等待完成",
+  "aGitOperationIsInProgressPlease": "Git 操作正在进行，请等待完成",
+  "saveFailedPleaseRetry": "保存失败，请重试",
+  "aTaskIsAlreadyStartingPleaseWait": "当前已有任务正在启动，请稍后重试",
+  "targetPIsNotConnected": "目标 {p0} 未连接",
+  "@targetPIsNotConnected": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "runDart": "Dart 运行",
+  "compileExecutable": "编译可执行文件",
+  "waitForTheBuildOrDependencyUpdate": "请等待构建或依赖更新完成后再热重载",
+  "filesAreSyncingPleaseRetryShortly": "文件正在同步，请稍后重试",
+  "invalidFilePath": "文件路径无效",
+  "fileIsUnreadableOrOutsideTheProject": "文件不可读或位于项目目录之外",
+  "aFileIsAlreadyOpenAtThe": "目标路径已有打开的文件",
+  "saveFailedFileOperationCancelled": "保存失败，已取消文件操作",
+  "fileDoesNotExistP": "文件不存在： {p0}",
+  "@fileDoesNotExistP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToReloadPTheFileWas": "无法重新读取 {p0}，已关闭此文件，请从“项目”工具窗口重新打开",
+  "@unableToReloadPTheFileWas": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToReadProjectDirectoryP": "无法读取项目目录：{p0}",
+  "@unableToReadProjectDirectoryP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "fileIsOutsideTheCurrentProject": "文件不在当前项目内",
+  "noFilesToPaste": "没有可粘贴的文件",
+  "filesCanOnlyBeMovedWithinThe": "只能在当前项目内移动文件，请使用复制",
+  "aGitOperationIsRunningWaitOr": "Git 操作正在进行，请等待完成或在终端停止",
+  "aFileOperationIsRunningWaitBefore": "文件操作正在进行，请等待完成后再切换项目",
+  "failedToSaveTheCurrentProjectRetry": "当前项目保存失败，请重试后再切换项目",
+  "fontSizeAppliedButSavingFailedP": "字号已应用，但保存失败：{p0}",
+  "@fontSizeAppliedButSavingFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "terminalAppearance": "终端外观",
+  "closeTerminalSettings": "关闭终端设置",
+  "collapseTerminal": "收起终端",
+  "expandTerminal": "展开终端",
+  "stopping": "正在停止…",
+  "stopCurrentTask": "停止当前任务",
+  "terminateAndClose": "终止并关闭",
+  "close": "关闭",
+  "terminalFontAndZoom": "终端字体与缩放",
+  "clearTerminal": "清空终端",
+  "exitFullScreen": "退出全屏终端",
+  "fullScreenTerminal": "全屏终端",
+  "paste": "粘贴",
+  "copy": "复制",
+  "copied": "已复制",
+  "selectAll": "全选",
+  "closePSession": "关闭 {p0} 会话",
+  "@closePSession": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "developmentEnvironmentIsNotReadyCompleteSetup": "开发环境未就绪，请先初始化环境",
+  "aTaskCannotBeTheDefaultShell": "任务不会是默认 shell",
+  "pRequiresExclusiveProjectAccessStopIt": "“{p0}”与该操作需要独占项目，请结束后重试",
+  "@pRequiresExclusiveProjectAccessStopIt": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pIsUpdatingDependenciesOrBuildFiles": "“{p0}”正在更新依赖或构建文件，请等待完成",
+  "@pIsUpdatingDependenciesOrBuildFiles": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "sessionIsClosed": "会话已关闭",
+  "theCurrentTaskHasNotFinished": "当前任务尚未结束",
+  "failedToReadOutputP": "读取输出失败： {p0}",
+  "@failedToReadOutputP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "failedToStartP": "启动失败： {p0}",
+  "@failedToStartP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "stopped": "已停止",
+  "processExitedWithCode": "进程结束，退出码 0",
+  "processExitedWithCodeP": "进程结束，退出码 {p0}",
+  "@processExitedWithCodeP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "executionTimedOutStopping": "执行超时，正在停止",
+  "sharedByAllTerminalsAndSavedAutomatically": "所有终端共用设置，自动保存。也可在终端内容区双指缩放。",
+  "settingsAppliedButSavingFailedP": "设置已应用，但保存失败：{p0}",
+  "@settingsAppliedButSavingFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "terminalFontSize": "终端字号",
+  "decreaseTerminalFontSize": "缩小终端字号",
+  "increaseTerminalFontSize": "放大终端字号",
+  "monospaceFont": "等宽字体",
+  "lineHeight": "行高",
+  "p": "{p0} 倍",
+  "@p": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "flitFlutterBuildApkBuildComplete": "flit ~ $ flutter build apk\n✓ 构建完成  Build complete\n0123456789  []'{''}' <> !=",
+  "resetTerminalAppearance": "恢复终端默认外观",
+  "thisAssetHasNoShaDigest": "该产物缺少 SHA-256",
+  "unsupportedComponentP": "不支持的组件：{p0}",
+  "@unsupportedComponentP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "aToolchainIsBeingInstalledPleaseWait": "工具链正在安装，请稍后重试",
+  "projectClosedOrTaskCancelled": "项目已关闭或任务已取消",
+  "requiredComponentsAreMissingBuildNotStarted": "组件未补齐，构建未启动",
+  "componentRepairIncompleteP": "组件修复未完成：{p0}",
+  "@componentRepairIncompleteP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "androidEnvironmentCheckFailedCompleteSetupIn": "Android 环境检查失败，请先在开发环境页完成初始化。\n{p0}",
+  "@androidEnvironmentCheckFailedCompleteSetupIn": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installingComponentsChangesTheSharedDevelopmentEnvironment": "安装组件需要修改共用开发环境。请先结束正在运行的任务，再重试。",
+  "matchingVersionOrDownloadInformationUnavailableP": "未找到可安装的对应版本或无法获取下载信息：{p0}",
+  "@matchingVersionOrDownloadInformationUnavailableP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "aTaskIsRunningStopItAnd": "已有任务正在运行，请结束后重试",
+  "installAndroidBuildComponents": "安装 Android 构建组件",
+  "stillUnavailableAfterInstallationP": "安装后仍不可用：{p0}",
+  "@stillUnavailableAfterInstallationP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "automaticInstallationIsNotSupportedForP": "不支持自动安装 {p0}",
+  "@automaticInstallationIsNotSupportedForP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "invalidNdkVersion": "无效的 NDK 版本",
+  "unableToLocateNdkP": "无法定位 NDK {p0}",
+  "@unableToLocateNdkP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "androidSdkLicensesHaveNotBeenAccepted": "Android SDK 许可证尚未接受。请在开发环境终端运行 $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses，接受所需许可证后重试。",
+  "theSdkNdkCmakePathInThe": "项目配置的 SDK/NDK/CMake 路径无效。请检查 local.properties 或 Gradle 中的路径；安装到默认目录不会修复自定义路径。",
+  "unknownComponentP": "未知组件：{p0}",
+  "@unknownComponentP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "noValidPReleaseConfiguredP": "未配置有效的 {p0} 发行版本：{p1}",
+  "@noValidPReleaseConfiguredP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "releaseUnavailableP": "发行版本不可用：{p0}",
+  "@releaseUnavailableP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "noUniquePFoundInP": "{p0} 中未找到唯一的 {p1}",
+  "@noUniquePFoundInP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pPIsMissingAValidDownload": "{p0} / {p1} 缺少有效的下载地址或 SHA-256",
+  "@pPIsMissingAValidDownload": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "invalidGithubReleasesResponse": "GitHub Releases 响应无效",
+  "baseEnvironment": "基础环境",
+  "bashPackageManager": "Bash · 软件包管理器",
+  "androidToolchain": "Android 工具链",
+  "openjdkAndroidSdkNdkCmakeGradleConfiguration": "OpenJDK 17 · Android SDK · NDK · CMake · Gradle 配置",
+  "flutterToolchain": "Flutter 工具链",
+  "flutterSdkGitAndGhWarmUp": "Flutter SDK · Git 与 gh · 预热",
+  "gradleConfiguration": "Gradle 配置",
+  "gitAndGh": "Git 与 gh",
+  "warmUp": "预热",
+  "projectTasksAreUsingTheDevelopmentEnvironment": "项目任务正在使用开发环境，请先结束任务再安装、切换或删除组件",
+  "aTaskIsRunningWaitBeforeInstalling": "当前有任务进行中，请等待完成后再安装版本",
+  "installTheBaseEnvironmentBeforeAddingOther": "请先安装基础环境，再安装其他版本",
+  "installP": "安装 {p0}",
+  "@installP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "fetchingDownloadInformationForP": "正在获取 {p0} 的下载信息…",
+  "@fetchingDownloadInformationForP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pInstalled": "✓ {p0} 安装完成",
+  "@pInstalled": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installationFailedExitCodePSeeOutput": "安装失败，退出码 {p0}（详细输出见上）",
+  "@installationFailedExitCodePSeeOutput": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installationFailedP": "安装失败：{p0}",
+  "@installationFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "operationFailedExitCodePSeeOutput": "操作失败，退出码 {p0}（详细输出见上）",
+  "@operationFailedExitCodePSeeOutput": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installTheBaseEnvironmentBeforeCheckingThe": "请先安装基础环境，再执行网络检测",
+  "networkCheck": "网络检测",
+  "environmentCheckFailedP": "环境检测失败：{p0}",
+  "@environmentCheckFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "environmentCheck": "环境检测",
+  "environmentCheckIncompleteExitCodeP": "环境检查未完成，退出码 {p0}",
+  "@environmentCheckIncompleteExitCodeP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "componentsAreNotReadyCheckAgain": "组件检测尚未就绪，请重新检测",
+  "componentDirectoryCheckFailed": "组件目录检测失败",
+  "unableToReadInstalledComponentsCheckAgain": "无法读取已安装组件，请重新检测：{p0}",
+  "@unableToReadInstalledComponentsCheckAgain": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "environmentSetup": "安装环境",
+  "baseEnvironmentInstallationFailedP": "✗ 基础环境安装失败：{p0}",
+  "@baseEnvironmentInstallationFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pInstallationFailedRemainingStepsSkipped": "✗ {p0} 安装失败，已跳过后续步骤",
+  "@pInstallationFailedRemainingStepsSkipped": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pComplete": "✓ {p0} 完成",
+  "@pComplete": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installationCompleteDevelopmentEnvironmentReady": "✓ 安装完成，开发环境已就绪",
+  "environmentVerificationFailedCheckMissingOrFailed": "环境复查未通过，请查看缺失或失败的组件",
+  "stoppedYouCanResumeInstallationLater": "已停止，可随时继续安装",
+  "preparingP": "准备 {p0}…",
+  "@preparingP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "failedToFetchInstallationInformationP": "获取安装信息失败：{p0}",
+  "@failedToFetchInstallationInformationP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "keepMultipleVersionsAndChooseTheActive": "可安装多个版本，选择当前使用的版本。安装新版本后会自动切换。",
+  "matchesTheProjectCompilesdkMultipleApiVersions": "对应项目的 compileSdk，可同时保留多个 API 版本。",
+  "androidPackagingToolsInstallAndKeepVersions": "Android 打包工具，按项目需要安装并保留多个版本。",
+  "nativeCompilerToolsTheProjectSelectsThe": "原生代码编译工具，由项目指定版本，可同时安装多个版本。",
+  "nativeBuildToolsTheProjectSelectsThe": "原生构建工具，由项目指定版本，可同时安装多个版本。",
+  "adbAndOtherSharedDeviceToolsInstalling": "ADB 等设备工具，所有项目共用。只提供基础环境配套包，安装会替换现有工具。",
+  "sdkmanagerAndOtherSharedSdkManagementTools": "sdkmanager 等 SDK 管理工具，所有项目共用。只提供基础环境配套包，安装会替换现有工具。",
+  "companionToolsP": "配套工具包 · {p0}",
+  "@companionToolsP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unknownVersion": "版本未知",
+  "closeTheProjectBeforeChangingSdksOr": "请先关闭项目，再更改 SDK 或工具链",
+  "back": "返回",
+  "proxySettings": "代理设置",
+  "sdksAndToolchains": "SDK 与工具链",
+  "manageSdksAndBuildToolsViewInstallation": "管理 SDK 和构建工具链，在终端查看安装输出。",
+  "setupDetails": "初始化详情",
+  "checkingEnvironment": "正在检测环境",
+  "managingToolchains": "正在管理工具链",
+  "environmentReady": "环境已就绪",
+  "installingComponents": "正在安装组件",
+  "installationFailed": "安装失败",
+  "environmentNotReady": "环境未就绪",
+  "checkingLocalComponentsPleaseWait": "正在核对本地组件，请稍候",
+  "seeTerminalForDetails": "详细输出见终端",
+  "componentsReadyYouCanCreateProjectsAnd": "组件已就绪，可以创建项目和构建 APK",
+  "pPReady": "已就绪 {p0}/{p1} 项",
+  "@pPReady": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "done": "完成",
+  "resumeInstallation": "继续安装",
+  "startInstallation": "开始安装",
+  "networkP": "网络：{p0}",
+  "@networkP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "baseEnvironmentDownloadConfigurationIsIncompleteUpdate": "基础环境的下载配置不完整，请更新应用后重试",
+  "downloadingBaseEnvironment": "正在下载基础环境…",
+  "downloadUrlP": "下载地址：{p0}",
+  "@downloadUrlP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "downloadFailedHttpPCheckTheUrl": "下载失败：HTTP {p0}，请检查下载地址和网络后重试",
+  "@downloadFailedHttpPCheckTheUrl": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "downloadedPPMb": "下载 {p0}%（{p1} MB）",
+  "@downloadedPPMb": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "downloadCompletePMb": "下载完成（{p0} MB）",
+  "@downloadCompletePMb": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "verifyingShaP": "正在校验 SHA-256：{p0}",
+  "@verifyingShaP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "baseEnvironmentChecksumMismatchExpectedPActual": "基础环境安装包校验失败：\n期望：{p0}\n实际：{p1}",
+  "@baseEnvironmentChecksumMismatchExpectedPActual": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "shaVerified": "SHA-256 校验通过",
+  "installingBaseEnvironmentExtractingAndConfiguring": "正在安装基础环境（解压与配置）…",
+  "nativeInstallerDidNotConfirmASuccessful": "原生安装器未确认基础环境安装成功",
+  "baseEnvironmentReady": "基础环境已就绪",
+  "checkFailedOpenDevelopmentEnvironment": "检测失败 · 进入开发环境查看",
+  "notInstalledSetUpDevelopmentEnvironment": "尚未安装 · 配置开发环境",
+  "allComponentsReady": "组件全部就绪",
+  "pPComponentsReady": "已就绪 {p0}/{p1} 个组件",
+  "@pPComponentsReady": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "manageVersions": "管理版本",
+  "deleteP": "删除 {p0}？",
+  "@deleteP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "projectsUsingThisVersionWillNeedIt": "依赖此版本的项目需重新安装后才能构建；删除基础必需版本后，需要补齐开发环境。",
+  "repairInstallation": "修复安装",
+  "useThisVersion": "使用此版本",
+  "switchVersionsBeforeDeleting": "先切换版本再删除",
+  "deleteVersion": "删除版本",
+  "replaceP": "替换 {p0}？",
+  "@replaceP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installTheCompanionToolsFromPReplacing": "将安装 {p0} 提供的配套工具包，替换当前共用工具。",
+  "@installTheCompanionToolsFromPReplacing": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "replace": "替换",
+  "refreshAvailableVersions": "刷新可下载版本",
+  "localVersions": "本地版本",
+  "checkingLocalComponents": "正在检测本地组件…",
+  "installationStatusUnconfirmed": "安装状态待确认",
+  "notInstalled": "未安装",
+  "companionTools": "配套工具包",
+  "availableVersions": "可下载版本",
+  "failedToFetchVersionsPP": "获取版本失败，{p0}。\n{p1}",
+  "@failedToFetchVersionsPP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "noDownloadableCompanionVersionsInTheRepository": "仓库暂无可下载的配套版本。",
+  "allCatalogVersionsAreInstalledUseThe": "目录中的版本已在本地，需修复的版本可通过管理菜单重新安装。",
+  "installingTheSameNdkVersionKeepsThe": "安装相同 NDK 版本会保留现有可用版本。",
+  "componentManager": "组件管理",
+  "manageInstalledVersionsDownloadsAndRepairsBy": "按组件管理本地版本、下载与修复。SDK 整包仅用于初始化。",
+  "setUpTheBaseEnvironmentFirstThen": "先完成基础环境初始化，再按项目需要管理组件。",
+  "pVersionsPP": "{p0} 个版本{p1}{p2}",
+  "@pVersionsPP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      },
+      "p2": {
+        "type": "Object?"
+      }
+    }
+  },
+  "availableAfterSetup": "初始化后可管理",
+  "checking372": "正在检测…",
+  "installing": "安装中",
+  "failed": "失败",
+  "waitingForDependencies": "等待依赖",
+  "pendingInstallation": "待安装",
+  "pInstalling": "{p0} · 安装中",
+  "@pInstalling": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pFailed": "{p0} · 失败",
+  "@pFailed": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pWaitingForPreviousSteps": "{p0} · 等待前序步骤",
+  "@pWaitingForPreviousSteps": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pPendingInstallation": "{p0} · 待安装",
+  "@pPendingInstallation": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "deviceConnection": "设备连接",
+  "enterAnIpAddressOrHostnameWithout": "请输入 IP 地址或主机名，不包含协议和端口",
+  "portMustBeBetweenAnd": "端口必须在 1–65535 之间",
+  "unableToReadDevicesSeeTerminalOutput": "读取设备失败，请查看终端输出",
+  "adbFailedToStartCheckTheDevelopment": "ADB 启动失败，请检查开发环境",
+  "operationFailedPSeeTerminalForDetails": "操作失败：{p0}。详细原因见终端。",
+  "@operationFailedPSeeTerminalForDetails": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "enterADigitPairingCode": "请填写 6 位配对码",
+  "pairingFailedKeepTheSystemPairingDialog": "配对失败：请保持系统配对码弹窗开启，核对配对端口与配对码后重试。详细原因见终端。",
+  "pairedSuccessfully": "配对成功",
+  "unableToConfirmDeviceIsOnlineRefresh": "连接后未能确认设备在线，请刷新设备或查看日志",
+  "connectedToLocalWirelessDebugging": "✓ 已自动连接本机无线调试",
+  "allowUsbDebuggingOnThePhoneThen": "请在手机上允许 USB 调试授权后重试",
+  "pairingRequiredTapNotificationPairing": "需要配对，请点击“通知配对”",
+  "connectionFailedCheckLogsOrConnectManually": "连接未成功，请查看日志或使用当前端口手动连接",
+  "noWirelessPortFoundScanAgainEnter": "未发现无线端口，可重新扫描、手动输入，或通过电脑 USB 激活",
+  "connectedLocallyUsbActivatedYouCanUnplug": "✓ 已连接本机 · 电脑 USB 激活，可拔掉数据线",
+  "unableToConfirmConnectionInstallAdbFirst": "无法确认连接状态，请先安装 ADB",
+  "unableToConfirmConnectionFailedToRead": "✗ 无法确认连接状态：读取设备失败，请查看终端输出",
+  "connectedToP": "✓ 已连接 {p0}",
+  "@connectedToP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "deviceUnauthorizedAllowUsbDebuggingOnThe": "设备未授权：请在手机上允许 USB 调试授权，再点连接",
+  "localAdbIsOfflineRunTheActivation": "本机 ADB 离线，请在电脑重新执行激活命令后重试",
+  "adbAuthenticationFailedConfirmUsbDebuggingAuthorization": "ADB 认证失败：请在手机上确认 USB 调试授权，再点连接",
+  "notActivatedConnectViaUsbAndRun": "尚未激活：请用 USB 连接电脑，执行激活命令后重试；手机重启后需重新激活",
+  "unableToConnectToLocalPortCheck": "未能连接本机 5555 端口，请检查电脑激活结果和手机授权；部分系统可能限制此方式",
+  "deviceUnauthorizedConfirmAuthorizationOnTheTarget": "设备未授权：请在目标设备确认调试授权；无线调试请重新配对，再使用连接端口连接。",
+  "deviceOfflineEnableWirelessDebuggingThenDisconnect": "设备离线：请确认无线调试仍开启，再断开此设备并用当前连接端口重连。",
+  "adbAuthenticationFailedPairAgainInWireless": "ADB 认证失败：请在无线调试中重新配对，再连接。",
+  "connectionRefusedEnableWirelessDebuggingAndUse": "连接被拒绝：请开启无线调试，并使用主页上的连接端口。",
+  "connectionTimedOutCheckTheAddressNetwork": "连接超时：请检查设备地址、网络和无线调试状态。",
+  "deviceIsNotOnlineCheckTerminalOutput": "设备尚未上线，请查看终端输出并核对无线调试的连接端口",
+  "disconnectedFromPPairingAuthorizationIsRetained": "已断开 {p0}；配对授权仍保留。",
+  "@disconnectedFromPPairingAuthorizationIsRetained": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToConfirmDisconnectionCheckTerminalOutput": "无法确认设备已断开，请查看终端输出并刷新设备。",
+  "connectedButFailedToSaveDeviceSettings": "连接结果已生效，但设备设置保存失败： {p0}",
+  "@connectedButFailedToSaveDeviceSettings": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToReadAdbDeviceStatus": "无法读取 ADB 设备状态",
+  "tryingPreviousConnectionPortP": "尝试上次连接端口 {p0}",
+  "@tryingPreviousConnectionPortP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "scanningLocalWirelessDebuggingPorts": "扫描本机无线调试连接端口…",
+  "foundConnectionPortP": "发现连接端口 {p0}",
+  "@foundConnectionPortP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "scanOrConnectionFailedP": "扫描或连接失败：{p0}",
+  "@scanOrConnectionFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "connectedLocallyYouCanUnplugTheCable": "已连接本机，可以拔掉数据线。",
+  "waitTimedOutCheckTheComputerCommand": "等待超时，请检查电脑命令输出，然后重新连接。",
+  "allowUsbDebuggingOnThePhoneFlit": "请在手机上允许 USB 调试授权，Flit 会自动继续连接。",
+  "unableToReadAdbStatusCheckThe": "无法读取 ADB 状态，请检查开发环境；正在重试…",
+  "waitingForComputerActivationFlitWillConnect": "等待电脑激活… Flit 会自动连接本机。",
+  "activateViaComputerUsb": "通过电脑 USB 激活",
+  "enableUsbDebuggingConnectThePhoneTo": "1. 手机开启 USB 调试，用数据线连接电脑，并允许调试授权。电脑只连接这一台手机。",
+  "downloadAndExtractPlatformToolsOnThe": "2. 电脑下载并解压 Platform Tools，在解压目录打开终端。",
+  "unableToOpenTheDownloadPage": "无法打开下载页面",
+  "onTheComputerVisitDeveloperAndroidCom": "请在电脑访问 developer.android.com/tools/releases/platform-tools",
+  "platformToolsWebsite": "Platform Tools 官网",
+  "runThisCommandOnTheComputerKeep": "3. 在电脑执行这一条命令，然后保持此引导打开，等待连接。",
+  "computerOs": "电脑系统",
+  "copyFailedLongPressTheCommandTo": "复制失败，请长按命令复制",
+  "copyCommand": "复制命令",
+  "afterTheComputerShowsRestartingInTcp": "电脑显示 restarting in TCP mode port: 5555 后，Flit 会尝试连接。若手机再次弹出调试授权，请允许。",
+  "waitsAutomaticallyForUpToMinutesClosing": "自动等待最多 2 分钟，退出引导即停止。之后仍可在设备页点“连接本机”。手机重启后通常需要重新激活。",
+  "tcpDebuggingMayAlsoListenOnNetwork": "TCP 调试可能同时监听网络接口。停用时接回电脑执行 {p0} -d usb；Flit 中“断开”仅断开客户端。",
+  "@tcpDebuggingMayAlsoListenOnNetwork": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "reconnect": "重新连接",
+  "connectNow": "立即连接",
+  "unableToReadPairingStatusGoBack": "无法读取配对状态，请返回后重试",
+  "systemOperationFailed": "系统操作失败",
+  "openTheSystemPairingDialogAndEnter": "打开系统配对码窗口，在通知中输入配对码",
+  "noPairingPortFoundKeepTheSystem": "未发现配对端口，请保持系统配对窗口开启",
+  "refreshDevices": "刷新设备",
+  "manualConnectionOtherDevices": "手动连接 / 其他设备",
+  "deviceAddress": "设备地址",
+  "connectionPort": "连接端口",
+  "connect": "连接",
+  "pairingRecorded": "有配对记录",
+  "keepTheSystemPairingDialogOpenIn": "手动配对时请分屏保留系统配对窗口。",
+  "pairingPort": "配对端口",
+  "pairingCodeDigits": "配对码（6 位）",
+  "scanning": "扫描中…",
+  "scanPairingPorts": "扫描配对端口",
+  "pair": "配对",
+  "wirelessPairingGuide": "无线配对指南",
+  "notificationStylePairingStepsAndTroubleshooting": "通知样式、配对步骤与常见问题",
+  "connectViaWirelessDebugging": "通过无线调试连接",
+  "androidPairAndConnectOverWiFi": "Android 11+ · Wi-Fi 下配对与连接",
+  "wirelessDebuggingSettings": "无线调试设置",
+  "notificationPairing": "通知配对",
+  "scanAndConnect": "扫描并连接",
+  "searchingForPairingPort": "正在寻找配对端口…",
+  "cancelPairing": "取消配对",
+  "activateFromAComputerThenUnplugThe": "电脑激活后连接，可拔掉数据线",
+  "viewSteps": "查看步骤",
+  "connecting": "连接中…",
+  "connectLocally": "连接本机",
+  "deviceStatus": "设备状态",
+  "pOnline": "{p0} 台在线",
+  "@pOnline": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "adbNotFoundInstallTheAndroidToolchain": "未找到 ADB，请在“开发环境”中安装 Android 工具链。",
+  "noConnections": "暂无连接",
+  "disconnectP": "断开 {p0}",
+  "@disconnectP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToReadNotificationStatus": "无法读取通知状态",
+  "unableToReadNotificationStatusRetry": "无法读取通知状态，请重试",
+  "unableToOpenSystemSettings": "无法打开系统设置",
+  "unableToOpenRetryLater": "无法打开，请稍后重试",
+  "enterThePairingCodeInTheNotification": "在通知中输入配对码",
+  "androidPhoneMustBeConnectedToWi": "Android 11 及以上 · 手机需连接 Wi-Fi",
+  "checkingNotificationPermission": "正在检查通知权限…",
+  "wirelessPairingIsNotSupportedOnThis": "此系统不支持无线配对",
+  "pairingNotificationsEnabled": "配对通知已开启",
+  "allowFlitNotificationsFirst": "请先允许 Flit 通知",
+  "notificationStatusUnknown": "通知状态未知",
+  "wirelessPairingRequiresAndroidOrLaterGo": "无线配对需要 Android 11 或以上，可返回使用电脑 USB 激活。",
+  "allowFlitNotificationsIncludingTheWirelessDebugging": "允许 Flit 发布通知；若已有“无线调试配对”通知类别，也要开启。配对时从通知里输入代码。",
+  "notificationSettings": "通知设置",
+  "checkAgain487": "重新检查",
+  "xiaomiPocoSomeMiuiVersionsRequireThe": "小米 / POCO：部分 MIUI 需要把通知样式改为“原生样式”，否则可能无法输入配对码。具体路径见下方说明。",
+  "finishTheCurrentDeviceOperationOrInstall": "请先在设备页结束当前操作，或安装缺失的 ADB，再开始配对。",
+  "startPairing": "开始配对",
+  "tapStartPairingBelowFlitStartsThe": "点击下方“开始配对”，Flit 会先启动配对通知，再打开开发者选项。首次使用请先开启开发者选项和 USB 调试。",
+  "openThePairingCodeDialog": "打开配对码窗口",
+  "enableWirelessDebuggingTapItsLabelTo": "开启“无线调试”，点击这项的文字进入详情，再点“使用配对码配对设备”。保持显示 6 位代码的窗口打开。",
+  "enablingTheSwitchAloneIsNotEnough": "仅打开右侧开关还不够，需要进入无线调试详情页。",
+  "expandTheNotificationAndEnterTheDigit": "下拉通知，输入 6 位码",
+  "expandTheFlitPairingNotificationTapEnter": "展开 Flit 的配对通知，点击“输入配对码”，填入系统窗口中的代码并发送。不要切回 Flit 填写，切换应用可能关闭配对窗口。",
+  "theEnterPairingCodeButtonAppearsOnce": "找到配对端口后，通知才会出现“输入配对码”按钮。",
+  "returnToFlitToConnect": "返回 Flit 连接",
+  "returnToFlitAfterSuccessfulPairingIt": "通知提示配对成功后返回 Flit，会自动尝试连接本机。已配对时直接“扫描并连接”；重新开启无线调试后，连接端口可能改变。",
+  "noNotificationInputEnteringTheCodeFails": "通知里没有输入框 / 点输入就失败",
+  "expandTheNotificationAndCheckThatEnter": "先展开通知，确认已显示“输入配对码”。若仍停留在“搜索端口”，请看下一项。",
+  "someXiaomiRedmiAndPocoMiuiVersions": "小米、Redmi、POCO 的部分 MIUI：在系统设置 → 通知管理 → 通知显示设置，将通知样式切为“原生样式”，再重新配对。",
+  "namesAndLocationsVaryAcrossHyperosAnd": "HyperOS 或其他版本的入口、名称可能不同；如提供“Android”或“原生”通知样式，可尝试切换。Flit 无法自动检测或修改此设置。",
+  "ifThisOptionIsUnavailableKeepThe": "找不到该选项时，可用分屏保留系统配对窗口，在“手动连接 / 其他设备”输入配对端口和配对码。",
+  "keepsSearchingNoResponseAfterOpeningSettings": "一直搜索端口 / 切到设置后没反应",
+  "enableWiFiAndWirelessDebuggingAnd": "确认 Wi-Fi 和无线调试已开启，并保持“使用配对码配对设备”窗口打开。配对端口只在这个窗口打开时广播。",
+  "someSystemsRestrictLocalNetworkAccessFor": "部分系统会限制不可见应用的本地网络访问。允许 Flit 后台运行，并在系统的联网管理中允许 Wi-Fi / 本地网络访问（如提供）。",
+  "allowBackgroundExecution": "允许后台运行",
+  "ifNothingIsFoundToggleWirelessDebugging": "仍无结果可重新开关无线调试后再试。Flit 最多搜索 3 分钟；超时后重新开始，也可改用电脑 USB 激活。",
+  "pairedButCannotConnect": "配对成功，但连接失败",
+  "pairingAndConnectionPortsDifferForManual": "配对端口与连接端口不同。手动连接时，请使用无线调试主页显示的连接端口，不要使用配对码窗口的端口。",
+  "tapScanAndConnectOnTheDevice": "返回设备页点“扫描并连接”。仍找不到端口时，可以手动输入连接端口，或使用电脑 USB 激活。配对记录不代表设备当前在线。",
+  "unableToOpenReferencePage": "无法打开参考页面",
+  "referenceShizukuGuide": "参考：Shizuku 使用指南",
+  "webServerRestarted": "Web 服务已重新运行",
+  "webStartupTimedOutCheckRunLogs": "Web 启动超时，请查看运行日志",
+  "webStartupFailedP": "Web 启动失败：{p0}",
+  "@webStartupFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "webRunFailedP": "Web 运行失败：{p0}",
+  "@webRunFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "updateFailedP": "更新失败：{p0}",
+  "@updateFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "webProcessExitedCodePCheckRun": "Web 进程已退出（退出码 {p0}），请查看运行日志",
+  "@webProcessExitedCodePCheckRun": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "webServerStopped": "Web 服务已停止",
+  "runWebToPreviewHere": "运行 Web 后在这里预览",
+  "compilingAndStartingTheWebServer": "正在编译并启动 Web 服务",
+  "webStartupFailed": "Web 启动失败",
+  "viewRunLogs": "查看运行日志",
+  "thePageHasNotRenderedYetCheck": "页面尚未完成首次渲染，请查看运行日志或重新加载",
+  "pageLoadFailedP": "页面加载失败：{p0}",
+  "@pageLoadFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pageRequestFailedHttpP": "页面请求失败：HTTP {p0}",
+  "@pageRequestFailedHttpP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToLoadPreviewP": "无法加载预览：{p0}",
+  "@unableToLoadPreviewP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "reloadPageResetPageState": "重新加载页面（重置页面状态）",
+  "loadingPreview": "正在加载预览…",
+  "reload": "重新加载",
+  "updating": "正在更新…",
+  "document": "本文档",
+  "symbol": "符号",
+  "keyword": "关键字",
+  "method": "方法",
+  "type": "类型",
+  "variable": "变量",
+  "module": "模块",
+  "property": "属性",
+  "dartLanguageServiceCouldNotStart": "Dart 语言服务无法启动",
+  "initializationFailed": "初始化失败",
+  "languageServiceDisconnected": "语言服务连接已断开",
+  "saved": "已保存",
+  "fileChangedExternallySavingStoppedTapThe": "文件已被外部修改，保存已停止。点击标题下方状态可重新载入。",
+  "fileChangedExternally": "文件已被外部修改",
+  "pSavingStoppedToAvoidOverwritingDisk": "{p0}\n\n为避免覆盖磁盘上的修改，已停止保存。重新载入将丢弃此文件尚未保存的编辑内容。",
+  "@pSavingStoppedToAvoidOverwritingDisk": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "reloadFromDisk": "重新载入",
+  "unableToReadP": "无法读取 {p0}",
+  "@unableToReadP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "aFileOperationIsInProgressWait": "文件操作正在进行，请稍后再关闭",
+  "aFileOperationIsInProgressWait552": "文件操作正在进行，请等待完成后再关闭项目",
+  "fileChangedTapToResolve": "文件已变更 · 点击处理",
+  "saveFailedTapToRetry": "保存失败 · 点击重试",
+  "saving": "正在保存…",
+  "unsaved": "未保存",
+  "project": "项目",
+  "versionControl": "版本控制",
+  "closeProject": "关闭项目",
+  "selectAFileFromTheProjectTool": "从“项目”工具窗口选择文件以开始编辑",
+  "openProjectToolWindow": "打开项目工具窗口",
+  "editorOptions": "编辑器选项",
+  "settingsSaveAutomaticallyPinchInTheCode": "设置自动保存，也可在代码区双指缩放。",
+  "display": "显示",
+  "fontSize": "字号",
+  "font": "字体",
+  "builtIn": "内置",
+  "colorScheme": "配色方案",
+  "dark": "深色",
+  "light": "浅色",
+  "terminal": "终端",
+  "editing": "编辑行为",
+  "softWraps": "软换行",
+  "wrapLongLinesWithoutInsertingLineBreaks": "长行自动折行显示，不插入换行符",
+  "scrollLongLinesHorizontallyLineNumbersStay": "长行横向滚动，行号保持可见",
+  "deleteP576": "删除「{p0}」？",
+  "@deleteP576": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "permanentlyDeleteTheSelectedFileOrDirectory": "将永久删除所选文件或目录及其内容，此操作无法撤销。",
+  "name": "名称",
+  "newDirectory": "新建目录",
+  "newFile": "新建文件",
+  "installMissingAndroidBuildComponents": "补齐 Android 构建组件？",
+  "componentsCurrentlyUnavailable": "组件暂时无法安装",
+  "theBuildFailedBecauseTheseComponentsAre": "本次构建缺少或无法使用以下组件：",
+  "preflightFoundTheseMissingOrUnusableComponents": "构建前检查发现以下组件缺失或不可用：",
+  "theBuildWillPAfterInstallationDownload": "安装完成后{p0}构建。下载进度会显示在控制台中。",
+  "@theBuildWillPAfterInstallationDownload": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "installAndRetry": "安装并重试",
+  "installAndContinue": "安装并继续",
+  "starting": "正在启动",
+  "rerun": "重新运行",
+  "run": "运行",
+  "hotReload": "热重载",
+  "stopRun": "停止运行",
+  "switchRunTarget": "切换运行目标？",
+  "stopTheCurrentRunAndStartThe": "将停止当前运行，并在新目标上运行项目。",
+  "switchAndRun": "切换并运行",
+  "tasks": "任务",
+  "currentProjectP": "当前项目： {p0}",
+  "@currentProjectP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "currentTaskP": "当前任务：{p0}",
+  "@currentTaskP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "tasksUseSeparateTerminalsConflictingActionsAre": "各任务使用独立终端，冲突操作暂不可用。",
+  "dependencies": "依赖",
+  "fetchDependenciesAndWritePackageConfig": "获取依赖并写入 package_config",
+  "upgradeDependenciesWithinConstraints": "按约束升级依赖",
+  "listOutdatedDependencies": "列出可升级的依赖",
+  "build": "构建",
+  "buildThenInstallOnTheSelectedAndroid": "构建完成后通过 ADB 安装到选中的 Android 设备",
+  "buildAReleaseApkThenChooseAdb": "生成发布 APK；之后可选 ADB 设备或系统安装器",
+  "outputDirectoryBuildWeb": "输出目录：build/web",
+  "dartCompileExeOutputBuildPackageName": "dart compile exe，输出 build/<包名>；完成后可在终端直接运行",
+  "code": "代码",
+  "runBatchAnalysisAndShowResultsIn": "分析器批量诊断，输出到终端",
+  "runTestsInTheTestDirectory": "运行 test/ 目录下的测试",
+  "maintenance": "维护",
+  "deleteBuildAndDartToolCaches": "删除 build/ 与 .dart_tool 缓存",
+  "checkFlutterAndAndroidToolchainHealth": "检查 Flutter/Android 工具链健康度",
+  "failedToReadDevicesP": "读取设备失败： {p0}",
+  "@failedToReadDevicesP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "selectPlatform": "选择平台",
+  "webPreview": "Web 预览",
+  "runTarget": "运行目标",
+  "refresh": "刷新",
+  "previewInsideTheIdeWithoutADevice": "在 IDE 内预览，无需连接设备",
+  "connectAndroidDevice": "连接 Android 设备",
+  "closeOthers": "关闭其他",
+  "closeP": "关闭 {p0}",
+  "@closeP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "fileDoesNotExist": "文件不存在",
+  "cannotInstallAllowFlitToInstallUnknown": "无法安装：请先在系统设置里授予 Flit“安装未知应用”权限",
+  "installLocally": "安装到本机",
+  "noApplicationCanOpenThisFile": "没有能打开此文件的应用",
+  "openWith": "用其他应用打开",
+  "unableToShareThisFile": "无法分享该文件",
+  "share": "分享",
+  "linePPIssues": "第 {p0} 行 · {p1} 个问题",
+  "@linePPIssues": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "quickFix": "快速修复",
+  "completionItemExpiredTypeAgain": "补全项已失效，请重新输入",
+  "problemsCurrentFile": "问题 · 当前文件",
+  "noProblems": "暂无问题",
+  "linePColumnP": "第 {p0} 行 · 第 {p1} 列",
+  "@linePColumnP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "syntaxHighlighting": "语法高亮",
+  "startingDartAnalyzer": "正在启动 Dart 分析器…",
+  "dartAnalysisReady": "Dart · 代码分析就绪",
+  "dartBasicCompletion": "Dart · 基础补全",
+  "problemsP": "问题 {p0}",
+  "@problemsP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "browseSharedStorageAndSelectFilesTo": "浏览共享存储，选择需要复制到当前项目的文件。此浏览器仅用于导入文件。",
+  "unableToReadDirectoryP": "无法读取目录： {p0}",
+  "@unableToReadDirectoryP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "pasteHere": "粘贴到此处",
+  "copiedPLongPressTheDestinationDirectory": "已复制 {p0}，长按目标目录可粘贴",
+  "@copiedPLongPressTheDestinationDirectory": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "cut": "剪切",
+  "cutPLongPressTheDestinationDirectory": "已剪切 {p0}，长按目标目录可粘贴",
+  "@cutPLongPressTheDestinationDirectory": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "copiedPReturnToTheProjectAnd": "已复制 {p0}，返回项目后长按目标目录可粘贴",
+  "@copiedPReturnToTheProjectAnd": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "sharedStorageImportOnly": "共享存储（仅导入）",
+  "newItem": "新建",
+  "switchLocation": "切换位置",
+  "copyFromSharedStorage": "从共享存储复制…",
+  "svgPreviewFromEditorBuffer": "SVG 预览(内容来自编辑缓冲)",
+  "emptyFile": "空文件",
+  "unableToRenderSvgContentIsNot": "无法渲染该 SVG：内容不是有效的 SVG",
+  "unableToRenderSvgP": "无法渲染该 SVG：{p0}",
+  "@unableToRenderSvgP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "preview": "预览",
+  "undo": "撤销",
+  "redo": "重做",
+  "commitStagedChanges": "提交已暂存的更改",
+  "commitMessage": "提交消息",
+  "showStagedDiff": "显示已暂存的差异",
+  "showUnstagedDiff": "显示未暂存的差异",
+  "markConflictResolvedStage": "标记冲突已解决（暂存）",
+  "stageFile": "暂存文件",
+  "unstage": "取消暂存",
+  "rollbackUnstagedChanges": "回滚未暂存的更改",
+  "rollbackChanges": "回滚更改？",
+  "discardUnstagedChangesInPStagedChanges": "将丢弃 {p0} 未暂存的更改，已暂存的内容保留。此操作无法撤销。",
+  "@discardUnstagedChangesInPStagedChanges": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "branches": "分支",
+  "createAndSwitchBranch": "新建并切换分支",
+  "newBranch": "新建分支",
+  "branchName": "分支名称",
+  "commitHistory": "提交历史",
+  "remoteOrigin": "远程仓库 · origin",
+  "commitAuthorThisRepository": "提交者信息（当前仓库）",
+  "email": "邮箱",
+  "detachedHead": "游离 HEAD",
+  "refreshVersionControlStatus": "刷新版本控制状态",
+  "repositorySettings": "仓库设置",
+  "remotes": "远程仓库",
+  "commitAuthor": "提交者信息",
+  "pull": "拉取",
+  "push": "推送",
+  "operationInProgressViewProgressOrStop": "操作进行中，可在终端查看进度或停止。",
+  "thisProjectHasNoGitRepositoryYet": "此项目尚未创建 Git 仓库。",
+  "initializeRepository": "初始化仓库",
+  "noLocalChanges": "没有本地更改",
+  "conflictsFoundResolveThemInTheEditor": "存在冲突：编辑文件解决冲突后，逐个暂存。",
+  "conflicts": "冲突",
+  "untracked": "未跟踪",
+  "stagedWithAdditionalUnstagedChanges": "已暂存，另有未暂存更改",
+  "staged": "已暂存",
+  "stageAllChanges": "暂存所有更改",
+  "commitChangesP": "提交更改 · {p0}",
+  "@commitChangesP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "signOutOfGithub": "退出 GitHub 登录？",
+  "removeGithubComCredentialsFromThisDevice": "将移除此设备上 github.com 的登录凭据。",
+  "signOut": "退出登录",
+  "ghIsNotInstalledCompleteTheFlutter": "未安装 gh · 在开发环境页完成 Flutter 阶段安装后可用",
+  "notSignedInSignInToClone": "未登录 · 私有仓库的克隆与推送需要登录",
+  "signedInGitCredentialHelperConfigured": "已登录 · git 凭据助手已接入",
+  "githubAccount": "GitHub 账户",
+  "working": "正在处理…",
+  "waitingForBrowserAuthorization": "等待浏览器授权…",
+  "signedInP": "已登录 · {p0}",
+  "@signedInP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "viewAuthorizationCode": "查看授权码",
+  "signIn": "登录",
+  "ghIsNotInstalledCompleteTheFlutter708": "尚未安装 gh，请先在开发环境页完成 Flutter 阶段安装",
+  "githubSignIn": "GitHub 登录",
+  "signInCancelled": "已取消登录",
+  "signInIncompleteExitCodePP": "登录未完成（退出码 {p0}）{p1}",
+  "@signInIncompleteExitCodePP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "signInFailedP": "登录失败：{p0}",
+  "@signInFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "githubSignOut": "退出 GitHub 登录",
+  "githubSignOutIncompleteExitCodeP": "退出 GitHub 登录未完成（退出码 {p0}）",
+  "@githubSignOutIncompleteExitCodeP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "githubSignOutFailedP": "退出 GitHub 登录失败：{p0}",
+  "@githubSignOutFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "unableToOpenBrowserVisitGithubCom": "无法打开浏览器，请访问 github.com/login/device",
+  "failedToOpenBrowserP": "打开浏览器失败：{p0}",
+  "@failedToOpenBrowserP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "signInToGithub": "登录 GitHub",
+  "copyTheDeviceCodeAndAuthorizeIn": "复制设备授权码后，在浏览器中授权。完成后自动更新登录状态。",
+  "later": "稍后处理",
+  "cancelSignIn": "取消登录",
+  "copyAndOpenBrowser": "复制并打开浏览器",
+  "openTheGitRepositoryRootToUse": "请打开 Git 仓库根目录后使用版本控制",
+  "aTaskIsRunningStopItBefore": "当前有任务正在运行，请先结束后再执行 Git 操作",
+  "saveFailedGitOperationCancelled": "保存失败，已取消 Git 操作",
+  "pIncompleteExitCodePSeeTerminal": "{p0} 未完成（退出码 {p1}），请查看终端输出",
+  "@pIncompleteExitCodePSeeTerminal": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      },
+      "p1": {
+        "type": "Object?"
+      }
+    }
+  },
+  "enterACommitMessage": "请输入提交消息",
+  "resolveConflictsAndStageTheFilesFirst": "请先解决冲突并暂存文件",
+  "stageTheFilesToCommitFirst": "请先暂存需要提交的文件",
+  "commit": "提交",
+  "theCurrentFileStatusDoesNotSupport": "当前文件状态不支持回滚",
+  "commitOrRollbackChangesBeforeSwitchingBranches": "请先提交或回滚当前更改，再切换分支",
+  "switchBranch": "切换分支",
+  "commitOrRollbackChangesBeforePulling": "请先提交或回滚当前更改，再拉取",
+  "thisBranchHasNoUpstreamPushAnd": "当前分支未设置上游分支，请先推送并关联远程分支",
+  "switchToABranchAndCreateA": "请先切换到分支并创建提交",
+  "resolveConflictsFirst": "请先解决冲突",
+  "firstPushRequiresARemoteConfigureOrigin": "首次推送需要一个远程仓库，请在「远程仓库」中配置 origin",
+  "firstPush": "首次推送",
+  "enterAValidRepositoryUrl": "请输入有效的仓库地址",
+  "enterTheCommitAuthorNameAndEmail": "请填写提交者名称和邮箱",
+  "invalidSourcePath": "源路径无效",
+  "filesCannotBeMovedOutsideTheirProject": "不能将文件移出它所属的项目目录",
+  "destinationMustBeInsideTheCurrentProject": "目标必须位于当前项目目录内",
+  "cannotCopyOrMoveADirectoryInto": "不能将目录复制或移动到它自己内部",
+  "onlyEntriesInsideTheCurrentProjectCan": "只能删除当前项目目录中的条目",
+  "invalidName": "名称无效",
+  "renameIsOnlyAllowedWithinTheCurrent": "只能在当前项目目录内重命名",
+  "filesAndDirectoriesCanOnlyBeCreated": "只能在当前项目目录中创建文件或目录",
+  "operationFailedExitCodeP": "操作失败（退出码 {p0}）",
+  "@operationFailedExitCodeP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "operationFailedP": "操作失败：{p0}",
+  "@operationFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "connected": "已连接",
+  "unauthorized": "未授权",
+  "offline": "离线",
+  "authenticating": "认证中",
+  "localDevice": "本机",
+  "localDeviceP": "本机 · {p0}",
+  "@localDeviceP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "lanP": "局域网 {p0}",
+  "@lanP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "lan": "局域网",
+  "failedToReadDevices": "读取设备失败",
+  "adbDidNotReturnADeviceList": "ADB 未返回设备列表：{p0}",
+  "@adbDidNotReturnADeviceList": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "backgroundExecutionAndNotifications": "后台运行与通知",
+  "setupAndBuildsMayTakeAWhile": "初始化和构建可能耗时较长，建议开启：",
+  "theForegroundServiceOnlyShowsGeneralTask": "前台服务仅显示通用运行状态，开关在系统通知设置中，可稍后在「设置 → 后台与通知」里再调。",
+  "continueAction": "继续",
+  "allowSharedStorageAccess": "允许访问共享存储？",
+  "withPermissionFlitCanAccessSharedStorage": "授权后，Flit 可以访问共享存储中的文件。你也可以暂不授权，继续使用应用内项目目录；应用内文件不会显示在普通文件管理器中，卸载 Flit 时会一并删除。",
+  "notNow": "暂不授权",
+  "grantAccess": "继续授权",
+  "sharedStoragePermissionDeniedAppPrivateProjects": "未授予共享存储权限，仍可使用应用内项目目录",
+  "gitCommandFailedP": "Git 执行失败（{p0}）",
+  "@gitCommandFailedP": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "gitUnavailableCheckTheDevelopmentEnvironment": "Git 不可用，请检查开发环境",
+  "theProjectIsInsideAParentGit": "当前项目位于上级 Git 仓库中，请打开仓库根目录后使用版本控制",
+  "thisFileIsUntrackedStageItTo": "此文件尚未跟踪，暂存后可查看完整差异。",
+  "noTextDiffPossiblyABinaryFile": "没有文本差异（可能是二进制文件或文件模式变化）。",
+  "language": "语言",
+  "followSystem": "跟随系统",
+  "refreshVersionsLater": "可稍后点击刷新重试",
+  "showingPreviousCatalog": "暂时显示上次获取的目录",
+  "currentVersionSuffix": " · 当前 {p0}",
+  "@currentVersionSuffix": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "repairCountSuffix": " · {p0} 个需修复",
+  "@repairCountSuffix": {
+    "placeholders": {
+      "p0": {
+        "type": "Object?"
+      }
+    }
+  },
+  "retryBuildVerb": "重新尝试一次",
+  "continueBuildVerb": "继续",
+  "startingEllipsis": "正在启动…",
+  "prereleaseSuffix": " · 预发布",
+  "cannotRun": "无法运行",
+  "running": "运行中",
+  "exited": "已结束",
+  "switchVersion": "切换",
+  "requestFailed": "✗ 请求失败",
+  "currentSuffix": " · 当前",
+  "installed": "已安装",
+  "installationIncomplete": "安装不完整",
+  "replaceSharedToolsSuffix": " · 替换共用工具",
+  "needsRepair": "需修复",
+  "compilationFailed": "编译失败",
+  "unstaged": "未暂存"
+}

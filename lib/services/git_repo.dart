@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'shell.dart';
 
 typedef GitResult = ({int code, String out});
@@ -54,7 +55,7 @@ class GitRepo {
     if (result.code != 0) {
       throw StateError(
         result.out.trim().isEmpty
-            ? 'Git 执行失败（${result.code}）'
+            ? strings.gitCommandFailedP(result.code)
             : result.out.trim(),
       );
     }
@@ -69,7 +70,9 @@ class GitRepo {
         return const GitSnapshot();
       }
       throw StateError(
-        location.out.trim().isEmpty ? 'Git 不可用，请检查开发环境' : location.out.trim(),
+        location.out.trim().isEmpty
+            ? strings.gitUnavailableCheckTheDevelopmentEnvironment
+            : location.out.trim(),
       );
     }
     // Android exposes shared storage through several aliases (/sdcard and
@@ -77,7 +80,7 @@ class GitRepo {
     final selectedRoot = await checked(['rev-parse', '--show-prefix']);
     if (selectedRoot.trim().isNotEmpty) {
       supported = false;
-      throw StateError('当前项目位于上级 Git 仓库中，请打开仓库根目录后使用版本控制');
+      throw StateError(strings.theProjectIsInsideAParentGit);
     }
     supported = true;
     return parseStatus(
@@ -138,7 +141,7 @@ class GitRepo {
   ])).split('\n').where((line) => line.isNotEmpty).toList();
 
   Future<String> diff(GitChange change, {required bool staged}) async {
-    if (change.untracked) return '此文件尚未跟踪，暂存后可查看完整差异。';
+    if (change.untracked) return strings.thisFileIsUntrackedStageItTo;
     final output = await checked([
       'diff',
       '--no-ext-diff',
@@ -147,6 +150,6 @@ class GitRepo {
       '--',
       ...change.paths,
     ]);
-    return output.isEmpty ? '没有文本差异（可能是二进制文件或文件模式变化）。' : output;
+    return output.isEmpty ? strings.noTextDiffPossiblyABinaryFile : output;
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 
 import 'package:flit_device/flit_device.dart';
@@ -53,7 +54,7 @@ class _DevicePairingGuidePageState extends State<DevicePairingGuidePage>
       final result = await FlitDevice.pairingReadiness();
       if (result['supported'] is! bool ||
           result['notificationsEnabled'] is! bool) {
-        throw StateError('无法读取通知状态');
+        throw StateError(strings.unableToReadNotificationStatus);
       }
       if (!mounted || revision != _revision) return;
       setState(() {
@@ -66,7 +67,7 @@ class _DevicePairingGuidePageState extends State<DevicePairingGuidePage>
       setState(() {
         _supported = null;
         _notifications = null;
-        _error = '无法读取通知状态，请重试';
+        _error = context.strings.unableToReadNotificationStatusRetry;
       });
     } finally {
       if (mounted && revision == _revision) setState(() => _checking = false);
@@ -80,39 +81,44 @@ class _DevicePairingGuidePageState extends State<DevicePairingGuidePage>
       if (!mounted) return;
       setState(
         () => _error = error is PlatformException
-            ? error.message ?? '无法打开系统设置'
-            : '无法打开，请稍后重试',
+            ? error.message ?? context.strings.unableToOpenSystemSettings
+            : context.strings.unableToOpenRetryLater,
       );
     }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('无线配对指南')),
+    appBar: AppBar(title: Text(context.strings.wirelessPairingGuide)),
     body: PageList(
       children: [
-        const PageIntro('在通知中输入配对码', 'Android 11 及以上 · 手机需连接 Wi-Fi'),
+        PageIntro(
+          context.strings.enterThePairingCodeInTheNotification,
+          context.strings.androidPhoneMustBeConnectedToWi,
+        ),
         SurfaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 _checking
-                    ? '正在检查通知权限…'
+                    ? context.strings.checkingNotificationPermission
                     : _supported == false
-                    ? '此系统不支持无线配对'
+                    ? context.strings.wirelessPairingIsNotSupportedOnThis
                     : _notifications == true
-                    ? '配对通知已开启'
+                    ? context.strings.pairingNotificationsEnabled
                     : _notifications == false
-                    ? '请先允许 Flit 通知'
-                    : '通知状态未知',
+                    ? context.strings.allowFlitNotificationsFirst
+                    : context.strings.notificationStatusUnknown,
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               Text(
                 _supported == false
-                    ? '无线配对需要 Android 11 或以上，可返回使用电脑 USB 激活。'
-                    : '允许 Flit 发布通知；若已有“无线调试配对”通知类别，也要开启。配对时从通知里输入代码。',
+                    ? context.strings.wirelessPairingRequiresAndroidOrLaterGo
+                    : context
+                          .strings
+                          .allowFlitNotificationsIncludingTheWirelessDebugging,
                 style: const TextStyle(
                   fontSize: 13,
                   height: 1.6,
@@ -125,11 +131,11 @@ class _DevicePairingGuidePageState extends State<DevicePairingGuidePage>
                 children: [
                   TextButton(
                     onPressed: () => _open(FlitDevice.openNotificationSettings),
-                    child: const Text('通知设置'),
+                    child: Text(context.strings.notificationSettings),
                   ),
                   TextButton(
                     onPressed: _checking ? null : _check,
-                    child: const Text('重新检查'),
+                    child: Text(context.strings.checkAgain487),
                   ),
                 ],
               ),
@@ -141,77 +147,70 @@ class _DevicePairingGuidePageState extends State<DevicePairingGuidePage>
           StatusNotice(_error!, error: true),
         ],
         const SizedBox(height: 12),
-        const StatusNotice(
-          '小米 / POCO：部分 MIUI 需要把通知样式改为“原生样式”，否则可能无法输入配对码。具体路径见下方说明。',
-        ),
+        StatusNotice(context.strings.xiaomiPocoSomeMiuiVersionsRequireThe),
         if (!widget.allowStart) ...[
           const SizedBox(height: 12),
-          const StatusNotice('请先在设备页结束当前操作，或安装缺失的 ADB，再开始配对。'),
+          StatusNotice(
+            context.strings.finishTheCurrentDeviceOperationOrInstall,
+          ),
         ],
         const SizedBox(height: 20),
         _step(
           '1',
-          '开始配对',
-          '点击下方“开始配对”，Flit 会先启动配对通知，再打开开发者选项。首次使用请先开启开发者选项和 USB 调试。',
+          context.strings.startPairing,
+          context.strings.tapStartPairingBelowFlitStartsThe,
         ),
         _step(
           '2',
-          '打开配对码窗口',
-          '开启“无线调试”，点击这项的文字进入详情，再点“使用配对码配对设备”。保持显示 6 位代码的窗口打开。',
-          note: '仅打开右侧开关还不够，需要进入无线调试详情页。',
+          context.strings.openThePairingCodeDialog,
+          context.strings.enableWirelessDebuggingTapItsLabelTo,
+          note: context.strings.enablingTheSwitchAloneIsNotEnough,
         ),
         _step(
           '3',
-          '下拉通知，输入 6 位码',
-          '展开 Flit 的配对通知，点击“输入配对码”，填入系统窗口中的代码并发送。不要切回 Flit 填写，切换应用可能关闭配对窗口。',
-          note: '找到配对端口后，通知才会出现“输入配对码”按钮。',
+          context.strings.expandTheNotificationAndEnterTheDigit,
+          context.strings.expandTheFlitPairingNotificationTapEnter,
+          note: context.strings.theEnterPairingCodeButtonAppearsOnce,
         ),
         _step(
           '4',
-          '返回 Flit 连接',
-          '通知提示配对成功后返回 Flit，会自动尝试连接本机。已配对时直接“扫描并连接”；重新开启无线调试后，连接端口可能改变。',
+          context.strings.returnToFlitToConnect,
+          context.strings.returnToFlitAfterSuccessfulPairingIt,
         ),
         SurfaceCard(
           padding: EdgeInsets.zero,
           child: Column(
             children: [
-              _help('通知里没有输入框 / 点输入就失败', [
-                const Text('先展开通知，确认已显示“输入配对码”。若仍停留在“搜索端口”，请看下一项。'),
+              _help(context.strings.noNotificationInputEnteringTheCodeFails, [
+                Text(context.strings.expandTheNotificationAndCheckThatEnter),
                 const SizedBox(height: 10),
-                const Text(
-                  '小米、Redmi、POCO 的部分 MIUI：在系统设置 → 通知管理 → 通知显示设置，将通知样式切为“原生样式”，再重新配对。',
-                ),
+                Text(context.strings.someXiaomiRedmiAndPocoMiuiVersions),
                 const SizedBox(height: 10),
-                const Text(
-                  'HyperOS 或其他版本的入口、名称可能不同；如提供“Android”或“原生”通知样式，可尝试切换。Flit 无法自动检测或修改此设置。',
-                ),
+                Text(context.strings.namesAndLocationsVaryAcrossHyperosAnd),
                 const SizedBox(height: 10),
-                const Text('找不到该选项时，可用分屏保留系统配对窗口，在“手动连接 / 其他设备”输入配对端口和配对码。'),
+                Text(context.strings.ifThisOptionIsUnavailableKeepThe),
               ]),
-              _help('一直搜索端口 / 切到设置后没反应', [
-                const Text(
-                  '确认 Wi-Fi 和无线调试已开启，并保持“使用配对码配对设备”窗口打开。配对端口只在这个窗口打开时广播。',
-                ),
+              _help(
+                context.strings.keepsSearchingNoResponseAfterOpeningSettings,
+                [
+                  Text(context.strings.enableWiFiAndWirelessDebuggingAnd),
+                  const SizedBox(height: 10),
+                  Text(
+                    context.strings.someSystemsRestrictLocalNetworkAccessFor,
+                  ),
+                  TextButton(
+                    onPressed: () => _open(() async {
+                      await FlitDevice.requestIgnoreBatteryOptimizations();
+                    }),
+                    child: Text(context.strings.allowBackgroundExecution),
+                  ),
+                  Text(context.strings.ifNothingIsFoundToggleWirelessDebugging),
+                ],
+              ),
+              _help(context.strings.pairedButCannotConnect, [
+                Text(context.strings.pairingAndConnectionPortsDifferForManual),
                 const SizedBox(height: 10),
-                const Text(
-                  '部分系统会限制不可见应用的本地网络访问。允许 Flit 后台运行，并在系统的联网管理中允许 Wi-Fi / 本地网络访问（如提供）。',
-                ),
-                TextButton(
-                  onPressed: () => _open(() async {
-                    await FlitDevice.requestIgnoreBatteryOptimizations();
-                  }),
-                  child: const Text('允许后台运行'),
-                ),
-                const Text(
-                  '仍无结果可重新开关无线调试后再试。Flit 最多搜索 3 分钟；超时后重新开始，也可改用电脑 USB 激活。',
-                ),
-              ]),
-              _help('配对成功，但连接失败', [
-                const Text('配对端口与连接端口不同。手动连接时，请使用无线调试主页显示的连接端口，不要使用配对码窗口的端口。'),
-                const SizedBox(height: 10),
-                const Text(
-                  '返回设备页点“扫描并连接”。仍找不到端口时，可以手动输入连接端口，或使用电脑 USB 激活。配对记录不代表设备当前在线。',
-                ),
+                Text(context.strings.tapScanAndConnectOnTheDevice),
               ]),
             ],
           ),
@@ -222,11 +221,11 @@ class _DevicePairingGuidePageState extends State<DevicePairingGuidePage>
             if (!await Shell.instance.openUrl(
               'https://shizuku.rikka.app/zh-hans/guide/setup/',
             )) {
-              throw StateError('无法打开参考页面');
+              throw StateError(strings.unableToOpenReferencePage);
             }
           }),
           icon: const Icon(Icons.open_in_new, size: 16),
-          label: const Text('参考：Shizuku 使用指南'),
+          label: Text(context.strings.referenceShizukuGuide),
         ),
       ],
     ),
@@ -243,7 +242,7 @@ class _DevicePairingGuidePageState extends State<DevicePairingGuidePage>
               ? () => Navigator.pop(context, true)
               : null,
           icon: const Icon(Icons.notifications_active_outlined, size: 18),
-          label: const Text('开始配对'),
+          label: Text(context.strings.startPairing),
         ),
       ),
     ),

@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -166,7 +167,9 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
       }
     } catch (error) {
       if (mounted && _notificationActive) {
-        setState(() => _pageError = '无法读取配对状态，请返回后重试');
+        setState(
+          () => _pageError = context.strings.unableToReadPairingStatusGoBack,
+        );
       }
     } finally {
       _readingPairing = false;
@@ -211,7 +214,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
     if (!mounted) return;
     setState(
       () => _pageError = error is PlatformException
-          ? error.message ?? '系统操作失败'
+          ? error.message ?? context.strings.systemOperationFailed
           : '$error',
     );
   }
@@ -236,7 +239,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
       if (!mounted) return;
       setState(() {
         _pairingState = 'searching';
-        _pairingMessage = '打开系统配对码窗口，在通知中输入配对码';
+        _pairingMessage = context.strings.openTheSystemPairingDialogAndEnter;
       });
       _schedulePoll();
       await _openSettings();
@@ -297,7 +300,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
       }
       setState(() {
         if (found.isEmpty) {
-          _pageError = '未发现配对端口，请保持系统配对窗口开启';
+          _pageError = context.strings.noPairingPortFoundKeepTheSystem;
         } else {
           _pairPort.text = found.first.port;
         }
@@ -314,10 +317,10 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('设备连接'),
+      title: Text(context.strings.deviceConnection),
       actions: [
         IconButton(
-          tooltip: '刷新设备',
+          tooltip: context.strings.refreshDevices,
           onPressed: _blocked || _connection.refreshing
               ? null
               : _connection.refresh,
@@ -334,7 +337,10 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
         children: [
           const SizedBox(height: 8),
           _deviceCard(),
-          if (_pageError != null || _connection.message != null) ...[
+          if (_pageError != null ||
+              _connection.message != null &&
+                  (_connection.messageIsError ||
+                      !_connection.devices.any((device) => device.online))) ...[
             const SizedBox(height: 12),
             StatusNotice(
               _pageError ?? _connection.message!,
@@ -342,9 +348,9 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
             ),
           ],
           const SizedBox(height: 12),
-          _wirelessCard(),
-          const SizedBox(height: 12),
           _usbCard(),
+          const SizedBox(height: 12),
+          _wirelessCard(),
           const SizedBox(height: 12),
           SurfaceCard(
             padding: EdgeInsets.zero,
@@ -360,9 +366,9 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
                     ),
                     child: Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            '手动连接 / 其他设备',
+                            context.strings.manualConnectionOtherDevices,
                             style: TextStyle(fontSize: 13),
                           ),
                         ),
@@ -396,8 +402,8 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
                                   enabled: !_blocked,
                                   autocorrect: false,
                                   keyboardType: TextInputType.url,
-                                  decoration: const InputDecoration(
-                                    labelText: '设备地址',
+                                  decoration: InputDecoration(
+                                    labelText: context.strings.deviceAddress,
                                     hintText: '127.0.0.1',
                                   ),
                                   onChanged: (_) {
@@ -411,7 +417,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
                                 const SizedBox(height: 12),
                                 _numberField(
                                   _connPort,
-                                  '连接端口',
+                                  context.strings.connectionPort,
                                   focusNode: _connPortFocus,
                                 ),
                                 const SizedBox(height: 8),
@@ -428,15 +434,15 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
                                               _connPort.text,
                                             );
                                           },
-                                    child: const Text('连接'),
+                                    child: Text(context.strings.connect),
                                   ),
                                 ),
                                 const Divider(height: 28),
                                 if (_paired)
-                                  const Align(
+                                  Align(
                                     alignment: Alignment.centerLeft,
                                     child: Text(
-                                      '有配对记录',
+                                      context.strings.pairingRecorded,
                                       style: TextStyle(
                                         color: AppColors.success,
                                         fontSize: 12,
@@ -444,10 +450,10 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
                                     ),
                                   ),
                                 const SizedBox(height: 8),
-                                const Align(
+                                Align(
                                   alignment: Alignment.centerLeft,
                                   child: Text(
-                                    '手动配对时请分屏保留系统配对窗口。',
+                                    context.strings.keepTheSystemPairingDialogOpenIn,
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: AppColors.textSecondary,
@@ -460,7 +466,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
                                     Expanded(
                                       child: _numberField(
                                         _pairPort,
-                                        '配对端口',
+                                        context.strings.pairingPort,
                                         focusNode: _pairPortFocus,
                                       ),
                                     ),
@@ -468,7 +474,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
                                     Expanded(
                                       child: _numberField(
                                         _pairCode,
-                                        '配对码（6 位）',
+                                        context.strings.pairingCodeDigits,
                                         length: 6,
                                         focusNode: _pairCodeFocus,
                                       ),
@@ -485,8 +491,8 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
                                       icon: const Icon(Icons.radar, size: 16),
                                       label: Text(
                                         _pairDiscovering
-                                            ? '扫描中…'
-                                            : '扫描配对端口',
+                                            ? context.strings.scanning
+                                            : context.strings.scanPairingPorts,
                                       ),
                                     ),
                                   ),
@@ -496,7 +502,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
                                     onPressed: _blocked || _connection.missing
                                         ? null
                                         : _pair,
-                                    child: const Text('配对'),
+                                    child: Text(context.strings.pair),
                                   ),
                                 ),
                               ],
@@ -512,9 +518,12 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
           ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 8),
             leading: const Icon(Icons.help_outline, size: 20),
-            title: const Text('无线配对指南', style: TextStyle(fontSize: 13)),
-            subtitle: const Text(
-              '通知样式、配对步骤与常见问题',
+            title: Text(
+              context.strings.wirelessPairingGuide,
+              style: TextStyle(fontSize: 13),
+            ),
+            subtitle: Text(
+              context.strings.notificationStylePairingStepsAndTroubleshooting,
               style: TextStyle(fontSize: 12),
             ),
             trailing: const Icon(Icons.chevron_right, size: 20),
@@ -600,10 +609,10 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
 
   Widget _wirelessCard() => _methodCard(
     icon: Icons.wifi,
-    title: '通过无线调试连接',
-    subtitle: 'Android 11+ · Wi-Fi 下配对与连接',
+    title: context.strings.connectViaWirelessDebugging,
+    subtitle: context.strings.androidPairAndConnectOverWiFi,
     trailing: IconButton(
-      tooltip: '无线调试设置',
+      tooltip: context.strings.wirelessDebuggingSettings,
       onPressed: _openSettings,
       icon: const Icon(Icons.settings_outlined, size: 20),
     ),
@@ -623,7 +632,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
               onPressed: _blocked || _connection.missing
                   ? null
                   : _showPairingGuide,
-              child: const Text('通知配对'),
+              child: Text(context.strings.notificationPairing),
             ),
             FilledButton(
               onPressed: _blocked || _connection.missing
@@ -631,8 +640,8 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
                   : () => _connect(AdbConnectionMethod.wireless),
               child: Text(
                 _connectingMethod == AdbConnectionMethod.wireless
-                    ? '扫描中…'
-                    : '扫描并连接',
+                    ? context.strings.scanning
+                    : context.strings.scanAndConnect,
               ),
             ),
           ],
@@ -641,7 +650,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
       if (_notificationActive || _pairingState == 'failed') ...[
         const SizedBox(height: 12),
         Text(
-          _pairingMessage ?? '正在寻找配对端口…',
+          _pairingMessage ?? context.strings.searchingForPairingPort,
           style: TextStyle(
             fontSize: 12,
             height: 1.5,
@@ -654,7 +663,10 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
           Row(
             children: [
               const Expanded(child: LinearProgressIndicator(minHeight: 2)),
-              TextButton(onPressed: _stopPairing, child: const Text('取消配对')),
+              TextButton(
+                onPressed: _stopPairing,
+                child: Text(context.strings.cancelPairing),
+              ),
             ],
           ),
       ],
@@ -663,8 +675,20 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
 
   Widget _usbCard() => _methodCard(
     icon: Icons.usb,
-    title: '通过电脑 USB 激活',
-    subtitle: '电脑激活后连接，可拔掉数据线',
+    title: context.strings.activateViaComputerUsb,
+    subtitle: context.strings.activateFromAComputerThenUnplugThe,
+    trailing: Container(
+      margin: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        context.strings.recommended,
+        style: const TextStyle(color: AppColors.accent, fontSize: 12),
+      ),
+    ),
     children: [
       Align(
         alignment: Alignment.centerRight,
@@ -675,7 +699,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
           children: [
             TextButton(
               onPressed: _blocked ? null : _showUsbGuide,
-              child: const Text('查看步骤'),
+              child: Text(context.strings.viewSteps),
             ),
             FilledButton.tonal(
               style: FilledButton.styleFrom(
@@ -686,7 +710,9 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
                   ? null
                   : () => _connect(AdbConnectionMethod.usb),
               child: Text(
-                _connectingMethod == AdbConnectionMethod.usb ? '连接中…' : '连接本机',
+                _connectingMethod == AdbConnectionMethod.usb
+                    ? context.strings.connecting
+                    : context.strings.connectLocally,
               ),
             ),
           ],
@@ -716,47 +742,26 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Icon(
-              Icons.devices_outlined,
-              color: AppColors.accent,
-              size: 20,
-            ),
-            const SizedBox(width: 10),
-            const Expanded(
-              child: Text(
-                '设备状态',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-            Text(
-              '${_connection.devices.where((d) => d.online).length} 台在线',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
         if (_connection.refreshing)
           const Padding(
-            padding: EdgeInsets.only(top: 12),
+            padding: EdgeInsets.only(bottom: 12),
             child: LinearProgressIndicator(),
           ),
-        const SizedBox(height: 12),
         if (_connection.readError != null)
           StatusNotice(_connection.readError!, error: true)
         else if (_connection.missing)
-          const StatusNotice('未找到 ADB，请在“开发环境”中安装 Android 工具链。', error: true)
+          StatusNotice(
+            context.strings.adbNotFoundInstallTheAndroidToolchain,
+            error: true,
+          )
         else if (_connection.devices.isEmpty)
-          const Text(
-            '暂无连接',
+          Text(
+            context.strings.noConnections,
             style: TextStyle(color: AppColors.textSecondary, height: 1.5),
           ),
-        for (final device in _connection.devices)
+        for (final (index, device) in _connection.devices.indexed)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: EdgeInsets.only(top: index == 0 ? 0 : 12),
             child: Row(
               children: [
                 Icon(
@@ -786,7 +791,7 @@ class _DeviceConnectPageState extends State<DeviceConnectPage>
                 if (device.serial.contains(':') ||
                     device.serial.contains('._adb-tls-connect.'))
                   IconButton(
-                    tooltip: '断开 ${device.serial}',
+                    tooltip: context.strings.disconnectP(device.serial),
                     onPressed: _blocked
                         ? null
                         : () {

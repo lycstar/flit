@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
@@ -48,7 +49,7 @@ class TerminalSessionTabs extends StatelessWidget {
                 ),
                 if (closable)
                   Tooltip(
-                    message: '关闭 $title 会话',
+                    message: strings.closePSession(title),
                     child: InkWell(
                       canRequestFocus: false,
                       borderRadius: BorderRadius.circular(6),

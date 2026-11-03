@@ -28,7 +28,9 @@ class CodeHighlighter {
     TextStyle? base,
     DartHighlightCache? dartCache,
   }) {
-    final root = (base ?? AppColors.mono).copyWith(color: CodeTheme.current.plain);
+    final root = (base ?? AppColors.mono).copyWith(
+      color: CodeTheme.current.plain,
+    );
     if (language == null) {
       return TextSpan(text: text, style: root);
     }

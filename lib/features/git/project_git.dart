@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -61,11 +62,13 @@ class ProjectGit extends ChangeNotifier {
     Future<void> Function() action, {
     bool changesFiles = false,
   }) {
-    if (_closed) return Future.error(StateError('项目已关闭'));
+    if (_closed) return Future.error(StateError(strings.projectIsClosed));
     if (!repo.supported) {
-      return Future.error(StateError('请打开 Git 仓库根目录后使用版本控制'));
+      return Future.error(StateError(strings.openTheGitRepositoryRootToUse));
     }
-    if (blocked) return Future.error(StateError('当前有任务正在运行，请先结束后再执行 Git 操作'));
+    if (blocked) {
+      return Future.error(StateError(strings.aTaskIsRunningStopItBefore));
+    }
     busy = true;
     error = null;
     notifyListeners();
@@ -77,7 +80,9 @@ class ProjectGit extends ChangeNotifier {
         if (changesFiles) {
           await documents.changeOnDisk(action);
         } else {
-          if (!await documents.saveAll()) throw StateError('保存失败，已取消 Git 操作');
+          if (!await documents.saveAll()) {
+            throw StateError(strings.saveFailedGitOperationCancelled);
+          }
           if (_closed) return;
           await action();
         }
@@ -109,11 +114,13 @@ class ProjectGit extends ChangeNotifier {
     );
     if (_closed) await _task!.stop();
     final code = await _task!.done;
-    if (code != 0) throw StateError('$title 未完成（退出码 $code），请查看终端输出');
+    if (code != 0) {
+      throw StateError(strings.pIncompleteExitCodePSeeTerminal(title, code));
+    }
   }
 
   Future<void> initialize() =>
-      _mutate(() => _command(['init'], title: '初始化仓库'));
+      _mutate(() => _command(['init'], title: strings.initializeRepository));
   Future<void> stage(GitChange change) => _mutate(
     () => _command([
       'add',
@@ -130,60 +137,76 @@ class ProjectGit extends ChangeNotifier {
     ),
   );
   Future<void> commit(String message) => _mutate(() async {
-    if (message.trim().isEmpty) throw StateError('请输入提交消息');
+    if (message.trim().isEmpty) throw StateError(strings.enterACommitMessage);
     final state = await repo.snapshot();
-    if (state.hasConflicts) throw StateError('请先解决冲突并暂存文件');
-    if (!state.changes.any((c) => c.staged)) throw StateError('请先暂存需要提交的文件');
-    await _command(['commit', '-m', message.trim()], title: '提交');
+    if (state.hasConflicts) {
+      throw StateError(strings.resolveConflictsAndStageTheFilesFirst);
+    }
+    if (!state.changes.any((c) => c.staged)) {
+      throw StateError(strings.stageTheFilesToCommitFirst);
+    }
+    await _command(['commit', '-m', message.trim()], title: strings.commit);
   });
   Future<void> discard(GitChange change) => _mutate(() async {
-    if (change.untracked || change.conflicted) throw StateError('当前文件状态不支持回滚');
+    if (change.untracked || change.conflicted) {
+      throw StateError(strings.theCurrentFileStatusDoesNotSupport);
+    }
     await _command([
       'restore',
       '--worktree',
       '--',
       change.path,
-    ], title: '回滚未暂存的更改');
+    ], title: strings.rollbackUnstagedChanges);
   }, changesFiles: true);
   Future<void> switchBranch(String branch, {bool create = false}) =>
       _mutate(() async {
         final state = await repo.snapshot();
-        if (state.changes.isNotEmpty) throw StateError('请先提交或回滚当前更改，再切换分支');
+        if (state.changes.isNotEmpty) {
+          throw StateError(
+            strings.commitOrRollbackChangesBeforeSwitchingBranches,
+          );
+        }
         await _command(
           create ? ['switch', '-c', branch] : ['switch', branch],
-          title: '切换分支',
+          title: strings.switchBranch,
         );
       }, changesFiles: true);
   Future<void> pull() => _mutate(() async {
     final state = await repo.snapshot();
-    if (state.changes.isNotEmpty) throw StateError('请先提交或回滚当前更改，再拉取');
-    if (state.upstream == null) throw StateError('当前分支未设置上游分支，请先推送并关联远程分支');
-    await _command(['pull', '--ff-only'], title: '拉取');
+    if (state.changes.isNotEmpty) {
+      throw StateError(strings.commitOrRollbackChangesBeforePulling);
+    }
+    if (state.upstream == null) {
+      throw StateError(strings.thisBranchHasNoUpstreamPushAnd);
+    }
+    await _command(['pull', '--ff-only'], title: strings.pull);
   }, changesFiles: true);
   Future<void> push() => _mutate(() async {
     final state = await repo.snapshot();
-    if (state.detached || state.unborn) throw StateError('请先切换到分支并创建提交');
-    if (state.hasConflicts) throw StateError('请先解决冲突');
+    if (state.detached || state.unborn) {
+      throw StateError(strings.switchToABranchAndCreateA);
+    }
+    if (state.hasConflicts) throw StateError(strings.resolveConflictsFirst);
     if (state.upstream != null) {
-      await _command(['push'], title: '推送');
+      await _command(['push'], title: strings.push);
     } else {
       final remotes = (await repo.checked([
         'remote',
       ])).split('\n').where((s) => s.isNotEmpty).toList();
       if (remotes.length != 1) {
-        throw StateError('首次推送需要一个远程仓库，请在「远程仓库」中配置 origin');
+        throw StateError(strings.firstPushRequiresARemoteConfigureOrigin);
       }
       await _command([
         'push',
         '--set-upstream',
         remotes.single,
         state.branch,
-      ], title: '首次推送');
+      ], title: strings.firstPush);
     }
   });
   Future<void> setRemote(String url) => _mutate(() async {
     if (!RegExp(r'^(https?://|ssh://|git@)\S+$').hasMatch(url)) {
-      throw StateError('请输入有效的仓库地址');
+      throw StateError(strings.enterAValidRepositoryUrl);
     }
     final existing = await repo.run(['remote', 'get-url', 'origin']);
     await _command(
@@ -194,7 +217,7 @@ class ProjectGit extends ChangeNotifier {
   });
   Future<void> setIdentity(String name, String email) => _mutate(() async {
     if (name.trim().isEmpty || email.trim().isEmpty) {
-      throw StateError('请填写提交者名称和邮箱');
+      throw StateError(strings.enterTheCommitAuthorNameAndEmail);
     }
     await _command(['config', '--local', 'user.name', name.trim()]);
     await _command(['config', '--local', 'user.email', email.trim()]);

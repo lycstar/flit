@@ -1,3 +1,5 @@
+import 'package:flit/l10n/strings.dart';
+import 'package:flit_device/flit_device.dart';
 import '../../core/theme.dart';
 import '../../services/adb_connection_method.dart';
 import 'dart:convert';
@@ -8,13 +10,16 @@ import '../../services/shell.dart';
 /// 外观与设备记忆(持久化到 $HOME/.flit/appearance.json)。
 /// 应用启动时由组合根加载一次; 之后组件只读它、经 update() 写它。
 class AppearancePreferences extends ChangeNotifier {
-  static const terminalMinSize = 9.0;
-  static const terminalMaxSize = 28.0;
-  static const terminalFonts = {
+  static const terminalMinSize = 6.0;
+  static const terminalMaxSize = 48.0;
+  static const editorMinSize = 8.0;
+  static const editorMaxSize = 48.0;
+  static Map<String, String> get terminalFonts => {
     'JetBrainsMono': 'JetBrains Mono',
-    'monospace': '系统等宽字体',
+    'monospace': strings.systemMonospace,
   };
   double editorSize = 14;
+  String language = 'system';
   double terminalSize = 13;
   String terminalFont = 'JetBrainsMono';
   double terminalLineHeight = 1.2;
@@ -39,10 +44,8 @@ class AppearancePreferences extends ChangeNotifier {
       _file = File('$home/.flit/appearance.json');
       if (await _file!.exists()) {
         final data = jsonDecode(await _file!.readAsString()) as Map;
-        editorSize = (data['editorSize'] as num? ?? 14).toDouble().clamp(
-          12,
-          20,
-        );
+        language = _language(data['language'] as String?);
+        editorSize = _editorSize((data['editorSize'] as num? ?? 14).toDouble());
         terminalSize = _terminalSize(
           (data['terminalSize'] as num? ?? 13).toDouble(),
         );
@@ -63,6 +66,7 @@ class AppearancePreferences extends ChangeNotifier {
         runDevice = data['runDevice'] as String? ?? '';
       }
       _applyTheme();
+      await FlitDevice.setLanguage(language);
       notifyListeners();
     } catch (_) {
       /* Defaults remain usable if storage is unavailable. */
@@ -85,7 +89,7 @@ class AppearancePreferences extends ChangeNotifier {
     String? runDevice,
   }) async {
     await load();
-    editorSize = editor ?? editorSize;
+    editorSize = _editorSize(editor ?? editorSize);
     terminalSize = _terminalSize(terminal ?? terminalSize);
     if (terminalFont != null) this.terminalFont = _terminalFont(terminalFont);
     this.terminalLineHeight = _terminalHeight(
@@ -106,6 +110,7 @@ class AppearancePreferences extends ChangeNotifier {
     editorWrap = wrap ?? editorWrap;
     notifyListeners();
     final data = jsonEncode({
+      'language': language,
       'editorSize': editorSize,
       'terminalSize': terminalSize,
       'terminalFont': this.terminalFont,
@@ -121,7 +126,7 @@ class AppearancePreferences extends ChangeNotifier {
       'runDevice': this.runDevice,
     });
     _saving = _saving.catchError((_) {}).then((_) async {
-      if (_file == null) throw StateError('设置存储不可用');
+      if (_file == null) throw StateError(strings.settingsStorageUnavailable);
       await _file!.parent.create(recursive: true);
       await _file!.writeAsString(data);
     });
@@ -133,6 +138,19 @@ class AppearancePreferences extends ChangeNotifier {
         ? CodeTheme.light
         : CodeTheme.dark;
   }
+
+  Future<void> setLanguage(String value) async {
+    await load();
+    language = _language(value);
+    await FlitDevice.setLanguage(language);
+    await update();
+  }
+
+  static String _language(String? value) =>
+      value == 'zh' || value == 'en' ? value! : 'system';
+
+  static double _editorSize(double value) =>
+      value.isFinite ? value.clamp(editorMinSize, editorMaxSize) : 14;
 
   static double _terminalSize(double value) =>
       value.isFinite ? value.clamp(terminalMinSize, terminalMaxSize) : 13;

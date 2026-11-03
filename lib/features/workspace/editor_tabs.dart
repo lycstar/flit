@@ -45,7 +45,10 @@ class EditorTabs extends ChangeNotifier {
     var tab = _codeTabOf(document);
     if (tab == null) {
       tab = CodeTab(document);
-      _items.insert(at == null ? _items.length : at.clamp(0, _items.length), tab);
+      _items.insert(
+        at == null ? _items.length : at.clamp(0, _items.length),
+        tab,
+      );
     }
     current = tab;
     notifyListeners();

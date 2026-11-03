@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -13,7 +14,7 @@ enum ProjectBuild {
   debugApk(
     RunConfiguration(
       id: 'build-apk',
-      title: '构建 APK（调试版）',
+      title: 'APK Debug',
       command:
           'bash "\$HOME/.flit/scripts/android_build.sh" flutter build apk --debug --target-platform android-arm64 2>&1',
       artifactPath: 'build/app/outputs/flutter-apk/app-debug.apk',
@@ -22,7 +23,7 @@ enum ProjectBuild {
   releaseApk(
     RunConfiguration(
       id: 'build-apk-release',
-      title: '构建 APK（发布版）',
+      title: 'APK Release',
       command:
           'bash "\$HOME/.flit/scripts/android_build.sh" flutter build apk --release --target-platform android-arm64 2>&1',
       artifactPath: 'build/app/outputs/flutter-apk/app-release.apk',
@@ -31,29 +32,48 @@ enum ProjectBuild {
   web(
     RunConfiguration(
       id: 'build-web',
-      title: '构建 Web（发布版）',
+      title: 'Web Release',
       command: 'flutter build web --release 2>&1',
     ),
   );
 
-  const ProjectBuild(this.configuration);
-  final RunConfiguration configuration;
+  const ProjectBuild(this._configuration);
+  final RunConfiguration _configuration;
+  RunConfiguration get configuration => RunConfiguration(
+    id: _configuration.id,
+    title: switch (this) {
+      debugApk => strings.buildApkDebug,
+      releaseApk => strings.buildApkRelease,
+      web => strings.buildWebRelease,
+    },
+    command: _configuration.command,
+    artifactPath: _configuration.artifactPath,
+    flutterLogs: true,
+  );
 }
 
 /// 内置 Flutter/Dart 命令(AS Flutter 插件 Tools 菜单的对应)。
 /// 改写源码的命令(dart format / dart fix)暂不内置: 要先解决打开中缓冲区的回读。
 enum ProjectTool {
-  pubGet('pub-get', '获取依赖'),
-  pubUpgrade('pub-upgrade', '升级依赖'),
-  pubOutdated('pub-outdated', '检查过期依赖'),
-  clean('clean', '清理构建产物', exclusive: true),
-  analyze('analyze', '静态分析'),
-  test('test', '运行测试'),
-  doctor('doctor', '环境诊断');
+  pubGet('pub-get'),
+  pubUpgrade('pub-upgrade'),
+  pubOutdated('pub-outdated'),
+  clean('clean', exclusive: true),
+  analyze('analyze'),
+  test('test'),
+  doctor('doctor');
 
-  const ProjectTool(this.id, this.title, {this.exclusive = false});
+  const ProjectTool(this.id, {this.exclusive = false});
   final String id;
-  final String title;
+  String get title => switch (this) {
+    pubGet => strings.getDependencies,
+    pubUpgrade => strings.upgradeDependencies,
+    pubOutdated => strings.checkOutdatedDependencies,
+    clean => strings.cleanBuildOutputs,
+    analyze => strings.analyzeCode,
+    test => strings.runTests,
+    doctor => strings.environmentDiagnostics,
+  };
 
   /// clean 删除正在使用的 build/ 目录, 与一切互斥
   final bool exclusive;
@@ -76,6 +96,7 @@ enum ProjectTool {
       command: '$command 2>&1',
       exclusive: exclusive,
       readOnly: this == analyze || this == doctor || this == pubOutdated,
+      flutterLogs: flutter,
     );
   }
 }
@@ -118,14 +139,18 @@ class ProjectActions extends ChangeNotifier {
   bool _closed = false;
 
   void _ensureOpen() {
-    if (_closed) throw StateError('项目已关闭');
+    if (_closed) throw StateError(strings.projectIsClosed);
   }
 
   Future<void> _save() async {
     _ensureOpen();
-    if (AndroidBuildWrapper.installing) throw StateError('开发环境正在安装或切换，请等待完成');
-    if (_gitBusy()) throw StateError('Git 操作正在进行，请等待完成');
-    if (!await documents.saveAll()) throw StateError('保存失败，请重试');
+    if (AndroidBuildWrapper.installing) {
+      throw StateError(strings.theDevelopmentEnvironmentIsBeingInstalledOr);
+    }
+    if (_gitBusy()) throw StateError(strings.aGitOperationIsInProgressPlease);
+    if (!await documents.saveAll()) {
+      throw StateError(strings.saveFailedPleaseRetry);
+    }
     _ensureOpen();
   }
 
@@ -151,10 +176,10 @@ class ProjectActions extends ChangeNotifier {
 
   Future<T> _withStarting<T>(String id, Future<T> Function() action) async {
     _ensureOpen();
-    if (_gitBusy()) throw StateError('Git 操作正在进行，请等待完成');
+    if (_gitBusy()) throw StateError(strings.aGitOperationIsInProgressPlease);
     final current = starting.value;
     if (current != null && current != id) {
-      throw StateError('当前已有任务正在启动，请稍后重试');
+      throw StateError(strings.aTaskIsAlreadyStartingPleaseWait);
     }
     final owner = current == null;
     if (owner) starting.value = id;
@@ -197,7 +222,9 @@ class ProjectActions extends ChangeNotifier {
       final devices = await _devices();
       _ensureOpen();
       final matches = devices.where((device) => device.$1 == target);
-      if (matches.isEmpty) throw StateError('目标 $target 未连接');
+      if (matches.isEmpty) {
+        throw StateError(strings.targetPIsNotConnected(target));
+      }
       final device = matches.first;
       final configuration = RunConfiguration(
         id: 'run:$target',
@@ -207,6 +234,7 @@ class ProjectActions extends ChangeNotifier {
         kind: SessionKind.run,
         hotReload: true,
         target: target,
+        flutterLogs: true,
       );
       if (android != null && confirmRepair != null) {
         await android!.start(
@@ -224,9 +252,9 @@ class ProjectActions extends ChangeNotifier {
 
   /// 纯 Dart 工程: 平台只有终端, 运行即 console 模板的 dart run。
   Future<void> runDart() => start(
-    const RunConfiguration(
+    RunConfiguration(
       id: 'run:dart',
-      title: 'Dart 运行',
+      title: strings.runDart,
       command: 'dart run 2>&1',
       kind: SessionKind.run,
       target: 'dart',
@@ -239,7 +267,7 @@ class ProjectActions extends ChangeNotifier {
     final name = path.split('/').last;
     return RunConfiguration(
       id: 'build-dart-exe',
-      title: '编译可执行文件',
+      title: strings.compileExecutable,
       command:
           'mkdir -p build && dart compile exe ${shQuote('bin/$name.dart')} '
           '-o ${shQuote('build/$name')} 2>&1',
@@ -257,11 +285,11 @@ class ProjectActions extends ChangeNotifier {
     final run = executions.forConfiguration('run:$target');
     if (run == null) return;
     if (executions.hasWritingTask || starting.value != null) {
-      throw StateError('请等待构建或依赖更新完成后再热重载');
+      throw StateError(strings.waitForTheBuildOrDependencyUpdate);
     }
     await _save();
     if (executions.hasWritingTask || starting.value != null) {
-      throw StateError('请等待构建或依赖更新完成后再热重载');
+      throw StateError(strings.waitForTheBuildOrDependencyUpdate);
     }
     // A rerun during save must not receive an action intended for the old process.
     if (!identical(run, executions.forConfiguration('run:$target'))) return;

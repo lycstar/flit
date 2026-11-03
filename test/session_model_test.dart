@@ -13,6 +13,68 @@ import 'support/fake_session_process.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('Flutter formatting keeps raw diagnostics and flushes trailing errors', () async {
+    final process = FakeProcess();
+    final sessions = RunSessions(
+      projectPath: '/project',
+      launcher: ({required command, required workingDirectory, required rows, required columns}) async => process,
+    );
+    final raw = StringBuffer();
+    final session = await sessions.start(
+      const RunConfiguration(id: 'test', title: 'Flutter', command: 'flutter test', flutterLogs: true),
+      onText: raw.write,
+    );
+    process.emit('Error: trailing');
+    await process.finish(1);
+    expect(await session.done, 1);
+    expect(raw.toString(), 'Error: trailing');
+    expect(session.terminal.buffer.getText(), contains('Error: trailing'));
+    expect(session.terminal.buffer.lines[1].getForeground(0), isNot(0));
+    await sessions.closeAll();
+  });
+
+  test(
+    'commands display once before launch without entering parsed output',
+    () async {
+      final process = FakeProcess();
+      late ConsoleSession console;
+      String? launched;
+      console = ConsoleSession(
+        title: '配对',
+        launcher:
+            ({
+              required command,
+              required workingDirectory,
+              required rows,
+              required columns,
+            }) async {
+              launched = command;
+              expect(
+                console.terminal.buffer.getText(),
+                contains(r'$ adb pair localhost:5555 ******'),
+              );
+              return process;
+            },
+      );
+      final output = <String>[];
+      console.textStream.listen(output.add);
+      await console.start(
+        command: 'adb pair localhost:5555 123456',
+        displayCommand: 'adb pair localhost:5555 ******',
+      );
+      await console.start(command: 'adb pair localhost:5555 123456');
+      final text = console.terminal.buffer.getText();
+      expect(text, isNot(contains('123456')));
+      expect(r'$ adb pair'.allMatches(text), hasLength(1));
+      expect(launched, 'adb pair localhost:5555 123456');
+      process.emit('Successfully paired\n');
+      await process.finish();
+      await console.done;
+      expect(output.join(), 'Successfully paired\n');
+      await console.close();
+    },
+  );
+
   test(
     'PTY byte streams decode UTF-8 characters split across chunks',
     () async {

@@ -1,8 +1,10 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
 import '../../services/shell.dart';
+import '../../services/adb_ops.dart';
 import '../editor/lsp/lsp_client.dart';
 import '../git/project_git.dart';
 import '../run/web_runner.dart';
@@ -64,6 +66,30 @@ class ProjectSession extends ChangeNotifier {
     if (_runTarget == value) return;
     _runTarget = value;
     notifyListeners();
+  }
+
+  /// Only fill an empty selection. Refreshing devices never replaces a choice.
+  void selectInitialTarget(List<AdbDevice> devices) {
+    if (_closed || kind != ProjectKind.flutter || runTarget.isNotEmpty) return;
+    final local = devices
+        .where(
+          (device) => RegExp(
+            r'^(127\.0\.0\.1|localhost|\[::1\]):\d+$',
+          ).hasMatch(device.$1),
+        )
+        .toList();
+    if (local.isNotEmpty) {
+      runTarget = local
+          .firstWhere(
+            (device) => device.$1 == '127.0.0.1:5555',
+            orElse: () => local.first,
+          )
+          .$1;
+    } else if (devices.length == 1) {
+      runTarget = devices.single.$1;
+    } else if (devices.isEmpty) {
+      runTarget = 'web';
+    }
   }
 
   bool _closed = false;
@@ -173,10 +199,10 @@ class ProjectWorkspace extends ChangeNotifier {
     if (active != null && !await active.close()) {
       throw StateError(
         active.git.busy
-            ? 'Git 操作正在进行，请等待完成或在终端停止'
+            ? strings.aGitOperationIsRunningWaitOr
             : active.documents.synchronizing
-            ? '文件操作正在进行，请等待完成后再切换项目'
-            : '当前项目保存失败，请重试后再切换项目',
+            ? strings.aFileOperationIsRunningWaitBefore
+            : strings.failedToSaveTheCurrentProjectRetry,
       );
     }
     final project = _active = ProjectSession(path, launcher: _launcher);

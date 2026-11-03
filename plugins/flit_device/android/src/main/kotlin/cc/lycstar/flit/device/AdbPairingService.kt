@@ -33,19 +33,19 @@ class AdbPairingService : Service() {
             val state = saved.getString("state", "idle") ?: "idle"
             val interrupted = !running && state in setOf("searching", "ready", "pairing")
             return mapOf("state" to if (interrupted) "failed" else state,
-                "message" to if (interrupted) "配对已中断，请重试" else (saved.getString("message", "") ?: ""),
+                "message" to if (interrupted) nativeText(context, R.string.flit_device_5) else (saved.getString("message", "") ?: ""),
                 "port" to saved.getInt("port", -1), "revision" to saved.getLong("revision", 0))
         }
         fun availability(context: Context): String? {
             FlitEnv.init(context)
-            if (!File(FlitEnv.home, "toolchains/android-sdk/platform-tools/adb").canExecute()) return "请先安装 Android Platform Tools"
+            if (!File(FlitEnv.home, "toolchains/android-sdk/platform-tools/adb").canExecute()) return nativeText(context, R.string.flit_device_6)
             val manager = context.getSystemService(NotificationManager::class.java)
-            if (!manager.areNotificationsEnabled()) return "请先在系统设置中允许 Flit 通知，再开始配对"
+            if (!manager.areNotificationsEnabled()) return nativeText(context, R.string.flit_device_7)
             if (Build.VERSION.SDK_INT >= 26) {
-                manager.createNotificationChannel(NotificationChannel(CHANNEL, "无线调试配对", NotificationManager.IMPORTANCE_HIGH).apply {
+                manager.createNotificationChannel(NotificationChannel(CHANNEL, nativeText(context, R.string.flit_device_8), NotificationManager.IMPORTANCE_HIGH).apply {
                     setSound(null, null); setShowBadge(false)
                 })
-                if (manager.getNotificationChannel(CHANNEL)?.importance == NotificationManager.IMPORTANCE_NONE) return "请在系统通知设置中开启“无线调试配对”通知"
+                if (manager.getNotificationChannel(CHANNEL)?.importance == NotificationManager.IMPORTANCE_NONE) return nativeText(context, R.string.flit_device_9)
             }
             return null
         }
@@ -59,7 +59,7 @@ class AdbPairingService : Service() {
     @Volatile private var process: Process? = null
     private var working = false
     @Volatile private var closed = false
-    private val deadline = Runnable { finish(false, "等待配对超时，请重新开始") }
+    private val deadline = Runnable { finish(false, nativeText(this, R.string.flit_device_10)) }
 
     override fun onBind(intent: Intent?): IBinder? = null
     override fun onCreate() {
@@ -68,7 +68,7 @@ class AdbPairingService : Service() {
         running = true
     }
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == "stop") { finish(false, "已取消配对"); return START_NOT_STICKY }
+        if (intent?.action == "stop") { finish(false, nativeText(this, R.string.flit_device_11)); return START_NOT_STICKY }
         if (Build.VERSION.SDK_INT < 30) { stopSelf(); return START_NOT_STICKY }
         if (intent?.action == "reply") {
             val code = RemoteInput.getResultsFromIntent(intent)?.getCharSequence(CODE)?.toString()?.trim().orEmpty()
@@ -76,18 +76,18 @@ class AdbPairingService : Service() {
             // The service is deliberately not redelivered: a killed process or a
             // lost/changed advertisement must not reuse a stale pairing endpoint.
             if (!running || closed || port < 1 || requestedPort != port) {
-                finish(false, "配对端口已失效，请重新开始")
+                finish(false, nativeText(this, R.string.flit_device_12))
             } else if (!working) pair(code)
             return START_NOT_STICKY
         }
         if (scanner != null || working) return START_NOT_STICKY
         val problem = availability(this)
         if (problem != null) { finish(false, problem); return START_NOT_STICKY }
-        save("searching", "在无线调试中打开“使用配对码配对设备”")
+        save("searching", nativeText(this, R.string.flit_device_13))
         try {
-            startForeground(ID, notification("正在寻找配对端口", "打开系统配对码窗口，发现后可在此输入配对码"))
+            startForeground(ID, notification(nativeText(this, R.string.flit_device_14), nativeText(this, R.string.flit_device_15)))
         } catch (_: Exception) {
-            save("failed", "无法启动配对通知，请检查通知及后台运行权限")
+            save("failed", nativeText(this, R.string.flit_device_16))
             closed = true
             stopSelf()
             return START_NOT_STICKY
@@ -97,15 +97,15 @@ class AdbPairingService : Service() {
             onFound = { info ->
                 if (!working && !closed) {
                     port = info.port; serviceName = info.serviceName
-                    save("ready", "已找到端口 $port，请在通知中输入 6 位配对码")
-                    update("已找到配对端口 $port", "保持系统配对窗口开启，在此输入配对码", input = true)
+                    save("ready", nativeText(this, R.string.flit_device_17 , port))
+                    update(nativeText(this, R.string.flit_device_18 , port), nativeText(this, R.string.flit_device_19), input = true)
                 }
             },
             onLost = { name ->
                 if (!working && name == serviceName) {
                     port = -1; serviceName = null
-                    save("searching", "配对窗口已关闭，请重新打开")
-                    update("正在寻找配对端口", "请重新打开系统配对码窗口")
+                    save("searching", nativeText(this, R.string.flit_device_20))
+                    update(nativeText(this, R.string.flit_device_14), nativeText(this, R.string.flit_device_21))
                 }
             }, onError = { finish(false, it) }).also { it.start() }
         return START_NOT_STICKY
@@ -113,12 +113,12 @@ class AdbPairingService : Service() {
 
     private fun pair(code: String) {
         if (!Regex("^[0-9]{6}$").matches(code)) {
-            update("请输入 6 位配对码", "配对码位于系统配对窗口中", input = true)
+            update(nativeText(this, R.string.flit_device_22), nativeText(this, R.string.flit_device_23), input = true)
             return
         }
         working = true
-        save("pairing", "正在配对…")
-        update("正在配对", "请保持系统配对窗口开启")
+        save("pairing", nativeText(this, R.string.flit_device_24))
+        update(nativeText(this, R.string.flit_device_25), nativeText(this, R.string.flit_device_26))
         val targetPort = port
         worker.execute {
             val result = runCatching {
@@ -149,7 +149,7 @@ class AdbPairingService : Service() {
             process?.destroy(); process = null
             main.post {
                 if (!closed) finish(result.getOrDefault(false),
-                    if (result.getOrDefault(false)) "配对成功，返回 Flit 自动连接" else "配对失败，请重新打开配对窗口并核对配对码")
+                    if (result.getOrDefault(false)) nativeText(this, R.string.flit_device_27) else nativeText(this, R.string.flit_device_28))
             }
         }
     }
@@ -168,7 +168,7 @@ class AdbPairingService : Service() {
         stopForeground(STOP_FOREGROUND_REMOVE)
         if (Build.VERSION.SDK_INT >= 26 && getSystemService(NotificationManager::class.java).areNotificationsEnabled()) {
             getSystemService(NotificationManager::class.java).notify(ID, notification(
-                if (success) "配对成功" else "配对未完成", message, completed = true))
+                if (success) nativeText(this, R.string.flit_device_29) else nativeText(this, R.string.flit_device_30), message, completed = true))
         }
         stopSelf()
     }
@@ -186,19 +186,19 @@ class AdbPairingService : Service() {
         if (!completed) {
             val stop = PendingIntent.getService(this, 1,
                 Intent(this, AdbPairingService::class.java).setAction("stop"), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(Notification.Action.Builder(null, "取消", stop).build())
+            builder.addAction(Notification.Action.Builder(null, nativeText(this, R.string.flit_device_31), stop).build())
         }
         if (input) {
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0
             val reply = PendingIntent.getService(this, 2,
                 Intent(this, AdbPairingService::class.java).setAction("reply").putExtra("port", port), flags)
-            builder.addAction(Notification.Action.Builder(null, "输入配对码", reply)
-                .addRemoteInput(RemoteInput.Builder(CODE).setLabel("6 位配对码").build()).build())
+            builder.addAction(Notification.Action.Builder(null, nativeText(this, R.string.flit_device_32), reply)
+                .addRemoteInput(RemoteInput.Builder(CODE).setLabel(nativeText(this, R.string.flit_device_33)).build()).build())
         }
         return builder.build()
     }
     override fun onDestroy() {
-        if (!closed) save("idle", "已取消配对")
+        if (!closed) save("idle", nativeText(this, R.string.flit_device_11))
         closed = true; running = false
         scanner?.stop(); main.removeCallbacksAndMessages(null)
         process?.destroyForcibly(); worker.shutdownNow()

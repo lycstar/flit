@@ -14,6 +14,8 @@ import 'package:flit/features/editor/widgets/completion_popup.dart';
 import 'package:flit/features/editor/widgets/file_tree_drawer.dart';
 import 'package:flit/features/terminal/global_terminal_panel.dart';
 import 'package:flit/features/editor/editor_page.dart';
+import 'package:flit/features/editor/widgets/editor_analysis_status.dart';
+import 'package:flit/features/editor/lsp/protocol.dart';
 import 'package:flit/features/editor/file_kind.dart';
 import 'package:flit/features/workspace/editor_tabs.dart';
 import 'package:flit/features/workspace/project_session.dart';
@@ -181,6 +183,18 @@ void main() {
     expect(find.byType(EditorPage), findsNothing, reason: '关闭项目后页面应退出');
   }
 
+
+  /// 关闭链里有 fake-clock 外的真实异步: 放行几次再等
+  Future<void> closeSession(WidgetTester tester, ProjectSession project) async {
+    await tester.pumpWidget(const SizedBox());
+    final closing = project.close();
+    for (var i = 0; i < 8; i++) {
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    await closing;
+  }
+
   testWidgets('opens main without waiting for project file listing', (
     tester,
   ) async {
@@ -189,6 +203,27 @@ void main() {
     expect(find.byType(CodeField), findsOneWidget);
     expect(tester.widget<TextField>(field()).controller!.text, source);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('analysis entry lives in file tabs and opens current-file problems', (tester) async {
+    final project = ProjectSession('/project', launcher: services.launcher);
+    await open(tester, session: project);
+    final entry = find.byType(EditorAnalysisStatus);
+    expect(entry, findsOneWidget);
+    expect(tester.getRect(entry).bottom, lessThanOrEqualTo(tester.getRect(field()).top));
+    expect(find.text('Dart 分析就绪'), findsNothing);
+    project.documents.current!.controller.setDiagnostics(const [
+      EditorDiagnostic(line: 0, character: 1, endLine: 0, endCharacter: 2, severity: 1, message: 'Example diagnostic'),
+    ]);
+    await tester.pump();
+    expect(find.descendant(of: entry, matching: find.text('1')), findsOneWidget);
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+    expect(find.text('Example diagnostic'), findsOneWidget);
+    await tester.tap(find.text('Example diagnostic'));
+    await tester.pumpAndSettle();
+    expect(project.documents.current!.controller.selection.baseOffset, 1);
+    await closeSession(tester, project);
   });
 
   testWidgets(
@@ -489,18 +524,6 @@ void main() {
     await tester.pump();
     tester.view.resetViewInsets();
   });
-
-  /// 关闭链里有 fake-clock 外的真实异步: 放行几次再等
-  Future<void> closeSession(WidgetTester tester, ProjectSession project) async {
-    await tester.pumpWidget(const SizedBox());
-    final closing = project.close();
-    for (var i = 0; i < 8; i++) {
-      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-      await tester.pump(const Duration(milliseconds: 50));
-    }
-    await closing;
-  }
-
   void openFromDrawer(WidgetTester tester, String path) => tester
       .widget<FileTreeDrawer>(find.byType(FileTreeDrawer, skipOffstage: false))
       .onOpenFile(path);

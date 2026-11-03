@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -77,7 +78,7 @@ class LspClient {
         await FlitLsp.stop();
         return false;
       }
-      if (!spawned) throw StateError('Dart 语言服务无法启动');
+      if (!spawned) throw StateError(strings.dartLanguageServiceCouldNotStart);
       final response = await _request('initialize', {
         'processId': null,
         'rootUri': LspProtocol.fileUri(projectPath),
@@ -115,13 +116,13 @@ class LspClient {
           },
         },
         'clientInfo': {'name': 'Flit'},
-      // 真机冷启动(分析器首启+全工程索引)可能超过 20s, 放宽到 60s
+        // 真机冷启动(分析器首启+全工程索引)可能超过 20s, 放宽到 60s
       }, timeout: const Duration(seconds: 60));
       if (response == null ||
           response['error'] != null ||
           response['result'] is! Map ||
           generation != _generation) {
-        throw StateError('初始化失败');
+        throw StateError(strings.initializationFailed);
       }
       final capabilities = (response['result'] as Map)['capabilities'] as Map?;
       _resolveSupported =
@@ -144,7 +145,7 @@ class LspClient {
     final generation = _generation;
     try {
       final sent = await FlitLsp.notify(method, jsonEncode(params));
-      if (!sent) throw StateError('语言服务连接已断开');
+      if (!sent) throw StateError(strings.languageServiceDisconnected);
     } catch (_) {
       if (generation == _generation) {
         state.value = LanguageServiceState.unavailable;

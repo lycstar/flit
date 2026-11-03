@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -98,54 +99,54 @@ class _DeviceUsbGuideState extends State<DeviceUsbGuide>
   }
 
   String get _message => _status == 'connected'
-      ? '已连接本机，可以拔掉数据线。'
+      ? context.strings.connectedLocallyYouCanUnplugTheCable
       : _timedOut
-      ? '等待超时，请检查电脑命令输出，然后重新连接。'
+      ? context.strings.waitTimedOutCheckTheComputerCommand
       : switch (_status) {
-          'unauthorized' => '请在手机上允许 USB 调试授权，Flit 会自动继续连接。',
-          'failed' => '无法读取 ADB 状态，请检查开发环境；正在重试…',
-          _ => '等待电脑激活… Flit 会自动连接本机。',
+          'unauthorized' => context.strings.allowUsbDebuggingOnThePhoneFlit,
+          'failed' => context.strings.unableToReadAdbStatusCheckThe,
+          _ => context.strings.waitingForComputerActivationFlitWillConnect,
         };
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('通过电脑 USB 激活'),
+    title: Text(context.strings.activateViaComputerUsb),
     scrollable: true,
     content: SizedBox(
       width: 440,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('1. 手机开启 USB 调试，用数据线连接电脑，并允许调试授权。电脑只连接这一台手机。'),
+          Text(context.strings.enableUsbDebuggingConnectThePhoneTo),
           const SizedBox(height: 16),
-          const Text('2. 电脑下载并解压 Platform Tools，在解压目录打开终端。'),
+          Text(context.strings.downloadAndExtractPlatformToolsOnThe),
           TextButton.icon(
             onPressed: () async {
               try {
                 if (!await Shell.instance.openUrl(
                   'https://developer.android.com/tools/releases/platform-tools',
                 )) {
-                  throw StateError('无法打开下载页面');
+                  throw StateError(strings.unableToOpenTheDownloadPage);
                 }
               } catch (_) {
                 if (mounted) {
                   setState(
                     () => _error =
-                        '请在电脑访问 developer.android.com/tools/releases/platform-tools',
+                        context.strings.onTheComputerVisitDeveloperAndroidCom,
                   );
                 }
               }
             },
             icon: const Icon(Icons.open_in_new, size: 16),
-            label: const Text('Platform Tools 官网'),
+            label: Text(context.strings.platformToolsWebsite),
           ),
           const SizedBox(height: 8),
-          const Text('3. 在电脑执行这一条命令，然后保持此引导打开，等待连接。'),
+          Text(context.strings.runThisCommandOnTheComputerKeep),
           const SizedBox(height: 8),
           DropdownButtonFormField<bool>(
             isExpanded: true,
             initialValue: _windows,
-            decoration: const InputDecoration(labelText: '电脑系统'),
+            decoration: InputDecoration(labelText: context.strings.computerOs),
             items: const [
               DropdownMenuItem(
                 value: true,
@@ -183,35 +184,44 @@ class _DeviceUsbGuideState extends State<DeviceUsbGuide>
                   await Clipboard.setData(ClipboardData(text: _command));
                   if (mounted) setState(() => _copied = true);
                 } catch (_) {
-                  if (mounted) setState(() => _error = '复制失败，请长按命令复制');
+                  if (mounted) {
+                    setState(
+                      () => _error =
+                          context.strings.copyFailedLongPressTheCommandTo,
+                    );
+                  }
                 }
               },
               icon: Icon(_copied ? Icons.check : Icons.copy, size: 16),
-              label: Text(_copied ? '已复制' : '复制命令'),
+              label: Text(
+                _copied ? context.strings.copied : context.strings.copyCommand,
+              ),
             ),
           ),
-          const Text(
-            '电脑显示 restarting in TCP mode port: 5555 后，Flit 会尝试连接。若手机再次弹出调试授权，请允许。',
-          ),
+          Text(context.strings.afterTheComputerShowsRestartingInTcp),
           const SizedBox(height: 16),
           Text(_message),
           if (_error != null) Text(_error!),
           const SizedBox(height: 16),
-          const Text('自动等待最多 2 分钟，退出引导即停止。之后仍可在设备页点“连接本机”。手机重启后通常需要重新激活。'),
+          Text(context.strings.waitsAutomaticallyForUpToMinutesClosing),
           const SizedBox(height: 8),
-          Text('TCP 调试可能同时监听网络接口。停用时接回电脑执行 $_adb -d usb；Flit 中“断开”仅断开客户端。'),
+          Text(context.strings.tcpDebuggingMayAlsoListenOnNetwork(_adb)),
         ],
       ),
     ),
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: Text(_status == 'connected' ? '完成' : '关闭'),
+        child: Text(
+          _status == 'connected' ? context.strings.done : context.strings.close,
+        ),
       ),
       if (_status != 'connected')
         FilledButton(
           onPressed: _checking ? null : () => _check(restart: true),
-          child: Text(_timedOut ? '重新连接' : '立即连接'),
+          child: Text(
+            _timedOut ? context.strings.reconnect : context.strings.connectNow,
+          ),
         ),
     ],
   );

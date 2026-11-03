@@ -11,6 +11,8 @@ import 'features/terminal/pty_launcher.dart';
 import 'features/terminal/pty_session.dart';
 import 'features/workspace/project_session.dart';
 import 'services/auto_proxy.dart';
+import 'l10n/strings.dart';
+import 'l10n/app_localizations.dart';
 
 /// 组合根: 应用级对象只在这里创建一次, 其余代码通过 AppScope 取用。
 /// 代理先于启动器: PTY 环境在进程启动那一刻注入代理, 启动器必须拿到它。
@@ -22,6 +24,12 @@ Future<AppServices> composeApp() async {
   final launcher = PtyLauncher(proxy: proxy).call;
   final preferences = AppearancePreferences();
   await preferences.load();
+  strings = lookupAppLocalizations(
+    resolveAppLocale(
+      preferences.language,
+      WidgetsBinding.instance.platformDispatcher.locales,
+    ),
+  );
   final workspace = ProjectWorkspace(launcher: launcher);
   return AppServices(
     launcher: launcher,

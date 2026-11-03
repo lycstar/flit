@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -31,7 +32,10 @@ class DeviceConnection extends ChangeNotifier {
   /// 每次操作开新控制台(替换上一个); 被 ✕ 关掉后自动置空
   ConsoleSession _openConsole() {
     final previous = console;
-    final session = ConsoleSession(title: '设备连接', launcher: _launcher);
+    final session = ConsoleSession(
+      title: strings.deviceConnection,
+      launcher: _launcher,
+    );
     session.addListener(() {
       if (session.disposed && identical(console, session)) {
         console = null;
@@ -68,14 +72,14 @@ class DeviceConnection extends ChangeNotifier {
             !RegExp(
               r'^[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?$',
             ).hasMatch(host)) {
-      throw const FormatException('请输入 IP 地址或主机名，不包含协议和端口');
+      throw FormatException(strings.enterAnIpAddressOrHostnameWithout);
     }
     final number = int.tryParse(port.trim());
     if (!RegExp(r'^\d+$').hasMatch(port.trim()) ||
         number == null ||
         number < 1 ||
         number > 65535) {
-      throw const FormatException('端口必须在 1–65535 之间');
+      throw FormatException(strings.portMustBeBetweenAnd);
     }
     return '${address?.type == InternetAddressType.IPv6 ? '[$host]' : host}:$number';
   }
@@ -119,7 +123,7 @@ class DeviceConnection extends ChangeNotifier {
     } catch (error) {
       if (_closed || revision != _revision) return false;
       devices = const [];
-      readError = '读取设备失败，请查看终端输出';
+      readError = strings.unableToReadDevicesSeeTerminalOutput;
       _log.log.err('$readError: $error');
       return false;
     } finally {
@@ -130,14 +134,21 @@ class DeviceConnection extends ChangeNotifier {
     }
   }
 
-  Future<({int code, String output})> _run(String command) async {
+  Future<({int code, String output})> _run(
+    String command, {
+    String? displayCommand,
+  }) async {
     final c = _log;
     final output = StringBuffer();
     final subscription = c.textStream.listen(output.write);
     try {
-      final code = await c.run(command, timeout: const Duration(seconds: 30));
+      final code = await c.run(
+        command,
+        displayCommand: displayCommand,
+        timeout: const Duration(seconds: 30),
+      );
       if (code == -1 && c.exitCode == -1 && !_closed) {
-        throw StateError('ADB 启动失败，请检查开发环境');
+        throw StateError(strings.adbFailedToStartCheckTheDevelopment);
       }
       return (code: code, output: output.toString());
     } finally {
@@ -159,7 +170,9 @@ class DeviceConnection extends ChangeNotifier {
       if (!_closed) {
         _log.log.err('$error');
         _result(
-          error is FormatException ? error.message : '操作失败：$error。详细原因见终端。',
+          error is FormatException
+              ? error.message
+              : strings.operationFailedPSeeTerminalForDetails(error),
           error: true,
         );
       }
@@ -173,19 +186,20 @@ class DeviceConnection extends ChangeNotifier {
   Future<bool> pair(String host, String port, String code) => _action(() async {
     final target = endpoint(host, port);
     if (!RegExp(r'^\d{6}$').hasMatch(code.trim())) {
-      throw const FormatException('请填写 6 位配对码');
+      throw FormatException(strings.enterADigitPairingCode);
     }
     final result = await _run(
       'adb pair ${shQuote(target)} ${shQuote(code.trim())}',
+      displayCommand: 'adb pair ${shQuote(target)} ******',
     );
     if (_closed) return false;
     if (result.code != 0 || !result.output.contains('Successfully paired to')) {
-      _result('配对失败：请保持系统配对码弹窗开启，核对配对端口与配对码后重试。详细原因见终端。', error: true);
+      _result(strings.pairingFailedKeepTheSystemPairingDialog, error: true);
       return false;
     }
     await _remember(host, paired: true);
     if (_closed) return false;
-    _result('配对成功');
+    _result(strings.pairedSuccessfully);
     await _read();
     return true;
   });
@@ -210,22 +224,25 @@ class DeviceConnection extends ChangeNotifier {
           }
           if (!verified ||
               !devices.any((d) => _matchesMethod(d, selected) && d.online)) {
-            _result('连接后未能确认设备在线，请刷新设备或查看日志', error: true);
+            _result(strings.unableToConfirmDeviceIsOnlineRefresh, error: true);
             return false;
           }
-          _result('✓ 已自动连接本机无线调试');
+          _result(strings.connectedToLocalWirelessDebugging);
           return true;
         case AdbAutoResult.needsAuthorization:
-          _result('请在手机上允许 USB 调试授权后重试', error: true);
+          _result(strings.allowUsbDebuggingOnThePhoneThen, error: true);
           return false;
         case AdbAutoResult.needsPairing:
-          _result('需要配对，请点击“通知配对”');
+          _result(strings.pairingRequiredTapNotificationPairing);
           return false;
         case AdbAutoResult.failed:
-          _result('连接未成功，请查看日志或使用当前端口手动连接', error: true);
+          _result(
+            strings.connectionFailedCheckLogsOrConnectManually,
+            error: true,
+          );
           return false;
         case AdbAutoResult.unavailable:
-          _result('未发现无线端口，可重新扫描、手动输入，或通过电脑 USB 激活', error: true);
+          _result(strings.noWirelessPortFoundScanAgainEnter, error: true);
           return false;
       }
     });
@@ -268,7 +285,7 @@ class DeviceConnection extends ChangeNotifier {
           method: AdbConnectionMethod.usb,
         );
         if (_closed || cancelled()) return 'waiting';
-        _result('✓ 已连接本机 · 电脑 USB 激活，可拔掉数据线');
+        _result(strings.connectedLocallyUsbActivatedYouCanUnplug);
         return 'connected';
       }
       return device?.state == 'unauthorized' ? 'unauthorized' : 'waiting';
@@ -295,7 +312,9 @@ class DeviceConnection extends ChangeNotifier {
       if (!await _read() || _closed) {
         if (!_closed) {
           _result(
-            missing ? '无法确认连接状态，请先安装 ADB' : '✗ 无法确认连接状态：读取设备失败，请查看终端输出',
+            missing
+                ? strings.unableToConfirmConnectionInstallAdbFirst
+                : strings.unableToConfirmConnectionFailedToRead,
             error: true,
           );
         }
@@ -311,8 +330,8 @@ class DeviceConnection extends ChangeNotifier {
         );
         _result(
           method == AdbConnectionMethod.usb
-              ? '✓ 已连接本机 · 电脑 USB 激活，可拔掉数据线'
-              : '✓ 已连接 $target',
+              ? strings.connectedLocallyUsbActivatedYouCanUnplug
+              : strings.connectedToP(target),
         );
         return true;
       }
@@ -333,24 +352,27 @@ class DeviceConnection extends ChangeNotifier {
     final output = result.output.toLowerCase();
     if (method == AdbConnectionMethod.usb) {
       _result(switch (device?.state) {
-        'unauthorized' => '设备未授权：请在手机上允许 USB 调试授权，再点连接',
-        'offline' => '本机 ADB 离线，请在电脑重新执行激活命令后重试',
+        'unauthorized' => strings.deviceUnauthorizedAllowUsbDebuggingOnThe,
+        'offline' => strings.localAdbIsOfflineRunTheActivation,
         _ when output.contains('authenticate') =>
-          'ADB 认证失败：请在手机上确认 USB 调试授权，再点连接',
+          strings.adbAuthenticationFailedConfirmUsbDebuggingAuthorization,
         _ when output.contains('refused') =>
-          '尚未激活：请用 USB 连接电脑，执行激活命令后重试；手机重启后需重新激活',
-        _ => '未能连接本机 5555 端口，请检查电脑激活结果和手机授权；部分系统可能限制此方式',
+          strings.notActivatedConnectViaUsbAndRun,
+        _ => strings.unableToConnectToLocalPortCheck,
       }, error: true);
       return false;
     }
     _result(switch (device?.state) {
-      'unauthorized' => '设备未授权：请在目标设备确认调试授权；无线调试请重新配对，再使用连接端口连接。',
-      'offline' => '设备离线：请确认无线调试仍开启，再断开此设备并用当前连接端口重连。',
-      _ when output.contains('authenticate') => 'ADB 认证失败：请在无线调试中重新配对，再连接。',
-      _ when output.contains('refused') => '连接被拒绝：请开启无线调试，并使用主页上的连接端口。',
+      'unauthorized' =>
+        strings.deviceUnauthorizedConfirmAuthorizationOnTheTarget,
+      'offline' => strings.deviceOfflineEnableWirelessDebuggingThenDisconnect,
+      _ when output.contains('authenticate') =>
+        strings.adbAuthenticationFailedPairAgainInWireless,
+      _ when output.contains('refused') =>
+        strings.connectionRefusedEnableWirelessDebuggingAndUse,
       _ when output.contains('timed out') || result.code == -1 =>
-        '连接超时：请检查设备地址、网络和无线调试状态。',
-      _ => '设备尚未上线，请查看终端输出并核对无线调试的连接端口',
+        strings.connectionTimedOutCheckTheAddressNetwork,
+      _ => strings.deviceIsNotOnlineCheckTerminalOutput,
     }, error: true);
     return false;
   });
@@ -363,7 +385,9 @@ class DeviceConnection extends ChangeNotifier {
     final ok =
         result.code == 0 && read && !devices.any((d) => d.serial == serial);
     _result(
-      ok ? '已断开 $serial；配对授权仍保留。' : '无法确认设备已断开，请查看终端输出并刷新设备。',
+      ok
+          ? strings.disconnectedFromPPairingAuthorizationIsRetained(serial)
+          : strings.unableToConfirmDisconnectionCheckTerminalOutput,
       error: !ok,
     );
     return ok;
@@ -391,7 +415,9 @@ class DeviceConnection extends ChangeNotifier {
             paired ?? (preferences.adbHost == host && preferences.adbPaired),
       );
     } catch (error) {
-      if (!_closed) _log.log.warn('连接结果已生效，但设备设置保存失败： $error');
+      if (!_closed) {
+        _log.log.warn(strings.connectedButFailedToSaveDeviceSettings(error));
+      }
     }
   }
 
@@ -460,7 +486,7 @@ Future<AdbAutoResult> autoConnectAdb({
     final result = await run('adb devices');
     if (result.code != 0 ||
         !result.output.contains('List of devices attached')) {
-      throw StateError('无法读取 ADB 设备状态');
+      throw StateError(strings.unableToReadAdbDeviceStatus);
     }
     return AdbOps.parseStatuses(result.output);
   }
@@ -534,21 +560,21 @@ Future<AdbAutoResult> autoConnectAdb({
         (int.tryParse(last) ?? 0) >= 1 &&
         (int.tryParse(last) ?? 0) <= 65535) {
       tried.add(last);
-      c.log.info('尝试上次连接端口 $last');
+      c.log.info(strings.tryingPreviousConnectionPortP(last));
       final result = await connect(last);
       if (cancelled()) return AdbAutoResult.unavailable;
       if (result == AdbAutoResult.connected) return result;
       unauthorized = result == AdbAutoResult.needsPairing;
     }
     if (cancelled()) return AdbAutoResult.unavailable;
-    c.log.info('扫描本机无线调试连接端口…');
+    c.log.info(strings.scanningLocalWirelessDebuggingPorts);
     final found = await FlitDevice.discoverAdb(
       timeout: const Duration(seconds: 8),
     );
     if (cancelled()) return AdbAutoResult.unavailable;
     for (final service in found) {
       if (!tried.add(service.port)) continue;
-      c.log.info('发现连接端口 ${service.port}');
+      c.log.info(strings.foundConnectionPortP(service.port));
       final result = await connect(service.port);
       if (cancelled()) return AdbAutoResult.unavailable;
       if (result == AdbAutoResult.connected) return result;
@@ -557,7 +583,7 @@ Future<AdbAutoResult> autoConnectAdb({
     if (unauthorized) return authRequired;
     return found.isEmpty ? AdbAutoResult.unavailable : AdbAutoResult.failed;
   } catch (error) {
-    if (!cancelled()) c.log.err('扫描或连接失败：$error');
+    if (!cancelled()) c.log.err(strings.scanOrConnectionFailedP(error));
     return AdbAutoResult.failed;
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'shell.dart';
 
 /// adb 设备(serial + 型号)
@@ -8,10 +9,10 @@ class AdbStatus {
   final String serial, state, model;
   bool get online => state == 'device';
   String get label => switch (state) {
-    'device' => '已连接',
-    'unauthorized' => '未授权',
-    'offline' => '离线',
-    'authorizing' => '认证中',
+    'device' => strings.connected,
+    'unauthorized' => strings.unauthorized,
+    'offline' => strings.offline,
+    'authorizing' => strings.authenticating,
     _ => state,
   };
 }
@@ -65,7 +66,22 @@ class AdbOps {
         ),
       );
     }
-    return devices;
+    // ADB's emulator scanner connects to localhost:(console port + 1).
+    // A phone listening on 5555 can therefore also appear as emulator-5554.
+    // Prefer the explicit online endpoint; never merge by model name.
+    final localPorts = <int>{
+      for (final device in devices)
+        if (device.online &&
+            RegExp(
+              r'^(127\.0\.0\.1|localhost|\[::1\]):\d+$',
+            ).hasMatch(device.serial))
+          int.parse(device.serial.split(':').last),
+    };
+    return devices.where((device) {
+      final alias = RegExp(r'^emulator-(\d+)$').firstMatch(device.serial);
+      return alias == null ||
+          !localPorts.contains(int.parse(alias.group(1)!) + 1);
+    }).toList();
   }
 
   /// 目标的友好名与类别:
@@ -76,10 +92,16 @@ class AdbOps {
     if (serial.startsWith('127.0.0.1:') ||
         serial.startsWith('[::1]:') ||
         serial.startsWith('localhost:')) {
-      return (model.isEmpty ? '本机' : '本机 · $model', '本机');
+      return (
+        model.isEmpty ? strings.localDevice : strings.localDeviceP(model),
+        strings.localDevice,
+      );
     }
     if (serial.contains(':')) {
-      return (model.isEmpty ? '局域网 ${serial.split(':').first}' : model, '局域网');
+      return (
+        model.isEmpty ? strings.lanP(serial.split(':').first) : model,
+        strings.lan,
+      );
     }
     return (model.isEmpty ? serial : model, 'USB');
   }
@@ -99,11 +121,11 @@ class AdbOps {
     );
     if (res['exitCode'] != 0) {
       final output = (res['output'] as String? ?? '').trim();
-      throw StateError(output.isEmpty ? '读取设备失败' : output);
+      throw StateError(output.isEmpty ? strings.failedToReadDevices : output);
     }
     final output = res['output'] as String? ?? '';
     if (!output.contains('List of devices attached')) {
-      throw StateError('ADB 未返回设备列表：$output');
+      throw StateError(strings.adbDidNotReturnADeviceList(output));
     }
     return parseStatuses(output);
   }

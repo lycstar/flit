@@ -32,7 +32,7 @@ void main() {
           runDevice: '192.168.1.8:32100',
         );
         await preferences.update(
-          editor: 16,
+          editor: 36,
           theme: 'light',
           terminal: 22,
           terminalFont: 'monospace',
@@ -47,7 +47,7 @@ void main() {
         expect(data['adbPairingRevision'], 12345);
         expect(data['runDevice'], '192.168.1.8:32100');
         await reloaded.load();
-        expect(reloaded.editorSize, 16);
+        expect(reloaded.editorSize, 36);
         expect(reloaded.terminalSize, 22);
         expect(reloaded.terminalFont, 'monospace');
         expect(reloaded.terminalLineHeight, 1.6);
@@ -60,10 +60,12 @@ void main() {
           adbPaired: false,
           runDevice: '',
           terminal: 100,
+          editor: 100,
           terminalLineHeight: .1,
           terminalFont: 'unavailable',
         );
         expect(reloaded.terminalSize, AppearancePreferences.terminalMaxSize);
+        expect(reloaded.editorSize, AppearancePreferences.editorMaxSize);
         expect(reloaded.terminalLineHeight, 1);
         expect(reloaded.terminalFont, 'JetBrainsMono');
         expect(

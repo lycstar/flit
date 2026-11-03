@@ -20,12 +20,14 @@ void main() {
   final processes = <FakeProcess>[];
   Completer<SessionProcess>? pendingLaunch;
   var missing = '';
+  var deviceOutput = '';
   final commands = <String?>[];
 
   setUp(() {
     processes.clear();
     commands.clear();
     missing = '';
+    deviceOutput = 'phone device model:Phone\ntablet device model:Tablet\n';
     pendingLaunch = null;
     // 工程关闭要 dispose 语言服务(flit/lsp), 会话启动要保活(flit/work)
     mockFlitPlugins(binding.defaultBinaryMessenger);
@@ -46,7 +48,7 @@ void main() {
           return {
             'exitCode': 0,
             'output':
-                'List of devices attached\nphone device model:Phone\ntablet device model:Tablet\n',
+                'List of devices attached\n$deviceOutput',
           };
         }
         return true;
@@ -125,6 +127,65 @@ void main() {
   ListTile task(WidgetTester tester, String title) => tester.widget<ListTile>(
     find.ancestor(of: find.text(title), matching: find.byType(ListTile)),
   );
+
+  for (final (name, devices, expected) in [
+    ('local before remote', 'phone device\n127.0.0.1:43210 device\n', '127.0.0.1:43210'),
+    ('USB activated local first', '127.0.0.1:43210 device\n127.0.0.1:5555 device\n', '127.0.0.1:5555'),
+    ('single remote', 'phone device\n', 'phone'),
+    ('no devices uses Web', '', 'web'),
+    ('multiple remote devices require a choice', 'phone device\ntablet device\n', ''),
+  ]) {
+    testWidgets('initial target: $name', (tester) async {
+      deviceOutput = devices;
+      project.runTarget = '';
+      await open(tester);
+      expect(project.runTarget, expected);
+      expect(processes, isEmpty);
+      expect(commands, isEmpty);
+      await close(tester);
+    });
+  }
+
+  testWidgets('refresh preserves manual Web choice when a phone connects', (tester) async {
+    deviceOutput = '';
+    project.runTarget = 'web';
+    await open(tester);
+    deviceOutput = '127.0.0.1:5555 device model:Phone\n';
+    await tester.tap(find.text('Web'));
+    await tester.pumpAndSettle();
+    expect(project.runTarget, 'web');
+    Navigator.of(tester.element(find.text('运行目标'))).pop();
+    await tester.pumpAndSettle();
+    await close(tester);
+  });
+
+  testWidgets('missing Android target is retained rather than replaced by Web', (tester) async {
+    deviceOutput = '';
+    await open(tester);
+    expect(project.runTarget, 'phone');
+    await tester.tap(find.byTooltip('运行'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('未连接'), findsOneWidget);
+    expect(project.runTarget, 'phone');
+    expect(processes, isEmpty);
+    await close(tester);
+  });
+
+  testWidgets('Web default asks before adding project files and cancellation starts nothing', (tester) async {
+    deviceOutput = '';
+    project.runTarget = '';
+    await open(tester);
+    await tester.tap(find.byTooltip('运行'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await tester.pumpAndSettle();
+    expect(find.text('添加 Web 支持？'), findsOneWidget);
+    expect(processes, isEmpty);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(processes, isEmpty);
+    expect(project.runTarget, 'web');
+    await close(tester);
+  });
 
   testWidgets(
     'run controls bind to target during startup, shell browsing and stop',

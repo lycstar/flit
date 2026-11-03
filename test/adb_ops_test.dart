@@ -3,6 +3,34 @@ import 'package:flit/services/adb_ops.dart';
 
 void main() {
   group('AdbOps.parseDevices', () {
+    test('local TCP endpoint replaces the matching emulator scan alias', () {
+      const output =
+          'List of devices attached\n'
+          'emulator-5554 device model:Phone\n'
+          '127.0.0.1:5555 device model:Phone\n'
+          'emulator-5556 device model:Phone\n'
+          '192.168.1.8:5555 device model:Phone\n';
+      expect(AdbOps.parseStatuses(output).map((d) => d.serial), [
+        '127.0.0.1:5555',
+        'emulator-5556',
+        '192.168.1.8:5555',
+      ]);
+      expect(AdbOps.parseDevices(output).map((d) => d.$1), [
+        '127.0.0.1:5555',
+        'emulator-5556',
+        '192.168.1.8:5555',
+      ]);
+    });
+
+    test('keep the emulator when the explicit endpoint is not online', () {
+      final devices = AdbOps.parseDevices(
+        'List of devices attached\n'
+        'emulator-5554 device model:Phone\n'
+        '127.0.0.1:5555 offline\n',
+      );
+      expect(devices.single.$1, 'emulator-5554');
+    });
+
     test('常规输出: 本机回环 + 局域网设备', () {
       final devices = AdbOps.parseDevices(
         'List of devices attached\n'
@@ -32,7 +60,10 @@ void main() {
 
     test('空输出与表头缺失', () {
       expect(AdbOps.parseDevices(''), isEmpty);
-      expect(AdbOps.parseDevices('daemon not running; starting now\n'), isEmpty);
+      expect(
+        AdbOps.parseDevices('daemon not running; starting now\n'),
+        isEmpty,
+      );
     });
   });
 }

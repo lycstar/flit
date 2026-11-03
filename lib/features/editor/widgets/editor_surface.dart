@@ -1,15 +1,18 @@
+import 'package:flit/l10n/strings.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme.dart';
+import '../../../core/pinch_zoom.dart';
 import '../../settings/appearance_preferences.dart';
 import '../completion/completion_engine.dart';
 import '../controller/code_controller.dart';
 import '../controller/editor_intelligence.dart';
-import '../../workspace/project_session.dart';
 import '../lsp/lsp_client.dart';
-import '../lsp/protocol.dart';
+import '../lsp/protocol.dart' show SignatureHelp;
 import 'code_field.dart';
 import 'completion_popup.dart';
 
@@ -34,6 +37,48 @@ class _EditorSurfaceState extends State<EditorSurface> {
   late final LspClient _language = context.read<LspClient>();
   late final EditorIntelligence _intelligence;
   Rect? _caretRect;
+  double? _zoomSize;
+  double _zoomStartSize = 14;
+  int _zoomGeneration = 0;
+
+  void _zoomStart() {
+    _zoomGeneration++;
+    _zoomStartSize =
+        _zoomSize ?? context.read<AppearancePreferences>().editorSize;
+    _dismissSuggestions();
+  }
+
+  void _zoom(double scale) {
+    final size = (_zoomStartSize * scale).clamp(
+      AppearancePreferences.editorMinSize,
+      AppearancePreferences.editorMaxSize,
+    );
+    if (size.isFinite) setState(() => _zoomSize = size);
+  }
+
+  Future<void> _saveZoom() async {
+    if (_zoomSize == null) return;
+    final generation = _zoomGeneration;
+    final size = (_zoomSize! * 2).round() / 2;
+    try {
+      await context.read<AppearancePreferences>().update(editor: size);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.strings.fontSizeAppliedButSavingFailedP(error),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted && generation == _zoomGeneration) {
+        setState(() => _zoomSize = null);
+      }
+    }
+  }
+
   CodeController get _codeCtrl => widget.controller;
   FocusNode get _editorFocus => widget.focusNode;
 
@@ -60,9 +105,9 @@ class _EditorSurfaceState extends State<EditorSurface> {
     } on FormatException {
       if (!mounted) return;
       _intelligence.dismiss();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('补全项已失效，请重新输入')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.strings.completionItemExpiredTypeAgain)),
+      );
     }
   }
 
@@ -126,156 +171,6 @@ class _EditorSurfaceState extends State<EditorSurface> {
     return KeyEventResult.ignored;
   }
 
-  void _showDiagnostics() {
-    final snapshot = _codeCtrl.text;
-    final controller = _codeCtrl;
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (sheetContext) => SafeArea(
-        child: SizedBox(
-          height: MediaQuery.sizeOf(context).height * .5,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Text(
-                  '问题 · 当前文件',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-              ),
-              Expanded(
-                child: _intelligence.diagnostics.isEmpty
-                    ? const Center(child: Text('暂无问题'))
-                    : ListView.builder(
-                        itemCount: _intelligence.diagnostics.length,
-                        itemBuilder: (_, i) {
-                          final diagnostic = _intelligence.diagnostics[i];
-                          return ListTile(
-                            leading: Icon(
-                              diagnostic.severity == 1
-                                  ? Icons.error_outline
-                                  : Icons.warning_amber,
-                              color: diagnostic.severity == 1
-                                  ? AppColors.danger
-                                  : AppColors.warn,
-                            ),
-                            title: Text(
-                              diagnostic.message,
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                            subtitle: Text(
-                              '第 ${diagnostic.line + 1} 行 · 第 ${diagnostic.character + 1} 列',
-                            ),
-                            onTap: () {
-                              Navigator.pop(sheetContext);
-                              if (!identical(controller, _codeCtrl) ||
-                                  controller.text != snapshot) {
-                                return;
-                              }
-                              try {
-                                final offset = LspProtocol.positionToOffset(
-                                  snapshot,
-                                  diagnostic.line,
-                                  diagnostic.character,
-                                );
-                                controller.selection = TextSelection.collapsed(
-                                  offset: offset,
-                                );
-                                _editorFocus.requestFocus();
-                                WidgetsBinding.instance.addPostFrameCallback((
-                                  _,
-                                ) {
-                                  if (!mounted) return;
-                                  final editable = _editorFocus.context
-                                      ?.findAncestorStateOfType<
-                                        EditableTextState
-                                      >();
-                                  editable?.bringIntoView(
-                                    TextPosition(offset: offset),
-                                  );
-                                });
-                              } on FormatException {
-                                /* Wait for fresh diagnostics. */
-                              }
-                            },
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _languageStatus() {
-    final dart = _codeCtrl.language == 'dart';
-    final state = _language.state.value;
-    final label = !dart
-        ? '语法高亮'
-        : switch (state) {
-            LanguageServiceState.starting => '正在启动 Dart 分析器…',
-            LanguageServiceState.ready => 'Dart · 代码分析就绪',
-            _ => 'Dart · 基础补全',
-          };
-    return Container(
-      height: 28,
-      color: AppColors.surface,
-      padding: const EdgeInsets.only(left: 12),
-      child: Row(
-        children: [
-          Icon(
-            Icons.circle,
-            size: 6,
-            color: dart && state == LanguageServiceState.ready
-                ? AppColors.success
-                : AppColors.textFaint,
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 10, color: AppColors.textFaint),
-            ),
-          ),
-          if (dart &&
-              state != LanguageServiceState.ready &&
-              state != LanguageServiceState.starting)
-            TextButton(
-              onPressed: () => context.read<ProjectSession>().activate(),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                minimumSize: const Size(40, 24),
-              ),
-              child: const Text('重试', style: TextStyle(fontSize: 10)),
-            ),
-          TextButton(
-            onPressed: _showDiagnostics,
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              minimumSize: const Size(40, 24),
-            ),
-            child: Text(
-              '问题 ${_intelligence.diagnostics.length}',
-              style: TextStyle(
-                fontSize: 10,
-                color: _intelligence.diagnostics.isEmpty
-                    ? AppColors.textFaint
-                    : AppColors.warn,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _signatureView(SignatureHelp signature) {
     final start = signature.parameterStart;
     final end = signature.parameterEnd;
@@ -334,18 +229,23 @@ class _EditorSurfaceState extends State<EditorSurface> {
                   clipBehavior: Clip.none,
                   children: [
                     Positioned.fill(
-                      child: CodeField(
-                        controller: _codeCtrl,
-                        focusNode: _editorFocus,
-                        language: _language,
-                        filePath: widget.path,
-                        onCaretChanged: (rect) {
-                          if (mounted && rect != _caretRect) {
-                            setState(() => _caretRect = rect);
-                          }
-                        },
-                        fontSize: preferences.editorSize,
-                        wrap: preferences.editorWrap,
+                      child: PinchZoom(
+                        onStart: _zoomStart,
+                        onScale: _zoom,
+                        onEnd: () => unawaited(_saveZoom()),
+                        child: CodeField(
+                          controller: _codeCtrl,
+                          focusNode: _editorFocus,
+                          language: _language,
+                          filePath: widget.path,
+                          onCaretChanged: (rect) {
+                            if (mounted && rect != _caretRect) {
+                              setState(() => _caretRect = rect);
+                            }
+                          },
+                          fontSize: _zoomSize ?? preferences.editorSize,
+                          wrap: preferences.editorWrap,
+                        ),
                       ),
                     ),
                     if (_buildCompletionPopup(context, constraints)
@@ -357,7 +257,6 @@ class _EditorSurfaceState extends State<EditorSurface> {
               if (_intelligence.signature != null &&
                   constraints.maxHeight > 180)
                 _signatureView(_intelligence.signature!),
-              _languageStatus(),
             ],
           ),
         ),

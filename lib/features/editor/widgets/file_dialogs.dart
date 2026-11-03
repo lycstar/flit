@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
@@ -13,6 +14,7 @@ Future<void> showActionMenu(BuildContext context, List<MenuAction> items) {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          const SheetHandle(),
           for (final (_, icon, label, onTap) in items)
             ListTile(
               dense: true,
@@ -36,20 +38,23 @@ Future<bool> confirmDeleteDialog(BuildContext context, String name) async {
     context: context,
     builder: (ctx) => AlertDialog(
       backgroundColor: AppColors.surface,
-      title: Text('删除「$name」？', style: const TextStyle(fontSize: 16)),
-      content: const Text(
-        '将永久删除所选文件或目录及其内容，此操作无法撤销。',
+      title: Text(
+        context.strings.deleteP576(name),
+        style: const TextStyle(fontSize: 16),
+      ),
+      content: Text(
+        context.strings.permanentlyDeleteTheSelectedFileOrDirectory,
         style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('取消'),
+          child: Text(context.strings.cancel),
         ),
         TextButton(
           onPressed: () => Navigator.pop(ctx, true),
           style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-          child: const Text('删除'),
+          child: Text(context.strings.delete),
         ),
       ],
     ),
@@ -64,21 +69,21 @@ Future<String?> renameDialog(BuildContext context, String oldName) {
     context: context,
     builder: (ctx) => AlertDialog(
       backgroundColor: AppColors.surface,
-      title: const Text('重命名', style: TextStyle(fontSize: 16)),
+      title: Text(context.strings.rename, style: TextStyle(fontSize: 16)),
       content: TextField(
         controller: ctrl,
         autofocus: true,
         style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-        decoration: const InputDecoration(hintText: '名称'),
+        decoration: InputDecoration(hintText: context.strings.name),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('取消'),
+          child: Text(context.strings.cancel),
         ),
         TextButton(
           onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-          child: const Text('重命名'),
+          child: Text(context.strings.rename),
         ),
       ],
     ),
@@ -92,7 +97,10 @@ Future<String?> createDialog(BuildContext context, {required bool dir}) {
     context: context,
     builder: (ctx) => AlertDialog(
       backgroundColor: AppColors.surface,
-      title: Text(dir ? '新建目录' : '新建文件', style: const TextStyle(fontSize: 16)),
+      title: Text(
+        dir ? context.strings.newDirectory : context.strings.newFile,
+        style: const TextStyle(fontSize: 16),
+      ),
       content: TextField(
         controller: ctrl,
         autofocus: true,
@@ -102,11 +110,11 @@ Future<String?> createDialog(BuildContext context, {required bool dir}) {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('取消'),
+          child: Text(context.strings.cancel),
         ),
         TextButton(
           onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-          child: const Text('创建'),
+          child: Text(context.strings.create),
         ),
       ],
     ),

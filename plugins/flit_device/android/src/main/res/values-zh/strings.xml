@@ -1,0 +1,36 @@
+<resources>
+    <string name="flit_device_0">不支持的扫描类型</string>
+    <string name="flit_device_1">通知配对需要 Android 11 或更高版本</string>
+    <string name="flit_device_2">无法开始端口扫描：%1$s</string>
+    <string name="flit_device_3">端口扫描失败（NSD %1$s）</string>
+    <string name="flit_device_4">端口解析失败（NSD %1$s），请重新扫描</string>
+    <string name="flit_device_5">配对已中断，请重试</string>
+    <string name="flit_device_6">请先安装 Android Platform Tools</string>
+    <string name="flit_device_7">请先在系统设置中允许 Flit 通知，再开始配对</string>
+    <string name="flit_device_8">无线调试配对</string>
+    <string name="flit_device_9">请在系统通知设置中开启“无线调试配对”通知</string>
+    <string name="flit_device_10">等待配对超时，请重新开始</string>
+    <string name="flit_device_11">已取消配对</string>
+    <string name="flit_device_12">配对端口已失效，请重新开始</string>
+    <string name="flit_device_13">在无线调试中打开“使用配对码配对设备”</string>
+    <string name="flit_device_14">正在寻找配对端口</string>
+    <string name="flit_device_15">打开系统配对码窗口，发现后可在此输入配对码</string>
+    <string name="flit_device_16">无法启动配对通知，请检查通知及后台运行权限</string>
+    <string name="flit_device_17">已找到端口 %1$s，请在通知中输入 6 位配对码</string>
+    <string name="flit_device_18">已找到配对端口 %1$s</string>
+    <string name="flit_device_19">保持系统配对窗口开启，在此输入配对码</string>
+    <string name="flit_device_20">配对窗口已关闭，请重新打开</string>
+    <string name="flit_device_21">请重新打开系统配对码窗口</string>
+    <string name="flit_device_22">请输入 6 位配对码</string>
+    <string name="flit_device_23">配对码位于系统配对窗口中</string>
+    <string name="flit_device_24">正在配对…</string>
+    <string name="flit_device_25">正在配对</string>
+    <string name="flit_device_26">请保持系统配对窗口开启</string>
+    <string name="flit_device_27">配对成功，返回 Flit 自动连接</string>
+    <string name="flit_device_28">配对失败，请重新打开配对窗口并核对配对码</string>
+    <string name="flit_device_29">配对成功</string>
+    <string name="flit_device_30">配对未完成</string>
+    <string name="flit_device_31">取消</string>
+    <string name="flit_device_32">输入配对码</string>
+    <string name="flit_device_33">6 位配对码</string>
+</resources>

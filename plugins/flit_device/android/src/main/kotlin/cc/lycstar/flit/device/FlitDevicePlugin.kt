@@ -55,10 +55,20 @@ class FlitDevicePlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
+            "setLanguage" -> {
+                val language = call.argument<String>("language") ?: "system"
+                if (language !in setOf("system", "zh", "en")) {
+                    result.error("invalid_language", "Unsupported language", null)
+                    return
+                }
+                context.getSharedPreferences("flit_language", Context.MODE_PRIVATE)
+                    .edit().putString("language", language).apply()
+                result.success(null)
+            }
             "discoverAdb" -> {
                 val service = call.argument<String>("service") ?: "_adb-tls-connect._tcp"
                 if (service !in setOf("_adb-tls-connect._tcp", "_adb-tls-pairing._tcp")) {
-                    result.error("invalid_service", "不支持的扫描类型", null)
+                    result.error("invalid_service", nativeText(context, R.string.flit_device_0), null)
                     return
                 }
                 val timeoutMs = (call.argument<Number>("timeoutMs")?.toLong() ?: 6000L).coerceIn(1000, 30000)
@@ -85,7 +95,7 @@ class FlitDevicePlugin : FlutterPlugin, ActivityAware, MethodChannel.MethodCallH
             }
             "startPairing" -> {
                 if (Build.VERSION.SDK_INT < 30) {
-                    result.error("unsupported", "通知配对需要 Android 11 或更高版本", null)
+                    result.error("unsupported", nativeText(context, R.string.flit_device_1), null)
                     return
                 }
                 val problem = AdbPairingService.availability(context)

@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -85,7 +86,7 @@ class _FileCardState extends State<FileCard> {
     final exists = stat != null && stat.type != FileSystemEntityType.notFound;
     final modified = stat?.modified;
     final meta = !exists
-        ? (stat == null ? '' : '文件不存在')
+        ? (stat == null ? '' : context.strings.fileDoesNotExist)
         : '${formatBytes(stat.size)} · '
               '${modified!.year}-${_two(modified.month)}-${_two(modified.day)} '
               '${_two(modified.hour)}:${_two(modified.minute)}';
@@ -162,30 +163,32 @@ class _FileCardState extends State<FileCard> {
                           ? null
                           : () => _run(
                               () => FlitFiles.installApk(_absolute),
-                              '无法安装：请先在系统设置里授予 Flit“安装未知应用”权限',
+                              context
+                                  .strings
+                                  .cannotInstallAllowFlitToInstallUnknown,
                             ),
                       icon: const Icon(Icons.install_mobile_outlined, size: 18),
-                      label: const Text('安装到本机'),
+                      label: Text(context.strings.installLocally),
                     ),
                     FileCardAction.openExternal => OutlinedButton.icon(
                       onPressed: !exists
                           ? null
                           : () => _run(
                               () => FlitFiles.open(_absolute),
-                              '没有能打开此文件的应用',
+                              context.strings.noApplicationCanOpenThisFile,
                             ),
                       icon: const Icon(Icons.open_in_new, size: 18),
-                      label: const Text('用其他应用打开'),
+                      label: Text(context.strings.openWith),
                     ),
                     FileCardAction.share => OutlinedButton.icon(
                       onPressed: !exists
                           ? null
                           : () => _run(
                               () => FlitFiles.share(_absolute),
-                              '无法分享该文件',
+                              context.strings.unableToShareThisFile,
                             ),
                       icon: const Icon(Icons.share_outlined, size: 18),
-                      label: const Text('分享'),
+                      label: Text(context.strings.share),
                     ),
                   },
               ],

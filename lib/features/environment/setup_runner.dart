@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:io';
 
 import 'package:flutter/services.dart' show rootBundle;
@@ -94,6 +95,9 @@ _flit_prepend() {
 export LD_LIBRARY_PATH="\${LD_LIBRARY_PATH:-}"
 _flit_prepend LD_LIBRARY_PATH "\$JAVA_HOME/lib"
 export GRADLE_USER_HOME="\$HOME/.gradle"
+# 手机的 adbd 使用 5555；禁止 ADB 把它自动扫描成 emulator-5554。
+# 显式 adb connect 不受影响。
+export ADB_EMU=0
 # PATH 必须在 JAVA_HOME 之后(flutter 需要它); platform-tools 提供 SDK 内 adb
 _flit_prepend PATH "\$ANDROID_HOME/platform-tools"
 _flit_prepend PATH "\$JAVA_HOME/bin"
@@ -136,7 +140,7 @@ export FLIT_APT_SOURCE=${shQuote('https://github.com/${ToolchainCatalog.packages
 
   static String installCommand(CatalogEntry entry, {bool initialize = false}) {
     if (ToolchainCatalog.parseSha256('sha256:${entry.sha256}') == null) {
-      throw StateError('该产物缺少 SHA-256');
+      throw StateError(strings.thisAssetHasNoShaDigest);
     }
     final sdkPart = const {
       'android-sdk',
@@ -151,7 +155,9 @@ export FLIT_APT_SOURCE=${shQuote('https://github.com/${ToolchainCatalog.packages
             'ndk' => 'android_ndk.sh',
             'cmake' => 'android_cmake.sh',
             'flutter-sdk' => 'flutter_sdk.sh',
-            _ => throw StateError('不支持的组件：${entry.component}'),
+            _ => throw StateError(
+              strings.unsupportedComponentP(entry.component),
+            ),
           };
     final version = entry.tag.replaceFirst(
       RegExp(r'^(sdk|platform|flutter|cmake)-'),

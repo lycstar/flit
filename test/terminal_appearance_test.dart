@@ -185,7 +185,7 @@ void main() {
       await first.up();
       await second.up();
       await tester.pumpAndSettle();
-      expect(preferences.terminalSize, AppearancePreferences.terminalMinSize);
+      expect(preferences.terminalSize, 8.5);
       expect(tester.testTextInput.isVisible, isFalse);
       expect(session.controller.selection, isNull);
       expect(process.writes, isEmpty);

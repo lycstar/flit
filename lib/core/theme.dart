@@ -188,7 +188,9 @@ ThemeData flitTheme() {
     ),
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: AppColors.bg,
-      showDragHandle: true,
+      // 系统手柄有 48px 最小触达高度(SizedBox 压不下去), 太空;
+      // 各 sheet 顶部放紧凑的 SheetHandle 替代。
+      showDragHandle: false,
       modalBackgroundColor: AppColors.bg,
     ),
     popupMenuTheme: const PopupMenuThemeData(color: AppColors.surface),
@@ -211,6 +213,27 @@ class SurfaceCard extends StatelessWidget {
     borderRadius: BorderRadius.circular(16),
     clipBehavior: clipBehavior,
     child: Padding(padding: padding, child: child),
+  );
+}
+
+/// 底部弹层手柄: 系统 DragHandle 有 48px 最小触达高度(padding 太大),
+/// 换成紧凑自绘条, 放在 sheet 内容第一行。
+class SheetHandle extends StatelessWidget {
+  const SheetHandle({super.key});
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Container(
+        width: 32,
+        height: 4,
+        decoration: BoxDecoration(
+          color: AppColors.border,
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    ),
   );
 }
 

@@ -20,6 +20,8 @@ import 'package:flit/features/settings/env_vars_page.dart';
 import 'package:flit/features/settings/settings_page.dart';
 import 'package:flit/features/terminal/terminal_settings.dart';
 import 'package:flit/services/app_releases.dart';
+import 'package:flit/l10n/app_localizations.dart';
+import 'package:flit/l10n/strings.dart';
 
 import 'support/app_scope.dart';
 
@@ -97,6 +99,7 @@ void main() {
     Size size = const Size(320, 740),
     GlobalKey? boundary,
     bool wait = true,
+    Locale? locale,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -105,6 +108,13 @@ void main() {
       AppScope(
         services: services,
         child: MaterialApp(
+          locale: locale,
+          supportedLocales: locale == null
+              ? const [Locale('en')]
+              : AppLocalizations.supportedLocales,
+          localizationsDelegates: locale == null
+              ? null
+              : AppLocalizations.localizationsDelegates,
           theme: flitTheme(),
           navigatorObservers: [services.routeObserver],
           home: RepaintBoundary(key: boundary, child: page),
@@ -119,7 +129,43 @@ void main() {
   }
 
   tearDown(() {
+    strings = lookupAppLocalizations(const Locale('zh'));
     messenger.setMockMethodCallHandler(const MethodChannel('flit/env'), null);
+  });
+
+  testWidgets('English pages fit narrow phones and landscape', (tester) async {
+    final handler = FlutterError.onError;
+    FlutterError.onError = (details) {
+      debugPrint(details.toString());
+      handler?.call(details);
+    };
+    addTearDown(() => FlutterError.onError = handler);
+    strings = lookupAppLocalizations(const Locale('en'));
+    final releases = AppReleases()..fetchJson = (_) async => [];
+    final pages = <Widget>[
+      const SettingsPage(),
+      const DeviceConnectPage(autoConnectOnOpen: false),
+      const DevicePairingGuidePage(),
+      const CreateProjectPage(projectRoot: '/home/projects'),
+      const CloneProjectPage(targetDir: '/home/projects'),
+      const EditorSettingsPage(),
+      const TerminalSettingsPage(),
+      const EnvVarsPage(),
+      AppVersionsPage(releases: releases),
+      const EnvironmentPage(),
+    ];
+    for (final size in [const Size(320, 740), const Size(700, 360)]) {
+      for (final page in pages) {
+        await open(tester, page, locale: const Locale('en'), size: size);
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: '${page.runtimeType} $size',
+        );
+      }
+    }
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
   });
 
   test('environment parser keeps multiline values and equals signs', () {

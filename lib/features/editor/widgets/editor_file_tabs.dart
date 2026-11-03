@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -15,11 +16,13 @@ class EditorFileTabs extends StatefulWidget {
     required this.onSelect,
     required this.onClose,
     required this.onCloseOthers,
+    this.trailing,
   });
 
   final void Function(OpenItem item) onSelect;
   final void Function(OpenItem item) onClose;
   final void Function(OpenItem item) onCloseOthers;
+  final Widget? trailing;
 
   static const height = 36.0;
 
@@ -79,14 +82,25 @@ class _EditorFileTabsState extends State<EditorFileTabs> {
           child: SizedBox(
             width: double.infinity,
             height: EditorFileTabs.height,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              child: Row(
-                children: [
-                  for (final item in items) _chip(context, item, labels[item]!),
-                ],
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    child: Row(
+                      children: [
+                        for (final item in items)
+                          _chip(context, item, labels[item]!),
+                      ],
+                    ),
+                  ),
+                ),
+                if (widget.trailing != null) widget.trailing!,
+              ],
             ),
           ),
         ),
@@ -119,11 +133,16 @@ class _EditorFileTabsState extends State<EditorFileTabs> {
               borderRadius: BorderRadius.circular(6),
               onTap: () => widget.onSelect(item),
               onLongPress: () => showActionMenu(context, [
-                ('close', Icons.close, '关闭', () => widget.onClose(item)),
+                (
+                  'close',
+                  Icons.close,
+                  context.strings.close,
+                  () => widget.onClose(item),
+                ),
                 (
                   'others',
                   Icons.clear_all,
-                  '关闭其他',
+                  context.strings.closeOthers,
                   () => widget.onCloseOthers(item),
                 ),
               ]),
@@ -163,7 +182,7 @@ class _EditorFileTabsState extends State<EditorFileTabs> {
             ),
             if (selected)
               Tooltip(
-                message: '关闭 $label',
+                message: context.strings.closeP(label),
                 child: InkWell(
                   canRequestFocus: false,
                   borderRadius: BorderRadius.circular(6),

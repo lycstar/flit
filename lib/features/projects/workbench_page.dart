@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -87,7 +88,11 @@ class _WorkbenchPageState extends State<WorkbenchPage> {
         try {
           if (context.read<EnvironmentController>().busy) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('工具链任务正在进行，请完成后再打开项目')),
+              SnackBar(
+                content: Text(
+                  context.strings.aToolchainTaskIsRunningWaitBefore,
+                ),
+              ),
             );
             return;
           }

@@ -1,0 +1,5 @@
+<resources>
+    <string name="flit_work_0">Flit 工作中</string>
+    <string name="flit_work_1">Flit 任务运行中</string>
+    <string name="flit_work_2">终端会话与构建运行中</string>
+</resources>

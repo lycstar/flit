@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../services/file_ops.dart';
@@ -29,7 +30,9 @@ class ProjectFiles extends ChangeNotifier {
     );
     if (request != _refreshRequest) return;
     if (res['exitCode'] != 0) {
-      throw StateError('无法读取项目目录：${res['output'] ?? ''}');
+      throw StateError(
+        strings.unableToReadProjectDirectoryP(res['output'] ?? ''),
+      );
     }
     final out = (res['output'] as String? ?? '').trim();
     _files = List.unmodifiable(out.split('\n').where((l) => l.isNotEmpty));
@@ -50,7 +53,9 @@ class ProjectFiles extends ChangeNotifier {
   }
 
   String _relative(String path) {
-    if (!path.startsWith('$root/')) throw StateError('文件不在当前项目内');
+    if (!path.startsWith('$root/')) {
+      throw StateError(strings.fileIsOutsideTheCurrentProject);
+    }
     return path.substring(root.length + 1);
   }
 
@@ -81,10 +86,12 @@ class ProjectFiles extends ChangeNotifier {
 
   Future<void> paste(String target) async {
     final source = _ops.clipPath;
-    if (source == null) throw StateError('没有可粘贴的文件');
+    if (source == null) throw StateError(strings.noFilesToPaste);
     final cut = _ops.clipCut;
     if (cut) {
-      if (_ops.clipRoot != root) throw StateError('只能在当前项目内移动文件，请使用复制');
+      if (_ops.clipRoot != root) {
+        throw StateError(strings.filesCanOnlyBeMovedWithinThe);
+      }
       final destination = '$target/${source.split('/').last}';
       await documents.renamePath(
         _relative(source),

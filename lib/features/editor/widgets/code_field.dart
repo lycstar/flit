@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -107,7 +108,9 @@ class _CodeFieldState extends State<CodeField> {
       _scroll = widget.scrollController ?? ScrollController();
       _scroll.addListener(_reportCaret);
     }
-    if (oldWidget.fontSize != widget.fontSize) {
+    if (oldWidget.fontSize != widget.fontSize ||
+        oldWidget.wrap != widget.wrap) {
+      _charW = null;
       WidgetsBinding.instance.addPostFrameCallback((_) => _reportCaret());
     }
   }
@@ -220,10 +223,11 @@ class _CodeFieldState extends State<CodeField> {
           shrinkWrap: true,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           children: [
+            const SheetHandle(),
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                '第 ${line + 1} 行 · ${diags.length} 个问题',
+                context.strings.linePPIssues(line + 1, diags.length),
                 style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.textSecondary,
@@ -257,10 +261,10 @@ class _CodeFieldState extends State<CodeField> {
               ),
             if (actions.isNotEmpty) ...[
               const Divider(height: 1, color: AppColors.border),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.fromLTRB(0, 10, 0, 2),
                 child: Text(
-                  '快速修复',
+                  context.strings.quickFix,
                   style: TextStyle(
                     fontSize: 11,
                     color: AppColors.textSecondary,

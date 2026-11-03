@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
@@ -147,9 +148,11 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
   String? get _nameError {
     final name = _name.text.trim();
     if (!RegExp(r'^[a-z][a-z0-9_]*$').hasMatch(name)) {
-      return '以小写字母开头，只能包含小写字母、数字和下划线';
+      return context.strings.startWithALowercaseLetterUseOnly;
     }
-    if (_reservedNames.contains(name)) return '不能使用 Dart 保留字或工具名称';
+    if (_reservedNames.contains(name)) {
+      return context.strings.dartReservedWordsAndToolNamesCannot;
+    }
     return null;
   }
 
@@ -159,7 +162,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
             r'^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$',
           ).hasMatch(_org.text.trim())
       ? null
-      : '使用反向域名格式，例如 com.example';
+      : context.strings.useAReverseDomainNameSuchAs;
   bool get _valid =>
       _nameError == null &&
       (_type == 'dart' || _orgError == null && _platforms.isNotEmpty);
@@ -189,14 +192,23 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
       );
       if (!mounted) return;
       if (result['exitCode'] == 0) {
-        setState(() => _error = '项目 ${params.name} 已存在，请换一个名称');
+        setState(
+          () => _error = context.strings.projectPAlreadyExistsChooseAnotherName(
+            params.name,
+          ),
+        );
       } else if (result['exitCode'] == 1) {
         Navigator.pop(context, params);
       } else {
-        setState(() => _error = '无法检查目标目录，请查看开发环境后重试');
+        setState(
+          () => _error =
+              context.strings.unableToCheckDestinationCheckTheDevelopment146,
+        );
       }
     } catch (error) {
-      if (mounted) setState(() => _error = '创建前检查失败：$error');
+      if (mounted) {
+        setState(() => _error = context.strings.projectPreflightFailedP(error));
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -204,7 +216,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('新建项目')),
+    appBar: AppBar(title: Text(context.strings.newProject)),
     body: PageContent(
       child: Column(
         children: [
@@ -217,8 +229,10 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 children: [
                   PageIntro(
-                    '项目配置',
-                    '设置项目类型、名称和目标平台。创建完成后打开项目。\n保存位置：${widget.projectRoot}',
+                    context.strings.projectConfiguration,
+                    context.strings.chooseTheProjectTypeNameAndTarget(
+                      widget.projectRoot,
+                    ),
                   ),
                   SizedBox(
                     width: double.infinity,
@@ -246,7 +260,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                       },
                     ),
                   ),
-                  const SectionLabel('项目信息'),
+                  SectionLabel(context.strings.projectDetails),
                   SurfaceCard(
                     child: Column(
                       children: [
@@ -255,9 +269,11 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                           autocorrect: false,
                           onChanged: (_) => setState(() => _error = null),
                           decoration: InputDecoration(
-                            labelText: '项目名称',
+                            labelText: context.strings.projectName,
                             hintText: 'my_app',
-                            helperText: '小写字母、数字与下划线',
+                            helperText: context
+                                .strings
+                                .lowercaseLettersNumbersAndUnderscores,
                             errorText: _nameError,
                             errorMaxLines: 2,
                           ),
@@ -269,7 +285,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                             autocorrect: false,
                             onChanged: (_) => setState(() => _error = null),
                             decoration: InputDecoration(
-                              labelText: '组织标识（可选）',
+                              labelText: context.strings.organizationOptional,
                               hintText: 'com.example',
                               errorText: _orgError,
                             ),
@@ -278,7 +294,11 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                       ],
                     ),
                   ),
-                  SectionLabel(_type == 'flutter' ? '目标平台' : '项目模板'),
+                  SectionLabel(
+                    _type == 'flutter'
+                        ? context.strings.targetPlatforms
+                        : context.strings.projectTemplate,
+                  ),
                   SurfaceCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,10 +326,10 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                                   }),
                                 )
                             else
-                              for (final (value, label) in const [
-                                ('console', '控制台应用'),
-                                ('package', 'Dart 包'),
-                                ('server', '服务端应用'),
+                              for (final (value, label) in [
+                                ('console', context.strings.consoleApplication),
+                                ('package', context.strings.dartPackage),
+                                ('server', context.strings.serverApplication),
                                 ('web', 'Web'),
                               ])
                                 ChoiceChip(
@@ -323,10 +343,10 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                         const SizedBox(height: 12),
                         Text(
                           _type == 'dart'
-                              ? '控制台项目可在终端使用 dart run 运行。'
+                              ? context.strings.runConsoleProjectsUsingDartRunIn
                               : _platforms.isEmpty
-                              ? '请至少选择一个平台。'
-                              : '本机可构建 Android、预览 Web；其他平台生成代码后需在对应系统构建。',
+                              ? context.strings.selectAtLeastOnePlatform
+                              : context.strings.buildAndroidAndPreviewWebOnThis,
                           style: TextStyle(
                             color: _type == 'flutter' && _platforms.isEmpty
                                 ? AppColors.danger
@@ -342,7 +362,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                     SurfaceCard(
                       padding: EdgeInsets.zero,
                       child: ExpansionTile(
-                        title: const Text('高级设置'),
+                        title: Text(context.strings.advancedSettings),
                         childrenPadding: const EdgeInsets.fromLTRB(
                           16,
                           0,
@@ -352,17 +372,21 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                         children: [
                           SwitchListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: const Text('空白项目'),
-                            subtitle: const Text('不包含计数器示例'),
+                            title: Text(context.strings.emptyProject),
+                            subtitle: Text(
+                              context.strings.excludeTheCounterExample,
+                            ),
                             value: _empty,
                             onChanged: (value) =>
                                 setState(() => _empty = value),
                           ),
                           if (_platforms.contains('android')) ...[
                             const SizedBox(height: 12),
-                            const Align(
+                            Align(
                               alignment: Alignment.centerLeft,
-                              child: Text('Android 源码语言'),
+                              child: Text(
+                                context.strings.androidSourceLanguage,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             SegmentedButton<String>(
@@ -384,15 +408,16 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                           const SizedBox(height: 16),
                           TextField(
                             controller: _description,
-                            decoration: const InputDecoration(
-                              labelText: '项目描述（可选）',
+                            decoration: InputDecoration(
+                              labelText:
+                                  context.strings.projectDescriptionOptional,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ],
-                  const SectionLabel('创建前检查'),
+                  SectionLabel(context.strings.projectPreflight),
                   SurfaceCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -412,15 +437,15 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                             Expanded(
                               child: Text(
                                 '${_type == 'dart' ? 'Dart' : 'Flutter'} · ${switch (_tool) {
-                                  _ToolCheck.checking => '检测中…',
-                                  _ToolCheck.ok => '就绪',
-                                  _ToolCheck.missing => '未安装',
-                                  _ToolCheck.broken => '无法运行',
+                                  _ToolCheck.checking => context.strings.checking,
+                                  _ToolCheck.ok => context.strings.ready,
+                                  _ToolCheck.missing => context.strings.notInstalled,
+                                  _ToolCheck.broken => context.strings.cannotRun,
                                 }}',
                               ),
                             ),
                             IconButton(
-                              tooltip: '重新检测',
+                              tooltip: context.strings.checkAgain,
                               onPressed: _tool == _ToolCheck.checking
                                   ? null
                                   : _check,
@@ -452,11 +477,13 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                               widget.onOpenEnvironment?.call();
                             },
                             icon: const Icon(Icons.open_in_new, size: 16),
-                            label: const Text('配置开发环境'),
+                            label: Text(
+                              context.strings.setUpDevelopmentEnvironment,
+                            ),
                           ),
                         const Divider(height: 24),
                         Text(
-                          '保存位置',
+                          context.strings.location,
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
@@ -492,7 +519,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('创建项目'),
+                    : Text(context.strings.createProject),
               ),
             ),
           ),

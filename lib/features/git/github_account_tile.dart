@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -68,16 +69,18 @@ class _GithubAccountTileState extends State<GithubAccountTile> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('退出 GitHub 登录？'),
-          content: const Text('将移除此设备上 github.com 的登录凭据。'),
+          title: Text(context.strings.signOutOfGithub),
+          content: Text(
+            context.strings.removeGithubComCredentialsFromThisDevice,
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('取消'),
+              child: Text(context.strings.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('退出登录'),
+              child: Text(context.strings.signOut),
             ),
           ],
         ),
@@ -99,20 +102,26 @@ class _GithubAccountTileState extends State<GithubAccountTile> {
         final busy = account.busy;
         final missing = account.auth == GithubAuth.missing;
         final status = switch (account.auth) {
-          GithubAuth.missing => '未安装 gh · 在开发环境页完成 Flutter 阶段安装后可用',
-          GithubAuth.signedOut => '未登录 · 私有仓库的克隆与推送需要登录',
-          GithubAuth.credentialsSaved => '已登录 · git 凭据助手已接入',
+          GithubAuth.missing =>
+            context.strings.ghIsNotInstalledCompleteTheFlutter,
+          GithubAuth.signedOut => context.strings.notSignedInSignInToClone,
+          GithubAuth.credentialsSaved =>
+            context.strings.signedInGitCredentialHelperConfigured,
         };
         // 已登录且有档案时显示头像与名称, 否则退回占位
-        final showProfile = account.signedIn &&
-            (account.loginName?.isNotEmpty == true);
+        final showProfile =
+            account.signedIn && (account.loginName?.isNotEmpty == true);
         final titleText = showProfile
-            ? (account.name?.isNotEmpty == true ? account.name! : account.loginName!)
-            : 'GitHub 账户';
+            ? (account.name?.isNotEmpty == true
+                  ? account.name!
+                  : account.loginName!)
+            : context.strings.githubAccount;
         final subtitle = busy
-            ? (code == null ? '正在处理…' : '等待浏览器授权…')
+            ? (code == null
+                  ? context.strings.working
+                  : context.strings.waitingForBrowserAuthorization)
             : showProfile
-            ? '已登录 · ${account.loginName}'
+            ? context.strings.signedInP(account.loginName)
             : status;
         return ListTile(
           dense: widget.dense,
@@ -143,10 +152,19 @@ class _GithubAccountTileState extends State<GithubAccountTile> {
             style: TextStyle(fontSize: widget.dense ? 10 : 12),
           ),
           trailing: busy && code != null
-              ? TextButton(onPressed: _showCode, child: const Text('查看授权码'))
+              ? TextButton(
+                  onPressed: _showCode,
+                  child: Text(context.strings.viewAuthorizationCode),
+                )
               : TextButton(
-                  onPressed: widget.enabled && !busy && !missing ? _toggle : null,
-                  child: Text(account.signedIn ? '退出登录' : '登录'),
+                  onPressed: widget.enabled && !busy && !missing
+                      ? _toggle
+                      : null,
+                  child: Text(
+                    account.signedIn
+                        ? context.strings.signOut
+                        : context.strings.signIn,
+                  ),
                 ),
         );
       },

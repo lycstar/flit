@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -27,7 +28,7 @@ class PtyLauncher {
     final prefix = status['prefix'] as String? ?? '';
     final home = status['home'] as String? ?? '';
     if (home.isEmpty || !File('$prefix/bin/bash').existsSync()) {
-      throw StateError('开发环境未就绪，请先初始化环境');
+      throw StateError(strings.developmentEnvironmentIsNotReadyCompleteSetup);
     }
     return _PtyProcess(
       Pty.start(

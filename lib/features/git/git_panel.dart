@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -76,11 +77,11 @@ class _GitPanelState extends State<GitPanel> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('取消'),
+              child: Text(context.strings.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('确定'),
+              child: Text(context.strings.ok),
             ),
           ],
         ),
@@ -88,7 +89,11 @@ class _GitPanelState extends State<GitPanel> {
       false;
 
   Future<void> _commit() async {
-    final message = await _input('提交已暂存的更改', '提交消息', lines: 3);
+    final message = await _input(
+      context.strings.commitStagedChanges,
+      context.strings.commitMessage,
+      lines: 3,
+    );
     if (message != null && mounted) await _act(() => git.commit(message));
   }
 
@@ -105,10 +110,11 @@ class _GitPanelState extends State<GitPanel> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const SheetHandle(),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                   child: Text(
-                    '${staged ? '已暂存' : '未暂存'} · ${change.path}',
+                    '${staged ? context.strings.staged : context.strings.unstaged} · ${change.path}',
                     style: const TextStyle(fontSize: 13),
                   ),
                 ),
@@ -138,6 +144,7 @@ class _GitPanelState extends State<GitPanel> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const SheetHandle(),
               ListTile(
                 title: Text(
                   change.path,
@@ -148,31 +155,35 @@ class _GitPanelState extends State<GitPanel> {
               if (change.staged)
                 ListTile(
                   leading: const Icon(Icons.difference_outlined),
-                  title: const Text('显示已暂存的差异'),
+                  title: Text(context.strings.showStagedDiff),
                   onTap: () => Navigator.pop(ctx, 'stagedDiff'),
                 ),
               if (!change.untracked && change.unstaged)
                 ListTile(
                   leading: const Icon(Icons.difference_outlined),
-                  title: const Text('显示未暂存的差异'),
+                  title: Text(context.strings.showUnstagedDiff),
                   onTap: () => Navigator.pop(ctx, 'diff'),
                 ),
               if (change.unstaged || change.conflicted)
                 ListTile(
                   leading: const Icon(Icons.add),
-                  title: Text(change.conflicted ? '标记冲突已解决（暂存）' : '暂存文件'),
+                  title: Text(
+                    change.conflicted
+                        ? context.strings.markConflictResolvedStage
+                        : context.strings.stageFile,
+                  ),
                   onTap: () => Navigator.pop(ctx, 'stage'),
                 ),
               if (change.staged)
                 ListTile(
                   leading: const Icon(Icons.remove),
-                  title: const Text('取消暂存'),
+                  title: Text(context.strings.unstage),
                   onTap: () => Navigator.pop(ctx, 'unstage'),
                 ),
               if (!change.untracked && !change.conflicted && change.unstaged)
                 ListTile(
                   leading: const Icon(Icons.undo, color: AppColors.danger),
-                  title: const Text('回滚未暂存的更改'),
+                  title: Text(context.strings.rollbackUnstagedChanges),
                   onTap: () => Navigator.pop(ctx, 'discard'),
                 ),
             ],
@@ -192,8 +203,10 @@ class _GitPanelState extends State<GitPanel> {
         await _act(() => git.unstage(change));
       case 'discard':
         if (await _confirm(
-              '回滚更改？',
-              '将丢弃 ${change.path} 未暂存的更改，已暂存的内容保留。此操作无法撤销。',
+              context.strings.rollbackChanges,
+              context.strings.discardUnstagedChangesInPStagedChanges(
+                change.path,
+              ),
             ) &&
             mounted) {
           await _act(() => git.discard(change));
@@ -208,11 +221,11 @@ class _GitPanelState extends State<GitPanel> {
       final selected = await showDialog<String>(
         context: context,
         builder: (ctx) => SimpleDialog(
-          title: const Text('分支'),
+          title: Text(context.strings.branches),
           children: [
             ListTile(
               leading: const Icon(Icons.add),
-              title: const Text('新建并切换分支'),
+              title: Text(context.strings.createAndSwitchBranch),
               onTap: () => Navigator.pop(ctx, ''),
             ),
             for (final branch in branches)
@@ -228,7 +241,10 @@ class _GitPanelState extends State<GitPanel> {
       );
       if (selected == null || !mounted) return;
       if (selected.isEmpty) {
-        final name = await _input('新建分支', '分支名称');
+        final name = await _input(
+          context.strings.newBranch,
+          context.strings.branchName,
+        );
         if (name != null && mounted) {
           await _act(() => git.switchBranch(name, create: true));
         }
@@ -248,7 +264,7 @@ class _GitPanelState extends State<GitPanel> {
         await showDialog<void>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('提交历史'),
+            title: Text(context.strings.commitHistory),
             content: SingleChildScrollView(
               child: SelectableText(text, style: AppColors.mono),
             ),
@@ -261,8 +277,8 @@ class _GitPanelState extends State<GitPanel> {
       final result = await git.repo.run(['remote', 'get-url', 'origin']);
       if (!mounted) return;
       final url = await _input(
-        '远程仓库 · origin',
-        '仓库地址',
+        context.strings.remoteOrigin,
+        context.strings.repositoryUrl,
         initial: result.code == 0 ? result.out.trim() : '',
       );
       if (url != null && mounted) await _act(() => git.setRemote(url));
@@ -271,14 +287,14 @@ class _GitPanelState extends State<GitPanel> {
       final existingEmail = await git.repo.run(['config', 'user.email']);
       if (!mounted) return;
       final name = await _input(
-        '提交者信息（当前仓库）',
-        '名称',
+        context.strings.commitAuthorThisRepository,
+        context.strings.name,
         initial: existingName.out.trim(),
       );
       if (name == null || !mounted) return;
       final email = await _input(
-        '提交者信息（当前仓库）',
-        '邮箱',
+        context.strings.commitAuthorThisRepository,
+        context.strings.email,
         initial: existingEmail.out.trim(),
       );
       if (email != null && mounted) {
@@ -313,24 +329,35 @@ class _GitPanelState extends State<GitPanel> {
                 Expanded(
                   child: Text(
                     state.exists
-                        ? (state.detached ? '游离 HEAD' : state.branch)
-                        : '版本控制',
+                        ? (state.detached
+                              ? context.strings.detachedHead
+                              : state.branch)
+                        : context.strings.versionControl,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 IconButton(
-                  tooltip: '刷新版本控制状态',
+                  tooltip: context.strings.refreshVersionControlStatus,
                   onPressed: disabled ? null : git.refresh,
                   icon: const Icon(Icons.refresh, size: 20),
                 ),
                 PopupMenuButton<String>(
                   enabled: !disabled && state.exists,
-                  tooltip: '仓库设置',
+                  tooltip: context.strings.repositorySettings,
                   onSelected: (value) => _act(() => _settings(value)),
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'log', child: Text('提交历史')),
-                    PopupMenuItem(value: 'remote', child: Text('远程仓库')),
-                    PopupMenuItem(value: 'identity', child: Text('提交者信息')),
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'log',
+                      child: Text(context.strings.commitHistory),
+                    ),
+                    PopupMenuItem(
+                      value: 'remote',
+                      child: Text(context.strings.remotes),
+                    ),
+                    PopupMenuItem(
+                      value: 'identity',
+                      child: Text(context.strings.commitAuthor),
+                    ),
                   ],
                 ),
               ],
@@ -349,19 +376,19 @@ class _GitPanelState extends State<GitPanel> {
                         ? null
                         : () => _act(git.pull, terminal: true),
                     icon: const Icon(Icons.download_outlined, size: 17),
-                    label: const Text('拉取'),
+                    label: Text(context.strings.pull),
                   ),
                   TextButton.icon(
                     onPressed: disabled
                         ? null
                         : () => _act(git.push, terminal: true),
                     icon: const Icon(Icons.upload_outlined, size: 17),
-                    label: const Text('推送'),
+                    label: Text(context.strings.push),
                   ),
                   TextButton.icon(
                     onPressed: disabled ? null : _branches,
                     icon: const Icon(Icons.call_split, size: 17),
-                    label: const Text('分支'),
+                    label: Text(context.strings.branches),
                   ),
                 ],
               ),
@@ -383,10 +410,10 @@ class _GitPanelState extends State<GitPanel> {
                     ),
                   ),
                 if (git.busy)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(bottom: 12),
                     child: Text(
-                      '操作进行中，可在终端查看进度或停止。',
+                      context.strings.operationInProgressViewProgressOrStop,
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -394,34 +421,34 @@ class _GitPanelState extends State<GitPanel> {
                     ),
                   ),
                 if (!state.exists && !git.loading && git.error == null) ...[
-                  const Text(
-                    '此项目尚未创建 Git 仓库。',
+                  Text(
+                    context.strings.thisProjectHasNoGitRepositoryYet,
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 12),
                   FilledButton.icon(
                     onPressed: disabled ? null : () => _act(git.initialize),
                     icon: const Icon(Icons.add),
-                    label: const Text('初始化仓库'),
+                    label: Text(context.strings.initializeRepository),
                   ),
                 ],
                 if (state.exists &&
                     state.changes.isEmpty &&
                     git.error == null &&
                     !git.loading)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
                     child: Text(
-                      '没有本地更改',
+                      context.strings.noLocalChanges,
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
                   ),
                 if (state.hasConflicts)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(bottom: 12),
                     child: Text(
-                      '存在冲突：编辑文件解决冲突后，逐个暂存。',
+                      context.strings.conflictsFoundResolveThemInTheEditor,
                       style: TextStyle(color: AppColors.warn, fontSize: 12),
                     ),
                   ),
@@ -431,9 +458,9 @@ class _GitPanelState extends State<GitPanel> {
                     contentPadding: EdgeInsets.zero,
                     leading: Text(
                       change.conflicted
-                          ? '冲突'
+                          ? context.strings.conflicts
                           : change.untracked
-                          ? '未跟踪'
+                          ? context.strings.untracked
                           : '${change.x}${change.y}',
                       style: TextStyle(
                         fontSize: 12,
@@ -450,7 +477,11 @@ class _GitPanelState extends State<GitPanel> {
                     ),
                     subtitle: change.staged
                         ? Text(
-                            change.unstaged ? '已暂存，另有未暂存更改' : '已暂存',
+                            change.unstaged
+                                ? context
+                                      .strings
+                                      .stagedWithAdditionalUnstagedChanges
+                                : context.strings.staged,
                             style: const TextStyle(fontSize: 10),
                           )
                         : null,
@@ -470,14 +501,14 @@ class _GitPanelState extends State<GitPanel> {
                     onPressed: disabled || state.hasConflicts
                         ? null
                         : () => _act(git.stageAll),
-                    child: const Text('暂存所有更改'),
+                    child: Text(context.strings.stageAllChanges),
                   ),
                   FilledButton.icon(
                     onPressed: disabled || staged == 0 || state.hasConflicts
                         ? null
                         : _commit,
                     icon: const Icon(Icons.commit, size: 18),
-                    label: Text('提交更改 · $staged'),
+                    label: Text(context.strings.commitChangesP(staged)),
                   ),
                 ],
               ),
@@ -524,14 +555,14 @@ class _GitTextPromptState extends State<_GitTextPrompt> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: const Text('取消'),
+        child: Text(context.strings.cancel),
       ),
       FilledButton(
         onPressed: () {
           final text = controller.text.trim();
           if (text.isNotEmpty) Navigator.pop(context, text);
         },
-        child: const Text('确定'),
+        child: Text(context.strings.ok),
       ),
     ],
   );

@@ -1,3 +1,5 @@
+import 'package:flit/l10n/strings.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -56,31 +58,47 @@ class _EditorRunControlsState extends State<EditorRunControls> {
           context: context,
           builder: (context) => AlertDialog(
             title: Text(
-              request.error == null ? '补齐 Android 构建组件？' : '组件暂时无法安装',
+              request.error == null
+                  ? context.strings.installMissingAndroidBuildComponents
+                  : context.strings.componentsCurrentlyUnavailable,
             ),
             content: SingleChildScrollView(
               child: Text(
                 [
                   request.afterFailure
-                      ? '本次构建缺少或无法使用以下组件：'
-                      : '构建前检查发现以下组件缺失或不可用：',
+                      ? context.strings.theBuildFailedBecauseTheseComponentsAre
+                      : context
+                            .strings
+                            .preflightFoundTheseMissingOrUnusableComponents,
                   '',
                   ...request.components.map((c) => '• ${c.title}'),
                   '',
                   request.error ??
-                      '安装完成后${request.afterFailure ? '重新尝试一次' : '继续'}构建。下载进度会显示在控制台中。',
+                      context.strings.theBuildWillPAfterInstallationDownload(
+                        request.afterFailure
+                            ? context.strings.retryBuildVerb
+                            : context.strings.continueBuildVerb,
+                      ),
                 ].join('\n'),
               ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: Text(request.error == null ? '取消' : '知道了'),
+                child: Text(
+                  request.error == null
+                      ? context.strings.cancel
+                      : context.strings.gotIt,
+                ),
               ),
               if (request.error == null)
                 FilledButton(
                   onPressed: () => Navigator.pop(context, true),
-                  child: Text(request.afterFailure ? '安装并重试' : '安装并继续'),
+                  child: Text(
+                    request.afterFailure
+                        ? context.strings.installAndRetry
+                        : context.strings.installAndContinue,
+                  ),
                 ),
             ],
           ),
@@ -119,30 +137,36 @@ class _EditorRunControlsState extends State<EditorRunControls> {
     return [
       WorkbenchButton(
         tooltip: starting
-            ? '正在启动'
+            ? context.strings.starting
             : alive
-            ? '重新运行'
-            : '运行',
+            ? context.strings.rerun
+            : context.strings.run,
         icon: starting
             ? Icons.hourglass_top_outlined
             : alive
             ? Icons.refresh
             : Icons.play_arrow,
+        // 运行/重跑 = 绿; 启动中或被阻塞时禁用回灰。
+        foreground: AppColors.success,
         onPressed: starting || blocked ? null : _runSelected,
       ),
       // Dart 会话不支持热重载(supportsReload=false), 按钮自然不出现
       if (alive && (target == 'web' || run!.supportsReload))
         WorkbenchButton(
-          tooltip: '热重载',
+          tooltip: context.strings.hotReload,
           icon: Icons.bolt,
+          // 热重载 = 黄。
+          foreground: AppColors.warn,
           onPressed: canReload && !blocked && !_executions.hasWritingTask
               ? () => _reloadRun(target, fullRestart: false)
               : null,
         ),
       if (alive || activeOtherRun)
         WorkbenchButton(
-          tooltip: '停止运行',
+          tooltip: context.strings.stopRun,
           icon: Icons.stop_circle_outlined,
+          // 停止 = 红; 已在停止时禁用回灰。
+          foreground: AppColors.danger,
           onPressed: (alive ? run! : active!).stopRequested
               ? null
               : () => (alive ? run! : active!).stop(),
@@ -170,9 +194,7 @@ class _EditorRunControlsState extends State<EditorRunControls> {
       return;
     }
     _layout.showOutput();
-    await _perform(
-      () => _project.actions.run(target, confirmRepair: _confirmRepair),
-    );
+    await _perform(() => _runTarget(target));
   }
 
   Future<void> _selectTarget(String target) async {
@@ -182,16 +204,16 @@ class _EditorRunControlsState extends State<EditorRunControls> {
       final accepted = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('切换运行目标？'),
-          content: const Text('将停止当前运行，并在新目标上运行项目。'),
+          title: Text(context.strings.switchRunTarget),
+          content: Text(context.strings.stopTheCurrentRunAndStartThe),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消'),
+              child: Text(context.strings.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('切换并运行'),
+              child: Text(context.strings.switchAndRun),
             ),
           ],
         ),
@@ -199,9 +221,7 @@ class _EditorRunControlsState extends State<EditorRunControls> {
       if (accepted != true || !mounted) return;
       _applyTarget(target);
       _layout.showOutput();
-      await _perform(
-        () => _project.actions.run(target, confirmRepair: _confirmRepair),
-      );
+      await _perform(() => _runTarget(target));
     } else {
       _applyTarget(target);
     }
@@ -216,6 +236,31 @@ class _EditorRunControlsState extends State<EditorRunControls> {
     if (_layout.showPreview && target != 'web') {
       _layout.selectView(preview: false);
     }
+  }
+
+  Future<void> _runTarget(String target) async {
+    if (target == 'web' && !await Directory('${_project.path}/web').exists()) {
+      if (!mounted || _project.closed) return;
+      final accepted = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(context.strings.addWebSupport),
+          content: Text(context.strings.addWebSupportDescription),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(context.strings.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(context.strings.addAndRun),
+            ),
+          ],
+        ),
+      );
+      if (accepted != true || !mounted || _project.closed) return;
+    }
+    await _project.actions.run(target, confirmRepair: _confirmRepair);
   }
 
   /// 任务面板(AS Tools 菜单的对应): 依赖/构建/代码/维护分区, 每条都是
@@ -242,12 +287,13 @@ class _EditorRunControlsState extends State<EditorRunControls> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const SheetHandle(),
                   Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                     child: Row(
                       children: [
-                        const Text(
-                          '任务',
+                        Text(
+                          context.strings.tasks,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -255,7 +301,7 @@ class _EditorRunControlsState extends State<EditorRunControls> {
                         ),
                         const Spacer(),
                         Text(
-                          '当前项目： ${_project.name}',
+                          context.strings.currentProjectP(_project.name),
                           style: const TextStyle(
                             fontSize: 11,
                             color: AppColors.textFaint,
@@ -271,29 +317,49 @@ class _EditorRunControlsState extends State<EditorRunControls> {
                     ListTile(
                       dense: true,
                       title: Text(
-                        '当前任务：${runningTitles.isNotEmpty ? runningTitles : (_project.git.busy ? 'Git' : '正在启动…')}',
+                        context.strings.currentTaskP(
+                          runningTitles.isNotEmpty
+                              ? runningTitles
+                              : (_project.git.busy
+                                    ? 'Git'
+                                    : context.strings.startingEllipsis),
+                        ),
                       ),
-                      subtitle: const Text('各任务使用独立终端，冲突操作暂不可用。'),
+                      subtitle: Text(
+                        context
+                            .strings
+                            .tasksUseSeparateTerminalsConflictingActionsAre,
+                      ),
                     ),
-                  _section('依赖', [
+                  _section(context.strings.dependencies, [
                     _toolItem(
                       ctx,
                       ProjectTool.pubGet,
-                      '获取依赖并写入 package_config',
+                      context.strings.fetchDependenciesAndWritePackageConfig,
                     ),
-                    _toolItem(ctx, ProjectTool.pubUpgrade, '按约束升级依赖'),
-                    _toolItem(ctx, ProjectTool.pubOutdated, '列出可升级的依赖'),
+                    _toolItem(
+                      ctx,
+                      ProjectTool.pubUpgrade,
+                      context.strings.upgradeDependenciesWithinConstraints,
+                    ),
+                    _toolItem(
+                      ctx,
+                      ProjectTool.pubOutdated,
+                      context.strings.listOutdatedDependencies,
+                    ),
                   ]),
                   _section(
-                    '构建',
+                    context.strings.build,
                     flutter
                         ? [
                             _buildItem(
                               ctx,
                               ProjectBuild.debugApk.configuration,
                               Icons.android_outlined,
-                              '构建 APK（调试版）',
-                              '构建完成后通过 ADB 安装到选中的 Android 设备',
+                              context.strings.buildApkDebug,
+                              context
+                                  .strings
+                                  .buildThenInstallOnTheSelectedAndroid,
                               () => _project.actions.build(
                                 ProjectBuild.debugApk,
                                 confirmRepair: _confirmRepair,
@@ -303,8 +369,8 @@ class _EditorRunControlsState extends State<EditorRunControls> {
                               ctx,
                               ProjectBuild.releaseApk.configuration,
                               Icons.android_outlined,
-                              '构建 APK（发布版）',
-                              '生成发布 APK；之后可选 ADB 设备或系统安装器',
+                              context.strings.buildApkRelease,
+                              context.strings.buildAReleaseApkThenChooseAdb,
                               () => _project.actions.build(
                                 ProjectBuild.releaseApk,
                                 confirmRepair: _confirmRepair,
@@ -314,8 +380,8 @@ class _EditorRunControlsState extends State<EditorRunControls> {
                               ctx,
                               ProjectBuild.web.configuration,
                               Icons.web,
-                              '构建 Web（发布版）',
-                              '输出目录：build/web',
+                              context.strings.buildWebRelease,
+                              context.strings.outputDirectoryBuildWeb,
                               () => _project.actions.build(ProjectBuild.web),
                             ),
                           ]
@@ -324,27 +390,37 @@ class _EditorRunControlsState extends State<EditorRunControls> {
                               ctx,
                               _project.actions.dartExeConfiguration,
                               Icons.memory_outlined,
-                              '编译可执行文件',
-                              'dart compile exe，输出 build/<包名>；完成后可在终端直接运行',
+                              context.strings.compileExecutable,
+                              context
+                                  .strings
+                                  .dartCompileExeOutputBuildPackageName,
                               () => _project.actions.buildDartExe(),
                             ),
                           ],
                   ),
-                  _section('代码', [
-                    _toolItem(ctx, ProjectTool.analyze, '分析器批量诊断，输出到终端'),
-                    _toolItem(ctx, ProjectTool.test, '运行 test/ 目录下的测试'),
+                  _section(context.strings.code, [
+                    _toolItem(
+                      ctx,
+                      ProjectTool.analyze,
+                      context.strings.runBatchAnalysisAndShowResultsIn,
+                    ),
+                    _toolItem(
+                      ctx,
+                      ProjectTool.test,
+                      context.strings.runTestsInTheTestDirectory,
+                    ),
                   ]),
                   if (flutter)
-                    _section('维护', [
+                    _section(context.strings.maintenance, [
                       _toolItem(
                         ctx,
                         ProjectTool.clean,
-                        '删除 build/ 与 .dart_tool 缓存',
+                        context.strings.deleteBuildAndDartToolCaches,
                       ),
                       _toolItem(
                         ctx,
                         ProjectTool.doctor,
-                        '检查 Flutter/Android 工具链健康度',
+                        context.strings.checkFlutterAndAndroidToolchainHealth,
                       ),
                     ]),
                 ],
@@ -449,14 +525,15 @@ class _EditorRunControlsState extends State<EditorRunControls> {
       final devices = await AdbOps.devices();
       if (!mounted) return false;
       setState(() => _adbDevices = devices);
+      _project.selectInitialTarget(devices);
       return true;
     } catch (error) {
       if (!mounted) return false;
       setState(() => _adbDevices = const []);
       if (reportError) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('读取设备失败： $error')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.strings.failedToReadDevicesP(error))),
+        );
       }
       return false;
     }
@@ -468,7 +545,7 @@ class _EditorRunControlsState extends State<EditorRunControls> {
     if (sel == 'web') {
       label = 'Web';
     } else if (sel.isEmpty) {
-      label = '选择平台';
+      label = context.strings.selectPlatform;
     } else {
       final hit = _adbDevices.where((d) => d.$1 == sel).toList();
       label = hit.isEmpty ? sel : AdbOps.describe(sel, hit.first.$2).$1;
@@ -517,12 +594,12 @@ class _EditorRunControlsState extends State<EditorRunControls> {
       padding: const EdgeInsets.symmetric(horizontal: 6),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     ),
-    child: const Row(
+    child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(Icons.terminal, size: 16),
         SizedBox(width: 4),
-        Text('终端', style: TextStyle(fontSize: 11)),
+        Text(context.strings.terminal, style: TextStyle(fontSize: 11)),
       ],
     ),
   );
@@ -542,7 +619,7 @@ class _EditorRunControlsState extends State<EditorRunControls> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, refreshSheet) {
           final targets = <(String, String)>[
-            ('web', 'Web 预览'),
+            ('web', context.strings.webPreview),
             for (final (serial, model) in _adbDevices)
               (serial, AdbOps.describe(serial, model).$1),
           ];
@@ -550,12 +627,13 @@ class _EditorRunControlsState extends State<EditorRunControls> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                const SheetHandle(),
                 Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                   child: Row(
                     children: [
-                      const Text(
-                        '运行目标',
+                      Text(
+                        context.strings.runTarget,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -563,7 +641,7 @@ class _EditorRunControlsState extends State<EditorRunControls> {
                       ),
                       const Spacer(),
                       IconButton(
-                        tooltip: '刷新',
+                        tooltip: context.strings.refresh,
                         onPressed: () async {
                           await _loadAdbDevices(reportError: true);
                           if (ctx.mounted) refreshSheet(() {});
@@ -586,8 +664,8 @@ class _EditorRunControlsState extends State<EditorRunControls> {
                     ),
                     title: Text(name, style: const TextStyle(fontSize: 13)),
                     subtitle: target == 'web'
-                        ? const Text(
-                            '在 IDE 内预览，无需连接设备',
+                        ? Text(
+                            context.strings.previewInsideTheIdeWithoutADevice,
                             style: TextStyle(
                               fontSize: 11,
                               fontFamily: 'monospace',
@@ -609,8 +687,8 @@ class _EditorRunControlsState extends State<EditorRunControls> {
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.link, size: 18),
-                  title: const Text(
-                    '连接 Android 设备',
+                  title: Text(
+                    context.strings.connectAndroidDevice,
                     style: TextStyle(fontSize: 13),
                   ),
                   onTap: () async {
@@ -647,7 +725,7 @@ class _EditorRunControlsState extends State<EditorRunControls> {
           SizedBox(width: 38, child: control),
         WorkbenchButton(
           icon: Icons.handyman_outlined,
-          tooltip: '任务',
+          tooltip: context.strings.tasks,
           onPressed: _tasksSheet,
         ),
         const SizedBox(width: 4),

@@ -42,6 +42,7 @@ first_lib=$LD_LIBRARY_PATH
 [ "$PATH" = "$first_path" ]
 [ "$LD_LIBRARY_PATH" = "$first_lib" ]
 [ "$FLUTTER_VERSION" = "3.47.8" ]
+[ "$ADB_EMU" = "0" ]
 [ "${PATH%%:*}" = "$HOME/toolchains/flutter/current/bin" ]
 case ":$PATH:" in *":$ANDROID_HOME/platform-tools:$PREFIX/bin:"*) ;; *) exit 2 ;; esac
 printf '%s\n' "$PATH" "$LD_LIBRARY_PATH"

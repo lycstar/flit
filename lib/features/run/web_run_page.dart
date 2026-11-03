@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -29,10 +30,12 @@ class WebRunPreview extends StatelessWidget {
           );
         }
         final message = switch (run.state) {
-          WebRunState.idle => '运行 Web 后在这里预览',
-          WebRunState.starting => '正在编译并启动 Web 服务',
-          WebRunState.serving || WebRunState.stopped => 'Web 服务已停止',
-          WebRunState.failed => run.error ?? 'Web 启动失败',
+          WebRunState.idle => context.strings.runWebToPreviewHere,
+          WebRunState.starting =>
+            context.strings.compilingAndStartingTheWebServer,
+          WebRunState.serving ||
+          WebRunState.stopped => context.strings.webServerStopped,
+          WebRunState.failed => run.error ?? context.strings.webStartupFailed,
         };
         return ColoredBox(
           color: AppColors.bg,
@@ -55,7 +58,7 @@ class WebRunPreview extends StatelessWidget {
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: onShowOutput,
-                    child: const Text('查看运行日志'),
+                    child: Text(context.strings.viewRunLogs),
                   ),
                 ],
               ),
@@ -129,7 +132,10 @@ class _WebDocumentState extends State<_WebDocument> {
               _failedDocument = false;
             });
             _frameTimeout = Timer(const Duration(seconds: 60), () {
-              _showError('页面尚未完成首次渲染，请查看运行日志或重新加载', failedDocument: false);
+              _showError(
+                context.strings.thePageHasNotRenderedYetCheck,
+                failedDocument: false,
+              );
             });
             unawaited(_watchFirstFrame());
           },
@@ -137,19 +143,23 @@ class _WebDocumentState extends State<_WebDocument> {
           onPageFinished: (_) => unawaited(_watchFirstFrame()),
           onWebResourceError: (error) {
             if (error.isForMainFrame == true) {
-              _showError('页面加载失败：${error.description}');
+              _showError(context.strings.pageLoadFailedP(error.description));
             }
           },
           onHttpError: (error) {
             if (error.request?.uri == _documentUrl) {
-              _showError('页面请求失败：HTTP ${error.response?.statusCode}');
+              _showError(
+                context.strings.pageRequestFailedHttpP(
+                  error.response?.statusCode,
+                ),
+              );
             }
           },
         ),
       );
       if (mounted) await _controller.loadRequest(widget.run.url!);
     } catch (e) {
-      _showError('无法加载预览：$e');
+      _showError(strings.unableToLoadPreviewP(e));
     }
   }
 
@@ -203,7 +213,7 @@ class _WebDocumentState extends State<_WebDocument> {
     try {
       await _controller.loadRequest(widget.run.url!);
     } catch (e) {
-      _showError('无法加载预览：$e');
+      _showError(strings.unableToLoadPreviewP(e));
     }
   }
 
@@ -240,7 +250,7 @@ class _WebDocumentState extends State<_WebDocument> {
                 ),
               ),
               IconButton(
-                tooltip: '重新加载页面（重置页面状态）',
+                tooltip: context.strings.reloadPageResetPageState,
                 iconSize: 18,
                 padding: EdgeInsets.zero,
                 onPressed: _refresh,
@@ -267,18 +277,18 @@ class _WebDocumentState extends State<_WebDocument> {
                               const CircularProgressIndicator(strokeWidth: 2),
                             const SizedBox(height: 16),
                             Text(
-                              _error ?? '正在加载预览…',
+                              _error ?? context.strings.loadingPreview,
                               textAlign: TextAlign.center,
                             ),
                             if (_error != null) ...[
                               const SizedBox(height: 12),
                               OutlinedButton(
                                 onPressed: _refresh,
-                                child: const Text('重新加载'),
+                                child: Text(context.strings.reload),
                               ),
                               TextButton(
                                 onPressed: widget.onShowOutput,
-                                child: const Text('查看运行日志'),
+                                child: Text(context.strings.viewRunLogs),
                               ),
                             ],
                           ],
@@ -296,7 +306,9 @@ class _WebDocumentState extends State<_WebDocument> {
             color: AppColors.surface,
             padding: const EdgeInsets.all(8),
             child: Text(
-              widget.run.reloading ? '正在更新…' : widget.run.error!,
+              widget.run.reloading
+                  ? context.strings.updating
+                  : widget.run.error!,
               style: TextStyle(
                 fontSize: 12,
                 color: widget.run.error != null

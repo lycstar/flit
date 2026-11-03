@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme.dart';
@@ -58,14 +59,21 @@ class EditorDockToolbar extends StatelessWidget {
             height: 44,
             child: Row(
               children: [
-                _tab('代码', !showPreview && !docPreviewOn, onCode),
+                _tab(
+                  context.strings.code,
+                  !showPreview && !docPreviewOn,
+                  onCode,
+                ),
                 if (docPreviewAvailable)
                   _tab(docPreviewLabel, docPreviewOn, onDocPreview ?? () {}),
-                if (previewAvailable) _tab('预览', showPreview, onPreview),
+                if (previewAvailable)
+                  _tab(context.strings.preview, showPreview, onPreview),
                 const SizedBox(width: 4),
                 WorkbenchButton(
                   icon: Icons.terminal,
-                  tooltip: terminalExpanded ? '收起终端' : '展开终端',
+                  tooltip: terminalExpanded
+                      ? context.strings.collapseTerminal
+                      : context.strings.expandTerminal,
                   active: terminalExpanded,
                   onPressed: onTerminal,
                 ),
@@ -76,14 +84,14 @@ class EditorDockToolbar extends StatelessWidget {
                     children: [
                       WorkbenchButton(
                         icon: Icons.undo,
-                        tooltip: '撤销',
+                        tooltip: context.strings.undo,
                         onPressed: canEdit && controller.canUndo
                             ? controller.undo
                             : null,
                       ),
                       WorkbenchButton(
                         icon: Icons.redo,
-                        tooltip: '重做',
+                        tooltip: context.strings.redo,
                         onPressed: canEdit && controller.canRedo
                             ? controller.redo
                             : null,

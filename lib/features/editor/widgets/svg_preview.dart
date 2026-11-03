@@ -1,3 +1,4 @@
+import 'package:flit/l10n/strings.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -60,15 +61,14 @@ class _SvgPreviewState extends State<SvgPreview> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          SizedBox(
-            height: 320,
-            width: double.infinity,
-            child: _picture(),
-          ),
+          SizedBox(height: 320, width: double.infinity, child: _picture()),
           const SizedBox(height: 12),
           Text(
-            'SVG 预览(内容来自编辑缓冲)',
-            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            context.strings.svgPreviewFromEditorBuffer,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -77,15 +77,18 @@ class _SvgPreviewState extends State<SvgPreview> {
 
   Widget _picture() {
     if (_text.trim().isEmpty) {
-      return const Center(
-        child: Text('空文件', style: TextStyle(color: AppColors.textSecondary)),
+      return Center(
+        child: Text(
+          context.strings.emptyFile,
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
       );
     }
     // flutter_svg 对非法输入是宽松解析(渲染成空白), 前置一道明显非法的哨兵
     if (!_text.contains('<svg')) {
-      return const Center(
+      return Center(
         child: Text(
-          '无法渲染该 SVG：内容不是有效的 SVG',
+          context.strings.unableToRenderSvgContentIsNot,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12, color: AppColors.danger),
         ),
@@ -96,7 +99,7 @@ class _SvgPreviewState extends State<SvgPreview> {
     } catch (error) {
       return Center(
         child: Text(
-          '无法渲染该 SVG：$error',
+          context.strings.unableToRenderSvgP(error),
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 12, color: AppColors.danger),
         ),
