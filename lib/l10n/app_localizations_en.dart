@@ -190,6 +190,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Configure development tools, device connections, and the editor.';
 
   @override
+  String get general => 'General';
+
+  @override
   String get account => 'Account';
 
   @override

@@ -24,7 +24,7 @@ class AppearancePreferences extends ChangeNotifier {
   String terminalFont = 'JetBrainsMono';
   double terminalLineHeight = 1.2;
   String editorTheme = 'dark'; // dark | light
-  bool editorWrap = true; // 软换行(false = 长行横向滚动)
+  bool editorWrap = false; // 软换行(false = 长行横向滚动)
   bool backgroundNoticeShown = false;
   bool adbPaired = false; // 曾完成无线配对，不代表系统仍保留授权
   String adbHost = '127.0.0.1'; // 最近一次 adb 连接的主机(本机/局域网)
@@ -54,7 +54,7 @@ class AppearancePreferences extends ChangeNotifier {
           (data['terminalLineHeight'] as num? ?? 1.2).toDouble(),
         );
         editorTheme = data['editorTheme'] as String? ?? 'dark';
-        editorWrap = data['editorWrap'] as bool? ?? true;
+        editorWrap = data['editorWrap'] as bool? ?? false;
         backgroundNoticeShown = data['backgroundNoticeShown'] as bool? ?? false;
         adbPaired = data['adbPaired'] as bool? ?? false;
         adbHost = data['adbHost'] as String? ?? '127.0.0.1';

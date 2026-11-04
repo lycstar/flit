@@ -404,6 +404,12 @@ abstract class AppLocalizations {
   /// **'配置开发环境、设备连接和编辑器选项。'**
   String get configureDevelopmentToolsDeviceConnectionsAndThe;
 
+  /// No description provided for @general.
+  ///
+  /// In zh, this message translates to:
+  /// **'通用'**
+  String get general;
+
   /// No description provided for @account.
   ///
   /// In zh, this message translates to:

@@ -121,6 +121,7 @@
   "settings": "设置",
   "ideSettings": "IDE 设置",
   "configureDevelopmentToolsDeviceConnectionsAndThe": "配置开发环境、设备连接和编辑器选项。",
+  "general": "通用",
   "account": "账户",
   "developmentEnvironment": "开发环境",
   "viewToolchainPathsAndCommandEnvironmentSnapshots": "查看工具链路径与命令环境快照",

@@ -156,29 +156,6 @@ class _SettingsPageState extends State<SettingsPage>
             context.strings.ideSettings,
             context.strings.configureDevelopmentToolsDeviceConnectionsAndThe,
           ),
-          SurfaceCard(
-            child: DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: preferences.language,
-              decoration: InputDecoration(labelText: context.strings.language),
-              items: [
-                DropdownMenuItem(
-                  value: 'system',
-                  child: Text(context.strings.followSystem),
-                ),
-                const DropdownMenuItem(value: 'zh', child: Text('简体中文')),
-                const DropdownMenuItem(value: 'en', child: Text('English')),
-              ],
-              onChanged: (value) async {
-                if (value == null) return;
-                try {
-                  await preferences.setLanguage(value);
-                } catch (error) {
-                  _showError(error);
-                }
-              },
-            ),
-          ),
           SectionLabel(context.strings.account),
           _card(const [GithubAccountTile()]),
           SectionLabel(context.strings.developmentEnvironment),
@@ -248,6 +225,52 @@ class _SettingsPageState extends State<SettingsPage>
               const TerminalSettingsPage(),
             ),
           ]),
+          SectionLabel(context.strings.general),
+          SurfaceCard(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.strings.language,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<String>(
+                      segments: [
+                        ButtonSegment(
+                          value: 'system',
+                          label: Text(context.strings.followSystem),
+                        ),
+                        const ButtonSegment(
+                          value: 'zh',
+                          label: Text('简体中文'),
+                        ),
+                        const ButtonSegment(
+                          value: 'en',
+                          label: Text('English'),
+                        ),
+                      ],
+                      selected: {preferences.language},
+                      onSelectionChanged: (s) async {
+                        try {
+                          await preferences.setLanguage(s.first);
+                        } catch (error) {
+                          _showError(error);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           SectionLabel(context.strings.aboutFlit),
           _card([
             ListTile(

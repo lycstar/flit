@@ -49,6 +49,9 @@ void main() {
     );
     final preferences = AppearancePreferences();
     await preferences.load();
+    // 默认关闭软换行后, 光标会落进横向滚动区外导致补全弹窗不弹;
+    // 编辑器行为用例固定在软换行开启的布局下验证。
+    preferences.editorWrap = true;
     services = testServices(preferences: preferences);
   });
 

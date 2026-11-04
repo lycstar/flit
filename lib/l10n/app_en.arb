@@ -121,6 +121,7 @@
   "settings": "Settings",
   "ideSettings": "IDE Settings",
   "configureDevelopmentToolsDeviceConnectionsAndThe": "Configure development tools, device connections, and the editor.",
+  "general": "General",
   "account": "Account",
   "developmentEnvironment": "Development Environment",
   "viewToolchainPathsAndCommandEnvironmentSnapshots": "View toolchain paths and command environment snapshots",

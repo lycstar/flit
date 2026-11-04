@@ -187,6 +187,9 @@ class AppLocalizationsZh extends AppLocalizations {
       '配置开发环境、设备连接和编辑器选项。';
 
   @override
+  String get general => '通用';
+
+  @override
   String get account => '账户';
 
   @override

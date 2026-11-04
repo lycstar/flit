@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../core/page_layout.dart';
 import '../settings/appearance_preferences.dart';
-import '../terminal/terminal_settings.dart';
 
 /// 编辑器设置: 字体字号 / 主题(dark·light) / 换行策略。
 /// 页面直接读写 AppearancePreferences, 它是唯一事实源(编辑器同样监听它)。
@@ -100,8 +99,6 @@ class _EditorSettingsPageState extends State<EditorSettingsPage> {
               ),
             ),
           ]),
-          SectionLabel(context.strings.terminal),
-          const TerminalAppearanceSettings(),
           SectionLabel(context.strings.editing),
           _card([
             SwitchListTile(

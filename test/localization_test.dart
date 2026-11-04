@@ -158,16 +158,27 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Settings'), findsOneWidget);
+      // 通用分组位于页面底部: ListView 懒构建, 先滚到语言分段控件。
+      await tester.scrollUntilVisible(
+        find.text('Follow System'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('Follow System'), findsOneWidget);
       final settings = tester.state(find.byType(SettingsPage));
       final shell = services.workbenchShell;
 
-      final dropdown = tester.widget<DropdownButton<String>>(
-        find.byType(DropdownButton<String>),
+      final segmented = tester.widget<SegmentedButton<String>>(
+        find.byType(SegmentedButton<String>),
       );
-      expect(dropdown.items!.map((item) => item.value), ['system', 'zh', 'en']);
+      expect(segmented.segments.map((segment) => segment.value), [
+        'system',
+        'zh',
+        'en',
+      ]);
+      expect(segmented.selected, {'system'});
       await tester.runAsync(() async {
-        dropdown.onChanged!('zh');
+        segmented.onSelectionChanged!({'zh'});
         await Future<void>.delayed(const Duration(milliseconds: 100));
       });
       for (var i = 0; i < 5; i++) {
@@ -178,7 +189,15 @@ void main() {
       }
       await tester.pumpAndSettle();
       expect(find.text('设置'), findsOneWidget);
-      expect(find.text('跟随系统'), findsNothing);
+      // 分段控件切换语言不换路由: 选中态变为 zh, 页面文案已切中文。
+      expect(
+        tester
+            .widget<SegmentedButton<String>>(
+              find.byType(SegmentedButton<String>),
+            )
+            .selected,
+        {'zh'},
+      );
       expect(tester.state(find.byType(SettingsPage)), same(settings));
       expect(services.workbenchShell, same(shell));
       expect(
@@ -194,6 +213,11 @@ void main() {
       tester.platformDispatcher.localesTestValue = const [Locale('zh', 'CN')];
       await tester.pumpAndSettle();
       expect(find.text('设置'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('跟随系统'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('跟随系统'), findsOneWidget);
       expect(
         AppLocalizations.of(tester.element(find.text('设置')))!.localeName,
