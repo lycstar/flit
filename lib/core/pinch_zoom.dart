@@ -12,8 +12,12 @@ class PinchZoom extends StatelessWidget {
     required this.onEnd,
   });
   final Widget child;
-  final VoidCallback onStart;
-  final ValueChanged<double> onScale;
+
+  /// 第二指落下的两指中点(PinchZoom 局部坐标)。
+  final ValueChanged<Offset> onStart;
+
+  /// 缩放比例(相对手势起点)与当前两指中点(局部坐标)。
+  final void Function(double scale, Offset focal) onScale;
   final VoidCallback onEnd;
 
   @override
@@ -21,27 +25,43 @@ class PinchZoom extends StatelessWidget {
     gestures: {
       _PinchRecognizer: GestureRecognizerFactoryWithHandlers<_PinchRecognizer>(
         () => _PinchRecognizer(),
-        (instance) => instance
-          ..onStart = onStart
-          ..onScale = onScale
-          ..onEnd = onEnd,
+        (instance) {
+          void start(Offset focal) => onStart(_toLocal(context, focal));
+          void rescale(double scale, Offset focal) =>
+              onScale(scale, _toLocal(context, focal));
+          instance
+            ..onStart = start
+            ..onScale = rescale
+            ..onEnd = onEnd;
+        },
       ),
     },
     child: child,
   );
+
+  static Offset _toLocal(BuildContext context, Offset global) {
+    final box = context.findRenderObject() as RenderBox?;
+    return box == null || !box.attached ? global : box.globalToLocal(global);
+  }
 }
 
 class _PinchRecognizer extends OneSequenceGestureRecognizer {
   _PinchRecognizer() : super(supportedDevices: {PointerDeviceKind.touch});
-  late VoidCallback onStart;
-  late ValueChanged<double> onScale;
+  late ValueChanged<Offset> onStart;
+  late void Function(double scale, Offset focal) onScale;
   late VoidCallback onEnd;
   final _points = <int, Offset>{};
   Offset _origin = Offset.zero;
+  Offset _focal = Offset.zero;
   double _distance = 1;
   bool _claimed = false;
   bool _started = false;
   bool _ended = false;
+
+  Offset get _midpoint {
+    final pair = _points.values.take(2).toList();
+    return (pair[0] + pair[1]) / 2;
+  }
 
   @override
   void addAllowedPointer(PointerDownEvent event) {
@@ -52,6 +72,7 @@ class _PinchRecognizer extends OneSequenceGestureRecognizer {
     } else if (_points.length == 1) {
       _origin = event.position;
     } else if (_points.length == 2) {
+      _focal = _midpoint;
       _distance = (_points.values.first - _points.values.last).distance;
       if (_distance < 1) return;
       _claimed = true;
@@ -63,7 +84,7 @@ class _PinchRecognizer extends OneSequenceGestureRecognizer {
   void acceptGesture(int pointer) {
     if (_claimed && !_started) {
       _started = true;
-      onStart();
+      onStart(_focal);
     }
   }
 
@@ -80,8 +101,10 @@ class _PinchRecognizer extends OneSequenceGestureRecognizer {
     if (event is PointerMoveEvent) {
       _points[event.pointer] = event.position;
       if (_started && !_ended && _points.length >= 2) {
-        final pair = _points.values.take(2).toList();
-        onScale((pair[0] - pair[1]).distance / _distance);
+        onScale(
+          (_points.values.first - _points.values.last).distance / _distance,
+          _focal = _midpoint,
+        );
       } else if (!_claimed &&
           (event.position - _origin).distance > kTouchSlop) {
         resolve(GestureDisposition.rejected);

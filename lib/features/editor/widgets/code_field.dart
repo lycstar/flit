@@ -14,6 +14,7 @@ class CodeField extends StatefulWidget {
     super.key,
     required this.controller,
     this.scrollController,
+    this.horizontalScrollController,
     this.focusNode,
     this.onChanged,
     this.onSelectionChanged,
@@ -31,6 +32,7 @@ class CodeField extends StatefulWidget {
   /// 配合应用内代码虚拟键盘
   final CodeController controller;
   final ScrollController? scrollController;
+  final ScrollController? horizontalScrollController;
   final FocusNode? focusNode;
   final VoidCallback? onChanged, onSelectionChanged;
 
@@ -42,12 +44,12 @@ class CodeField extends StatefulWidget {
   final String? filePath;
   final LspClient? language;
   @override
-  State<CodeField> createState() => _CodeFieldState();
+  CodeFieldState createState() => CodeFieldState();
 }
 
-class _CodeFieldState extends State<CodeField> {
+class CodeFieldState extends State<CodeField> {
   late ScrollController _scroll;
-  late final ScrollController _hScroll = ScrollController();
+  late ScrollController _hScroll;
   late TextEditingValue _lastValue;
   final _fieldKey = GlobalKey();
   final _gutterKey = GlobalKey();
@@ -67,6 +69,7 @@ class _CodeFieldState extends State<CodeField> {
   void initState() {
     super.initState();
     _scroll = widget.scrollController ?? ScrollController();
+    _hScroll = widget.horizontalScrollController ?? ScrollController();
     _scroll.addListener(_reportCaret);
     _bind();
     WidgetsBinding.instance.addPostFrameCallback((_) => _reportCaret());
@@ -107,6 +110,13 @@ class _CodeFieldState extends State<CodeField> {
       if (oldWidget.scrollController == null) _scroll.dispose();
       _scroll = widget.scrollController ?? ScrollController();
       _scroll.addListener(_reportCaret);
+    }
+    if (oldWidget.horizontalScrollController !=
+        widget.horizontalScrollController) {
+      if (oldWidget.horizontalScrollController == null) {
+        _hScroll.dispose();
+      }
+      _hScroll = widget.horizontalScrollController ?? ScrollController();
     }
     if (oldWidget.fontSize != widget.fontSize ||
         oldWidget.wrap != widget.wrap) {
@@ -155,8 +165,41 @@ class _CodeFieldState extends State<CodeField> {
   void dispose() {
     widget.controller.removeListener(_onValue);
     if (widget.scrollController == null) _scroll.dispose();
-    _hScroll.dispose();
+    if (widget.horizontalScrollController == null) _hScroll.dispose();
     super.dispose();
+  }
+
+  /// 焦点锚定缩放: 字号从 from 变为 to 时, 让局部坐标 focal 下的内容在
+  /// 重排后仍位于 focal 处。行高随字号线性缩放, 换行点变化带来的偏差
+  /// 在动画过程中持续重锚定, 不累积。
+  void zoomAnchor({
+    required double from,
+    required double to,
+    required Offset focal,
+  }) {
+    if (!mounted || from <= 0 || to == from) return;
+    final k = to / from;
+    final gutter =
+        _gutterKey.currentContext?.findRenderObject() as RenderBox?;
+    final viewY = focal.dy;
+    // 横向视口从行号槽右侧开始; 焦点落在槽上(≤0)时横向不锚定。
+    final viewX = focal.dx - (gutter?.size.width ?? 0);
+    final contentY = (_scroll.hasClients ? _scroll.offset : 0) + viewY;
+    final contentX =
+        _hScroll.hasClients && viewX > 0 ? _hScroll.offset + viewX : 0.0;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_scroll.hasClients) {
+        _scroll.jumpTo(
+          (contentY * k - viewY).clamp(0.0, _scroll.position.maxScrollExtent),
+        );
+      }
+      if (_hScroll.hasClients && viewX > 0) {
+        _hScroll.jumpTo(
+          (contentX * k - viewX).clamp(0.0, _hScroll.position.maxScrollExtent),
+        );
+      }
+    });
   }
 
   RenderEditable? _editable() {

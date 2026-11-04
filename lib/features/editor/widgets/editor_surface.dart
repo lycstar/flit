@@ -36,24 +36,35 @@ class _EditorSurfaceState extends State<EditorSurface> {
   /// 语言服务属于工程(ProjectScope), 页面生命周期内不换对象
   late final LspClient _language = context.read<LspClient>();
   late final EditorIntelligence _intelligence;
+  final _codeFieldKey = GlobalKey<CodeFieldState>();
+  // 缩放锚定需要读取/跳转滚动偏移, 控制器由本组件持有并注入 CodeField。
+  final _codeScroll = ScrollController();
+  final _codeHScroll = ScrollController();
   Rect? _caretRect;
   double? _zoomSize;
   double _zoomStartSize = 14;
   int _zoomGeneration = 0;
 
-  void _zoomStart() {
+  void _zoomStart(Offset focal) {
     _zoomGeneration++;
     _zoomStartSize =
         _zoomSize ?? context.read<AppearancePreferences>().editorSize;
     _dismissSuggestions();
   }
 
-  void _zoom(double scale) {
+  void _zoom(double scale, Offset focal) {
     final size = (_zoomStartSize * scale).clamp(
       AppearancePreferences.editorMinSize,
       AppearancePreferences.editorMaxSize,
     );
-    if (size.isFinite) setState(() => _zoomSize = size);
+    if (!size.isFinite) return;
+    setState(() => _zoomSize = size);
+    // 焦点锚定: 重排布局后跳回滚动偏移, 两指中心下的内容保持不动。
+    _codeFieldKey.currentState?.zoomAnchor(
+      from: _zoomStartSize,
+      to: size,
+      focal: focal,
+    );
   }
 
   Future<void> _saveZoom() async {
@@ -92,6 +103,15 @@ class _EditorSurfaceState extends State<EditorSurface> {
     );
     _editorFocus.addListener(_onFocusChanged);
     _onFocusChanged();
+  }
+
+  @override
+  void dispose() {
+    _editorFocus.removeListener(_onFocusChanged);
+    _intelligence.dispose();
+    _codeScroll.dispose();
+    _codeHScroll.dispose();
+    super.dispose();
   }
 
   void _onFocusChanged() => _intelligence.setFocused(_editorFocus.hasFocus);
@@ -208,13 +228,6 @@ class _EditorSurfaceState extends State<EditorSurface> {
   }
 
   @override
-  void dispose() {
-    _editorFocus.removeListener(_onFocusChanged);
-    _intelligence.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final preferences = context.watch<AppearancePreferences>();
     return ListenableBuilder(
@@ -234,10 +247,13 @@ class _EditorSurfaceState extends State<EditorSurface> {
                         onScale: _zoom,
                         onEnd: () => unawaited(_saveZoom()),
                         child: CodeField(
+                          key: _codeFieldKey,
                           controller: _codeCtrl,
                           focusNode: _editorFocus,
                           language: _language,
                           filePath: widget.path,
+                          scrollController: _codeScroll,
+                          horizontalScrollController: _codeHScroll,
                           onCaretChanged: (rect) {
                             if (mounted && rect != _caretRect) {
                               setState(() => _caretRect = rect);

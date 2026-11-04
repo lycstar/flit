@@ -169,4 +169,70 @@ void main() {
       await language.dispose();
     });
   }
+
+  testWidgets('zoom keeps the content under the pinch focal point', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    // 关软换行: 行高随字号线性缩放, 锚定偏移可精确断言。
+    final preferences = ZoomPreferences()..editorWrap = false;
+    final language = LspClient();
+    final controller = CodeController(
+      text: List.generate(200, (i) => 'line $i').join('\n'),
+      language: 'text',
+    );
+    final focus = FocusNode();
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AppearancePreferences>.value(
+            value: preferences,
+          ),
+          Provider<LspClient>.value(value: language),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: EditorSurface(
+              controller: controller,
+              path: '/tmp/zoom-anchor.txt',
+              focusNode: focus,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final fieldScroll =
+        tester.widget<TextField>(find.byType(TextField)).scrollController!;
+    fieldScroll.jumpTo(500);
+    await tester.pumpAndSettle();
+
+    // 两指中心固定在 (100, 200), 从 60px 张开到 120px → 字号 14→28(k=2)。
+    final focal = tester.getTopLeft(find.byType(CodeField)) + const Offset(
+      100,
+      200,
+    );
+    final first = await tester.startGesture(focal - const Offset(30, 0), pointer: 1);
+    final second = await tester.startGesture(focal + const Offset(30, 0), pointer: 2);
+    await first.moveBy(const Offset(-30, 0));
+    await second.moveBy(const Offset(30, 0));
+    await tester.pump();
+    await tester.pump();
+    expect(tester.widget<CodeField>(find.byType(CodeField)).fontSize, 28);
+    // 焦点下的内容点 (500+200) 缩放 2 倍后仍应在焦点下: 偏移 = 1400*2-200。
+    expect(fieldScroll.offset, closeTo(1200, 1));
+
+    await first.up();
+    await second.up();
+    await tester.pumpAndSettle();
+    expect(preferences.editorSize, 28);
+    await tester.pumpWidget(const SizedBox());
+    focus.dispose();
+    controller.dispose();
+    preferences.dispose();
+    await language.dispose();
+  });
 }

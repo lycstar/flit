@@ -377,8 +377,9 @@ class _GlobalTerminalPanelState extends State<GlobalTerminalPanel> {
               );
               if (preferences == null) return view;
               return PinchZoom(
-                onStart: _zoomStart,
-                onScale: _zoom,
+                // 终端按行排版, 焦点锚定交给终端视图的滚动; 这里只取比例。
+                onStart: (_) => _zoomStart(),
+                onScale: (scale, _) => _zoom(scale),
                 onEnd: () => unawaited(_saveZoom()),
                 child: view,
               );
