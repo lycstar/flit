@@ -3,6 +3,7 @@ package cc.lycstar.flit.work
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -51,14 +52,30 @@ class WorkForegroundService : Service() {
         }
     }
 
-    private fun notification(): Notification =
-        NotificationCompat.Builder(this, CHANNEL_ID)
+    private fun notification(): Notification {
+        // 点击通知回到应用(singleTop 复用已有实例); 缺 NEW_TASK 时
+        // Service 发出的 PendingIntent 点按会静默失败。
+        val content = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            )
+        }
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.flit_work_notification)
             .setContentTitle(nativeText(this, R.string.flit_work_1))
             .setContentText(nativeText(this, R.string.flit_work_2))
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setOngoing(true)
-            .build()
+        content?.let {
+            builder.setContentIntent(
+                PendingIntent.getActivity(
+                    this, 0, it,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+            )
+        }
+        return builder.build()
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {

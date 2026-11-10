@@ -181,7 +181,17 @@ class AdbPairingService : Service() {
             .setContentTitle(title).setContentText(text).setStyle(Notification.BigTextStyle().bigText(text))
             .setOnlyAlertOnce(true).setOngoing(!completed).setAutoCancel(completed)
         packageManager.getLaunchIntentForPackage(packageName)?.let {
-            builder.setContentIntent(PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+            // Service 发出的 PendingIntent 必须 NEW_TASK 才能起 Activity,
+            // singleTop 保证回到已有实例而不是重建。
+            it.addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            )
+            builder.setContentIntent(
+                PendingIntent.getActivity(
+                    this, 0, it,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                )
+            )
         }
         if (!completed) {
             val stop = PendingIntent.getService(this, 1,
