@@ -33,7 +33,7 @@ class ToolchainCatalog {
   static const platformVersion = '36';
   static const ndkVersion = '28.2.13676358';
   static const cmakeVersion = '3.22.1';
-  static const flutterVersion = '3.47.8';
+  static const flutterVersion = '3.50.0';
   static const bootstrap = CatalogSource(
     repo: packagesRepo,
     asset: 'bootstrap-aarch64.zip',
