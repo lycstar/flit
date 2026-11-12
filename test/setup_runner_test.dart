@@ -41,7 +41,7 @@ first_lib=$LD_LIBRARY_PATH
 . "$HOME/.flit/env.sh"
 [ "$PATH" = "$first_path" ]
 [ "$LD_LIBRARY_PATH" = "$first_lib" ]
-[ "$FLUTTER_VERSION" = "3.47.8" ]
+[ "$FLUTTER_VERSION" = "$EXPECTED_FLUTTER" ]
 [ "$ADB_EMU" = "0" ]
 [ "${PATH%%:*}" = "$HOME/toolchains/flutter/current/bin" ]
 case ":$PATH:" in *":$ANDROID_HOME/platform-tools:$PREFIX/bin:"*) ;; *) exit 2 ;; esac
@@ -51,6 +51,7 @@ printf '%s\n' "$PATH" "$LD_LIBRARY_PATH"
         environment: {
           'HOME': home.path,
           'PREFIX': prefix.path,
+          'EXPECTED_FLUTTER': ToolchainCatalog.flutterVersion,
           'PATH':
               '${prefix.path}/bin:${home.path}/toolchains/android-sdk/platform-tools:/usr/bin:/bin',
           'LD_LIBRARY_PATH': '${prefix.path}/lib',
